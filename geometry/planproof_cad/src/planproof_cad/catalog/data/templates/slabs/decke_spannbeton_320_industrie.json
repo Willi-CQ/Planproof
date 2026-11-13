@@ -1,0 +1,45 @@
+{
+  "template_key": "decke_spannbeton_320_industrie",
+  "name": "Spannbeton-Hohldielen 320 (Industrie)",
+  "element_type": "slab",
+  "ifc_entity_type": "IfcSlab",
+  "category": "ceiling_slab",
+  "layers": [
+    {
+      "material_key": "stahlbeton_decke_250",
+      "thickness_mm": 320.0,
+      "function": "structural"
+    }
+  ],
+  "geometry_params": {
+    "is_ground_slab": false,
+    "typical_for": [
+      "Industrie",
+      "Buero",
+      "Großspannweite"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 56,
+    "fire_resistance": "REI 120",
+    "u_value": 3.583,
+    "total_thickness_mm": 320.0,
+    "r_total": 0.279
+  },
+  "ifc_psets": {
+    "Pset_SlabCommon": {
+      "LoadBearing": true,
+      "IsExternal": false,
+      "FireRating": "REI 120",
+      "AcousticRating": "R'w >= 56 dB",
+      "ThermalTransmittance": 3.583
+    }
+  },
+  "din_references": [
+    "DIN 1045",
+    "DIN EN 1168"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"320.0\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">320</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

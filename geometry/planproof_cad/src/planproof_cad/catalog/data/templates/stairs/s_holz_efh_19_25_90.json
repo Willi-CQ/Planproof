@@ -1,0 +1,30 @@
+{
+  "template_key": "s_holz_efh_19_25_90",
+  "name": "Holztreppe EFH (19/25, B 0.90)",
+  "element_type": "stair",
+  "ifc_entity_type": "IfcStair",
+  "category": "interior_stair_residential",
+  "layers": [],
+  "geometry_params": {
+    "riser_height_mm": 190,
+    "tread_depth_mm": 250,
+    "width_mm": 900,
+    "material_primary": "wood_oak",
+    "typical_for": [
+      "EFH",
+      "Innentreppe"
+    ]
+  },
+  "computed_properties": {
+    "step_ratio": 630
+  },
+  "ifc_psets": {
+    "Pset_StairCommon": {}
+  },
+  "din_references": [
+    "DIN 18065"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18065 (2020)"
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "dampfsperre_pe",
+  "name": "Dampfsperre PE-Folie",
+  "category": "other",
+  "thickness_mm": 1.0,
+  "properties": {
+    "thermal_conductivity": 0.2,
+    "density": 1000,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

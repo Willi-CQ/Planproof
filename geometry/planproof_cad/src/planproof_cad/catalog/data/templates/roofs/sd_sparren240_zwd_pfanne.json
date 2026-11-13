@@ -1,0 +1,61 @@
+{
+  "template_key": "sd_sparren240_zwd_pfanne",
+  "name": "Satteldach: Sparren + ZwiSpaD 240 MW + Pfanne",
+  "element_type": "roof",
+  "ifc_entity_type": "IfcRoof",
+  "category": "pitched_roof_residential",
+  "layers": [
+    {
+      "material_key": "gkf_12_5",
+      "thickness_mm": 12.5,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "dampfsperre_pe",
+      "thickness_mm": 1.0,
+      "function": "vapor_barrier"
+    },
+    {
+      "material_key": "zwisparrendaemm_mw_035_240",
+      "thickness_mm": 240.0,
+      "function": "thermal_insulation_between_rafters"
+    },
+    {
+      "material_key": "osb_15",
+      "thickness_mm": 22.0,
+      "function": "wind_barrier"
+    },
+    {
+      "material_key": "dachziegel_pfanne",
+      "thickness_mm": 30.0,
+      "function": "exterior_finish"
+    }
+  ],
+  "geometry_params": {
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {
+    "fire_resistance": "REI 30",
+    "u_value": 0.138,
+    "total_thickness_mm": 305.5,
+    "r_total": 7.261
+  },
+  "ifc_psets": {
+    "Pset_RoofCommon": {
+      "IsExternal": true,
+      "FireRating": "REI 30",
+      "ThermalTransmittance": 0.138
+    }
+  },
+  "din_references": [
+    "DIN 4108-2",
+    "DIN 4108-3",
+    "DIN 1052"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"13.1\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"13.1\" y=\"0\" width=\"2.0\" height=\"96\" fill=\"#cccccc\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"15.1\" y=\"0\" width=\"251.4\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"140.8\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">240</text><rect x=\"266.5\" y=\"0\" width=\"23.0\" height=\"96\" fill=\"#9e6f3f\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"278.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">22</text><rect x=\"289.5\" y=\"0\" width=\"31.4\" height=\"96\" fill=\"#a07050\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"305.2\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">30</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

@@ -1,0 +1,36 @@
+{
+  "template_key": "r_flur",
+  "name": "Flur",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "corridor",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "circulation",
+    "nuf_class": "NUF6.1",
+    "min_area_m2": 4,
+    "min_height_mm": 2400,
+    "ventilation": "natural",
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "circulation",
+      "GrossPlannedArea": 4
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "circulation"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "DIN 18599"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

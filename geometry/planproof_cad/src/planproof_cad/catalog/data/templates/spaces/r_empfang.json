@@ -1,0 +1,36 @@
+{
+  "template_key": "r_empfang",
+  "name": "Empfang/Foyer",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "lobby",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "lobby",
+    "nuf_class": "NUF3.1",
+    "min_area_m2": 15,
+    "min_height_mm": 2750,
+    "ventilation": "natural",
+    "typical_for": [
+      "Buero",
+      "Hotel"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "lobby",
+      "GrossPlannedArea": 15
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "lobby"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "DIN 18599"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

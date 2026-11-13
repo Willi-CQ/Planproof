@@ -1,0 +1,12 @@
+{
+  "material_key": "bitumenbahn_4",
+  "name": "Bitumenbahn 4 mm",
+  "category": "cladding",
+  "thickness_mm": 4.0,
+  "properties": {
+    "thermal_conductivity": 0.17,
+    "density": 1100,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

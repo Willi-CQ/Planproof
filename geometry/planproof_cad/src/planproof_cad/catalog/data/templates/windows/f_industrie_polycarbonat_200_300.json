@@ -1,0 +1,36 @@
+{
+  "template_key": "f_industrie_polycarbonat_200_300",
+  "name": "Industrie-Polycarbonat-Element 2.00 × 3.00 (Uw 1.8)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "industrial_window",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 2000,
+    "default_height_mm": 3000,
+    "frame_material": "polycarbonate",
+    "glazing_type": "polycarbonate_x_chamber",
+    "opening_direction": "fixed",
+    "typical_for": [
+      "Industrie",
+      "Tageslicht"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.8
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.8,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN 4108-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

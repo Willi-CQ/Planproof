@@ -1,0 +1,12 @@
+{
+  "material_key": "bodenplatte_beton_250",
+  "name": "Bodenplatte Stahlbeton 250 mm",
+  "category": "concrete",
+  "thickness_mm": 250.0,
+  "properties": {
+    "thermal_conductivity": 2.3,
+    "density": 2400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

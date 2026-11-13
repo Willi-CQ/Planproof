@@ -1,0 +1,12 @@
+{
+  "material_key": "gkb_12_5",
+  "name": "Gipskartonplatte GKB 12.5 mm",
+  "category": "finish",
+  "thickness_mm": 12.5,
+  "properties": {
+    "thermal_conductivity": 0.21,
+    "density": 700,
+    "fire_class": "A2"
+  },
+  "source": "Planproof"
+}

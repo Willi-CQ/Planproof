@@ -1,0 +1,36 @@
+{
+  "template_key": "r_kueche",
+  "name": "Küche",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "kitchen",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "kitchen",
+    "nuf_class": "NUF1.2",
+    "min_area_m2": 8,
+    "min_height_mm": 2400,
+    "ventilation": "mechanical_extract",
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "kitchen",
+      "GrossPlannedArea": 8
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "kitchen"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "DIN 18599"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

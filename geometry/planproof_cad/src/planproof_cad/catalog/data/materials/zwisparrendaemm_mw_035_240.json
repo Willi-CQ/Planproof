@@ -1,0 +1,12 @@
+{
+  "material_key": "zwisparrendaemm_mw_035_240",
+  "name": "Zwischensparren MW 035 / 240 mm",
+  "category": "insulation",
+  "thickness_mm": 240.0,
+  "properties": {
+    "thermal_conductivity": 0.035,
+    "density": 22,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

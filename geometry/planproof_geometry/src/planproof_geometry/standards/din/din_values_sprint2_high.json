@@ -1,0 +1,432 @@
+{
+  "_meta": {
+    "sprint": 2,
+    "scope": "HIGH-Priority Normen — konkrete Zahlenwerte",
+    "normen": ["DIN 18202", "DIN 4102", "DIN 4109", "DIN 4108", "DIN 18040-1", "DIN 18040-2", "MBO/LBO"],
+    "created": "2026-04-14",
+    "status": "VALUES_POPULATED"
+  },
+
+  "din_18202": {
+    "title": "Toleranzen im Hochbau — Bauwerke",
+    "ausgabe": "2019-07",
+
+    "tabelle_1_grenzabweichungen_mm": {
+      "beschreibung": "Zulässige Grenzabweichungen (±) in mm, gestaffelt nach Nennmaß-Bereichen in m",
+      "nennmass_bereiche_m": ["bis_1", "1_bis_3", "3_bis_6", "6_bis_15", "15_bis_30", "ueber_30"],
+
+      "zeile_1_masse_grundriss": {
+        "beschreibung": "Längen, Breiten, Achs- und Rastermaße",
+        "werte_mm": [10, 12, 16, 20, 24, 30]
+      },
+      "zeile_2_masse_aufriss": {
+        "beschreibung": "Geschosshöhen, Podesthöhen, Abstände von Aufstandsflächen",
+        "werte_mm": [10, 16, 16, 20, 30, 30]
+      },
+      "zeile_3_lichte_masse_grundriss": {
+        "beschreibung": "Maße zwischen Stützen, Pfeilern, Wänden",
+        "werte_mm": [12, 16, 20, 24, 30, null]
+      },
+      "zeile_4_lichte_masse_aufriss": {
+        "beschreibung": "Unter Decken und Unterzügen",
+        "werte_mm": [16, 20, 20, 30, null, null]
+      },
+      "zeile_5_oeffnungen_innentuer": {
+        "beschreibung": "Öffnungen für Innentüren (nach DIN 18100)",
+        "verweis": "Grenzabmaße nach DIN 18100 beachten"
+      },
+      "zeile_6_oeffnungen_fenster_aussentuer": {
+        "beschreibung": "Öffnungen für Fenster, Außentüren, sonstige Einbauelemente",
+        "werte_mm": [10, 12, 16, 20, 24, 30]
+      }
+    },
+
+    "tabelle_2_winkelabweichungen_stichmaesse_mm": {
+      "beschreibung": "Stichmaße als Grenzwerte für Winkelabweichungen an vertikalen/horizontalen/geneigten Flächen",
+      "nennmass_bereiche_m": ["bis_0.5", "0.5_bis_1", "1_bis_3", "3_bis_6", "6_bis_15", "15_bis_30", "ueber_30"],
+      "werte_mm": [3, 6, 8, 12, 16, 20, 30]
+    },
+
+    "tabelle_3_ebenheitsabweichungen_stichmaesse_mm": {
+      "beschreibung": "Grenzwerte für Ebenheitsabweichungen (Stichmaße) bei verschiedenen Messpunktabständen",
+      "messpunktabstaende_m": [0.1, 1, 4, 10, 15],
+      "zeile_1_nichtflaechenfertige_decken": [5, 10, 15, 25, 30],
+      "zeile_2_nichtflaechenfertige_decken_fuer_estrich": [3, 8, 12, 20, 25],
+      "zeile_3_flaechenfertige_boeden": [2, 4, 10, 12, 15],
+      "zeile_4_flaechenfertige_boeden_erhoeht": [1, 3, 9, 12, 15],
+      "zeile_5_nichtflaechenfertige_waende": [5, 10, 15, 25, 30],
+      "zeile_6_flaechenfertige_waende": [3, 5, 10, 20, 25],
+      "zeile_7_flaechenfertige_waende_erhoeht": [2, 3, 8, 15, 20]
+    },
+
+    "messregeln": {
+      "messpunkt_randabstand_mm": 100,
+      "hinweis": "Toleranzen für Nennmaße > 30m können bis ca. 60m angewandt werden"
+    },
+
+    "p2b_anwendung": {
+      "toleranz_fuer_detection": "Erkannte Maße im Plan sind Nennmaße. Reale Ausführung weicht um Tabelle-1-Werte ab. Für Bestandsaufnahme: breiteres Toleranzband verwenden.",
+      "scan_to_bim_relevanz": "Bei As-Built-Vergleich: gemessene Ist-Werte gegen Nennmaße + Toleranzband prüfen. Abweichung > Grenzwert = Deviation-Report.",
+      "deviation_klassifikation": {
+        "innerhalb_toleranz": "grün — normkonform",
+        "bis_2x_toleranz": "gelb — Grenzbereich, Prüfung empfohlen",
+        "ueber_2x_toleranz": "rot — nicht normkonform, Handlungsbedarf"
+      }
+    }
+  },
+
+  "din_4102": {
+    "title": "Brandverhalten von Baustoffen und Bauteilen",
+    "ausgabe": "Teil 4: 2016-05 (klassifizierte Bauteile)",
+
+    "baustoffklassen": {
+      "A1": "nichtbrennbar, ohne brennbare Bestandteile (Beton, Stahl, Ziegel, Naturstein, Glas)",
+      "A2": "nichtbrennbar, mit beschränkten brennbaren Bestandteilen (Gipskarton)",
+      "B1": "schwerentflammbar (Hartholz ≥2mm, spezielle Kunststoffe)",
+      "B2": "normalentflammbar (Holz, viele Kunststoffe, Papier)",
+      "B3": "leichtentflammbar (Stroh, Papier dünn)"
+    },
+
+    "feuerwiderstandsklassen_din": {
+      "F30":  {"bezeichnung": "feuerhemmend", "dauer_min": 30},
+      "F60":  {"bezeichnung": "hochfeuerhemmend", "dauer_min": 60},
+      "F90":  {"bezeichnung": "feuerbeständig", "dauer_min": 90},
+      "F120": {"bezeichnung": "hochfeuerbeständig", "dauer_min": 120},
+      "F180": {"bezeichnung": "höchstfeuerbeständig", "dauer_min": 180}
+    },
+
+    "eu_klassifikation_mapping": {
+      "F30":  "REI 30 (tragend) / EI 30 (nichttragend)",
+      "F60":  "REI 60 / EI 60",
+      "F90":  "REI 90 / EI 90",
+      "F120": "REI 120 / EI 120",
+      "F180": "REI 180 / EI 180",
+      "legende": "R = Tragfähigkeit, E = Raumabschluss, I = Wärmedämmung"
+    },
+
+    "mindest_wanddicken_feuerwiderstand_mm": {
+      "beschreibung": "Mindestwanddicken für tragende raumabschließende Wände (unverputzt), nach DIN 4102-4",
+
+      "kalksandstein": {
+        "F30":  {"dicke_mm": 115, "rohdichteklasse_min": "1.2"},
+        "F60":  {"dicke_mm": 115, "rohdichteklasse_min": "1.4"},
+        "F90":  {"dicke_mm": 175, "rohdichteklasse_min": "1.4"},
+        "F120": {"dicke_mm": 175, "rohdichteklasse_min": "1.8"},
+        "brandwand": {"dicke_mm": 175, "rohdichteklasse_min": "1.8"}
+      },
+      "ziegel": {
+        "F30":  {"dicke_mm": 115},
+        "F60":  {"dicke_mm": 115},
+        "F90":  {"dicke_mm": 175},
+        "F120": {"dicke_mm": 240},
+        "brandwand": {"dicke_mm": 240}
+      },
+      "porenbeton": {
+        "F30":  {"dicke_mm": 75},
+        "F60":  {"dicke_mm": 100},
+        "F90":  {"dicke_mm": 150},
+        "F120": {"dicke_mm": 175},
+        "brandwand": {"dicke_mm": 240}
+      },
+      "stahlbeton": {
+        "F30":  {"dicke_mm": 80},
+        "F60":  {"dicke_mm": 100},
+        "F90":  {"dicke_mm": 120},
+        "F120": {"dicke_mm": 150},
+        "F180": {"dicke_mm": 175}
+      },
+
+      "nichttragende_waende_ei": {
+        "porenbeton_EI90_mm": 75,
+        "kalksandstein_EI90_mm": 115,
+        "ziegel_EI90_mm": 115,
+        "gipskarton_EI30_mm": 100,
+        "gipskarton_EI60_mm": 125,
+        "gipskarton_EI90_mm": 150
+      }
+    },
+
+    "p2b_anwendung": {
+      "klassifikation_logik": "Wanddicke + Material (aus Schraffur/Altbau-Epoche) → Feuerwiderstandsklasse ableiten",
+      "ifc_property": "FireRating = 'F30' | 'F60' | 'F90' | 'F120' (oder REI-Notation)",
+      "brandwand_erkennung": "Wanddicke ≥ 240mm + durchgehend über alle Geschosse + keine Öffnungen → mögliche Brandwand markieren"
+    }
+  },
+
+  "din_4109": {
+    "title": "Schallschutz im Hochbau",
+    "ausgabe": "Teil 1: 2018-01, Teil 32: 2016-07",
+
+    "mindestanforderungen_luftschall_rw_db": {
+      "beschreibung": "Mindest bewertetes Schalldämm-Maß R'w in dB nach DIN 4109-1",
+      "wohnungstrennwaende": 53,
+      "wohnungstrenndecken": 54,
+      "treppenraumwaende": 52,
+      "waende_zu_laerm_gewerbe": 57,
+      "hinweis": "Erhöhter Schallschutz nach VDI 4100 SSt II: 56 dB, SSt III: 59 dB"
+    },
+
+    "typische_schalldaemmwerte_rw_db": {
+      "beschreibung": "Bewertetes Schalldämm-Maß R'w für einschalige massive Wände (Richtwerte nach flächenbezogener Masse)",
+      "wandtypen": {
+        "115mm_kalksandstein_RDK1.8":  {"masse_kg_m2": 207, "rw_db": 44},
+        "150mm_kalksandstein_RDK1.8":  {"masse_kg_m2": 270, "rw_db": 47},
+        "175mm_kalksandstein_RDK1.8":  {"masse_kg_m2": 315, "rw_db": 49},
+        "240mm_kalksandstein_RDK1.8":  {"masse_kg_m2": 432, "rw_db": 53},
+        "300mm_kalksandstein_RDK1.8":  {"masse_kg_m2": 540, "rw_db": 56},
+        "115mm_ziegel_RDK1.4":        {"masse_kg_m2": 161, "rw_db": 42},
+        "240mm_ziegel_RDK1.4":        {"masse_kg_m2": 336, "rw_db": 50},
+        "175mm_porenbeton_RDK0.5":    {"masse_kg_m2": 88,  "rw_db": 37},
+        "240mm_porenbeton_RDK0.6":    {"masse_kg_m2": 144, "rw_db": 42},
+        "200mm_stahlbeton":           {"masse_kg_m2": 480, "rw_db": 55},
+        "100mm_gipskarton_doppelt":   {"masse_kg_m2": 50,  "rw_db": 43}
+      },
+      "faustregel": "R'w ≈ 28 × log10(m') - 18 [dB], wobei m' = flächenbezogene Masse in kg/m²"
+    },
+
+    "p2b_anwendung": {
+      "klassifikation_logik": "Wanddicke + Material → flächenbezogene Masse → R'w schätzen → gegen Mindestanforderung prüfen",
+      "trennwand_check": "Wenn Wand zwischen zwei Wohnungen (erkannt aus Raum-Labels) → R'w ≥ 53 dB erforderlich → Mindestdicke prüfen",
+      "ifc_property": "AcousticRating (Pset_WallCommon) = geschätzter R'w Wert"
+    }
+  },
+
+  "din_4108": {
+    "title": "Wärmeschutz und Energie-Einsparung in Gebäuden",
+
+    "u_wert_anforderungen_geg_2024_w_m2k": {
+      "beschreibung": "Maximal zulässige U-Werte bei Sanierung (GEG 2024, Anlage 7)",
+      "aussenwand": 0.24,
+      "fenster": 1.3,
+      "dach": 0.24,
+      "oberste_geschossdecke": 0.24,
+      "kellerdecke_erdberuehrt": 0.30,
+      "kelleraussenwand": 0.30,
+      "hinweis": "Bei Renovierung gelten diese Werte nur wenn > 10% der Bauteilfläche erneuert wird"
+    },
+
+    "typische_wandaufbauten_u_werte": {
+      "bestandswand_ohne_daemmung": {
+        "365mm_vollziegel": {"u_wert": 1.5, "beschreibung": "Gründerzeit/Altbau typisch"},
+        "240mm_kalksandstein": {"u_wert": 2.1, "beschreibung": "Nachkrieg typisch"},
+        "300mm_porenbeton": {"u_wert": 0.8, "beschreibung": "Ab 1970er"}
+      },
+      "sanierte_wand_mit_wdvs": {
+        "240mm_ks_plus_120mm_daemmung": {"u_wert": 0.23, "beschreibung": "GEG-konform"},
+        "365mm_ziegel_plus_100mm_daemmung": {"u_wert": 0.27, "beschreibung": "Knapp GEG-konform"},
+        "175mm_ks_plus_160mm_daemmung": {"u_wert": 0.19, "beschreibung": "Über GEG-Anforderung"}
+      }
+    },
+
+    "p2b_anwendung": {
+      "wandaufbau_hypothese": "Erkannte Gesamtwanddicke → Aufbau-Hypothese: Tragschale + Dämmung + Putz",
+      "sanierungscheck": "Bei Renovierungsprojekten: Bestandswand-U-Wert schätzen → gegen GEG prüfen → Sanierungsbedarf signalisieren",
+      "ifc_property": "ThermalTransmittance (Pset_WallCommon) = geschätzter U-Wert in W/(m²·K)"
+    }
+  },
+
+  "din_18040_1": {
+    "title": "Barrierefreies Bauen — Teil 1: Öffentlich zugängliche Gebäude",
+    "ausgabe": "2010-10",
+
+    "bewegungsflaechen_mm": {
+      "rollstuhl_wendeflaeche": {"breite": 1500, "tiefe": 1500},
+      "rollator_wendeflaeche": {"breite": 1200, "tiefe": 1200},
+      "begegnung_zwei_rollstuehle": {"breite": 1800, "tiefe": 1800},
+      "vor_aufzugstueren": {"breite": 1500, "tiefe": 1500}
+    },
+
+    "tueren_mm": {
+      "lichte_durchgangsbreite_min": 900,
+      "lichte_durchgangshoehe_min": 2050,
+      "schwellenhoehe_max": 20,
+      "abstand_druecker_zu_wand_min": 500,
+      "oeffnungskraft_max_n": 25
+    },
+
+    "flure_mm": {
+      "breite_min_ohne_begegnung": 1200,
+      "breite_min_mit_begegnung": 1800,
+      "durchgangsbreite_min": 900,
+      "durchgangshoehe_min": 2200
+    },
+
+    "rampen": {
+      "laengsneigung_max_pct": 6,
+      "querneigung_max_pct": 2,
+      "laenge_max_ohne_podest_m": 6,
+      "breite_min_mm": 1200,
+      "bewegungsflaeche_oben_unten_mm": {"breite": 1500, "tiefe": 1500}
+    },
+
+    "aufzug_min": {
+      "fahrkorb_breite_mm": 1100,
+      "fahrkorb_tiefe_mm": 1400,
+      "tuerbreite_mm": 900
+    },
+
+    "sanitaer": {
+      "bewegungsflaeche_vor_objekten_mm": {"breite": 1500, "tiefe": 1500},
+      "wc_seitlicher_abstand_mm": 900,
+      "waschtisch_unterfahrbar_beinfreiheit_mm": 550
+    },
+
+    "treppen": {
+      "nutzbare_laufbreite_min_mm": 1000,
+      "handlauf_hoehe_mm": {"min": 850, "max": 900},
+      "handlauf_durchmesser_mm": {"min": 30, "max": 45},
+      "unterschneidung_max_mm": 20
+    }
+  },
+
+  "din_18040_2": {
+    "title": "Barrierefreies Bauen — Teil 2: Wohnungen",
+    "ausgabe": "2011-09",
+
+    "stufen": {
+      "barrierefrei": "Grundanforderung",
+      "R": "Uneingeschränkt mit Rollstuhl nutzbar (strengere Anforderung)"
+    },
+
+    "tueren_mm": {
+      "barrierefrei_lichte_breite_min": 800,
+      "R_lichte_breite_min": 900,
+      "schwellenhoehe_max": 20,
+      "schwelle_bevorzugt": 0,
+      "lichte_hoehe_min": 2050
+    },
+
+    "flure_mm": {
+      "barrierefrei_breite_min": 1200,
+      "R_breite_min": 1200,
+      "R_wendeflaeche": {"breite": 1500, "tiefe": 1500}
+    },
+
+    "raeume_mm": {
+      "barrierefrei_bewegungsflaeche": {"breite": 1200, "tiefe": 1200},
+      "R_bewegungsflaeche": {"breite": 1500, "tiefe": 1500}
+    },
+
+    "bad_wc_mm": {
+      "barrierefrei_bewegungsflaeche": {"breite": 1200, "tiefe": 1200},
+      "R_bewegungsflaeche": {"breite": 1500, "tiefe": 1500},
+      "R_wc_abstand_seitlich": 900,
+      "R_wc_abstand_vorne": 700,
+      "R_dusche_bodengleich": true,
+      "R_dusche_bewegungsflaeche": {"breite": 1500, "tiefe": 1500}
+    },
+
+    "kueche_mm": {
+      "R_bewegungsflaeche": {"breite": 1500, "tiefe": 1500},
+      "R_unterfahrbare_arbeitsplatte": true
+    },
+
+    "p2b_anwendung_18040": {
+      "compliance_check": "Bei öffentlichen Gebäuden: Türbreiten, Flurbreiten, Bewegungsflächen gegen DIN 18040-1 prüfen. Bei Wohngebäuden: gegen DIN 18040-2 prüfen.",
+      "auto_detection": "Wenn erkannte Türbreite ≥ 900mm licht → barrierefrei-kompatibel markieren. Wenn < 800mm → 'nicht barrierefrei' flaggen.",
+      "flur_check": "Wenn erkannte Flurbreite < 1200mm → Barrierefreiheits-Warnung",
+      "ifc_property": "IsAccessible (custom Pset) = true/false + Accessibility_Standard = 'DIN 18040-1' | 'DIN 18040-2' | 'DIN 18040-2 R'"
+    }
+  },
+
+  "mbo_lbo": {
+    "title": "Musterbauordnung / Landesbauordnungen — Bauordnungsrechtliche Mindestanforderungen",
+    "basis": "MBO Fassung November 2002 (mit Änderungen 2023)",
+
+    "raumhoehen_mm": {
+      "aufenthaltsraum_allgemein": {"min": 2400},
+      "aufenthaltsraum_gk1_gk2_wohngebaeude": {"hinweis": "Ausnahme von 2400mm — Landesrecht beachten, oft 2300mm oder keine Vorgabe"},
+      "aufenthaltsraum_dachraum": {"min_ueber_halber_nrf": 2200},
+      "nicht_angerechnet_unter_mm": 1000,
+      "halb_angerechnet_bis_mm": 2000,
+      "keller_nebenraum": {"empfohlen_min": 2200},
+      "typische_geschosshoehen_mm": {
+        "neubau_wohngebaeude": [2500, 2600, 2750],
+        "neubau_buero": [2750, 3000, 3200],
+        "altbau_gruenderzeit": [3000, 3200, 3500, 3800],
+        "altbau_nachkrieg": [2500, 2600]
+      }
+    },
+
+    "belichtung": {
+      "fensterflaeche_min": "1/8 der Netto-Grundfläche des Aufenthaltsraums (Rohbaumaß der Fensteröffnung)",
+      "fensterlose_raeume_erlaubt": ["Verkaufsräume", "Gaststätten", "Sporträume", "Werkräume", "fensterlose Küchen mit Lüftung"]
+    },
+
+    "rettungswege": {
+      "max_entfernung_aufenthaltsraum_zu_treppenraum_m": 35,
+      "notwendige_flure_max_laenge_einrichtung_m": 30,
+      "notwendige_flure_sackgasse_max_m": 15,
+      "rettungsfenster": {
+        "breite_min_mm": 600,
+        "hoehe_min_mm": 1000,
+        "bruestung_max_ueber_okff_mm": 1200,
+        "bruestung_max_ueber_gelaende_m": 8
+      },
+      "rettungsweg_breite_min_mm": 1000
+    },
+
+    "gebaeudeklassen": {
+      "GK1": "Freistehend, ≤ 7m Höhe, ≤ 2 NE, ≤ 400m² BGF",
+      "GK2": "Nicht freistehend, ≤ 7m Höhe, ≤ 2 NE, ≤ 400m² BGF",
+      "GK3": "≤ 7m Höhe, > 2 NE oder > 400m² BGF",
+      "GK4": "≤ 13m Höhe, NE ≤ 400m² BGF",
+      "GK5": "> 13m Höhe oder NE > 400m² BGF oder unterirdisch"
+    },
+
+    "brandschutz_anforderungen_nach_gk": {
+      "GK1_GK2": {
+        "tragende_waende": "keine Anforderung",
+        "trennwaende": "keine Anforderung",
+        "decken": "keine Anforderung (GK1), feuerhemmend (GK2)"
+      },
+      "GK3": {
+        "tragende_waende": "feuerhemmend (F30)",
+        "trennwaende": "feuerhemmend (F30)",
+        "decken": "feuerhemmend (F30)"
+      },
+      "GK4": {
+        "tragende_waende": "hochfeuerhemmend (F60)",
+        "trennwaende": "feuerhemmend (F30)",
+        "decken": "hochfeuerhemmend (F60)"
+      },
+      "GK5": {
+        "tragende_waende": "feuerbeständig (F90)",
+        "trennwaende": "feuerhemmend (F30)",
+        "decken": "feuerbeständig (F90)"
+      }
+    },
+
+    "p2b_anwendung": {
+      "raumhoehen_check": "Aus Geschosshöhe (Sprint 1, DIN 18065) abzgl. Deckendicke und Bodenaufbau → lichte Raumhöhe schätzen → gegen 2400mm MBO-Minimum prüfen",
+      "fensterflaechen_check": "Erkannte Fensteröffnungsfläche ÷ erkannte Raum-NRF → Verhältnis ≥ 1/8 prüfen",
+      "rettungsweg_check": "Entfernung von jedem Aufenthaltsraum-Zentroid zum nächsten Treppenhaus-Polygon messen → ≤ 35m prüfen",
+      "gebaeudeklasse_hinweis": "Gebäudeklasse als Projekt-Parameter erfassen → beeinflusst alle Brandschutz-Anforderungen"
+    }
+  },
+
+  "din_201_schraffuren": {
+    "title": "Schraffuren in Zeichnungen — Material-Symbole in Schnittdarstellungen",
+    "beschreibung": "Lookup für Material-Erkennung aus Schraffurmustern in Grundriss-Schnitten",
+
+    "schraffur_material_mapping": {
+      "diagonale_linien_45grad": "Mauerwerk allgemein (Ziegel, Kalksandstein)",
+      "diagonale_linien_mit_punkten": "Naturstein / Bruchstein",
+      "punktmuster_dicht": "Beton / Stahlbeton",
+      "punktmuster_locker": "Putz / Mörtel",
+      "kreuzschraffur": "Stahl / Metall",
+      "wellenlinien_horizontal": "Holz (Längsschnitt)",
+      "jahresringe_kreise": "Holz (Querschnitt)",
+      "dreiecke_zickzack": "Dämmstoff / Isolierung",
+      "leer_weiss": "Luft / Hohlraum / Luftschicht",
+      "vollschwarz": "Erdreich / Boden",
+      "sand_punkte_unregelmässig": "Sand / Kies / Schüttung"
+    },
+
+    "p2b_anwendung": {
+      "pipeline_phase": "detection / post_processing",
+      "erkennung": "Schraffurmuster in Wand-Querschnitten → Material-Hypothese → beeinflusst Wandtyp-Klassifikation, Brandschutz, Schallschutz, Wärmeschutz",
+      "ifc_property": "Material (IfcMaterialLayerSetUsage) = erkanntes Material"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "perimeter_xps_035_120",
+  "name": "Perimeter-Dämmung XPS 035 / 120 mm",
+  "category": "insulation",
+  "thickness_mm": 120.0,
+  "properties": {
+    "thermal_conductivity": 0.035,
+    "density": 35,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

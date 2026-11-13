@@ -1,0 +1,55 @@
+{
+  "template_key": "iw_wt_ks240_rw53",
+  "name": "Wohnungstrennwand KS 240 (R'w >= 53 dB)",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "interior_wall_apartment_separation",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "ks_1_8_240",
+      "thickness_mm": 240.0,
+      "function": "structural_acoustic"
+    },
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "MFH",
+      "Wohnungstrennwand"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 55,
+    "fire_resistance": "REI 90",
+    "u_value": 2.122,
+    "total_thickness_mm": 270.0,
+    "r_total": 0.471
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": false,
+      "LoadBearing": true,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 55 dB",
+      "ThermalTransmittance": 2.122
+    }
+  },
+  "din_references": [
+    "DIN 4109-1",
+    "DIN 4109-32",
+    "DIN 1053-1"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"17.8\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"17.8\" y=\"0\" width=\"284.4\" height=\"96\" fill=\"#c8b89a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">240</text><rect x=\"302.2\" y=\"0\" width=\"17.8\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

@@ -1,0 +1,35 @@
+{
+  "template_key": "f_alu_element_fassade_120_280",
+  "name": "Element-Fassade Alu 120 × 280 (Uw 1.1)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "curtain_wall",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1200,
+    "default_height_mm": 2800,
+    "frame_material": "aluminum_unitized",
+    "glazing_type": "3_pane_low_e",
+    "opening_direction": "tilt_turn",
+    "typical_for": [
+      "Buero_Hochhaus"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.1
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.1,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN EN 13830"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

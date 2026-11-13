@@ -1,0 +1,12 @@
+{
+  "material_key": "porenbeton_0_4_240",
+  "name": "Porenbeton 0.4 / 240 mm",
+  "category": "masonry",
+  "thickness_mm": 240.0,
+  "properties": {
+    "thermal_conductivity": 0.13,
+    "density": 400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

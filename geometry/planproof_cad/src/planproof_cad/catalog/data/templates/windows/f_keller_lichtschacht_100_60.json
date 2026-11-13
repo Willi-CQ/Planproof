@@ -1,0 +1,35 @@
+{
+  "template_key": "f_keller_lichtschacht_100_60",
+  "name": "Kellerfenster Lichtschacht 100 × 60 (Uw 1.4)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "basement_window",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1000,
+    "default_height_mm": 600,
+    "frame_material": "pvc",
+    "glazing_type": "2_pane_low_e",
+    "opening_direction": "tilt_only",
+    "typical_for": [
+      "Keller"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.4
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.4,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN 4108-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

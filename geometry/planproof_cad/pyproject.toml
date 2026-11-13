@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planproof-cad"
+version = "0.1.0"
+description = "DXF-Pipeline: Waende, Oeffnungen, Raeume, IFC4/GLB und Mengen aus einer CAD-Zeichnung. Ohne ML, ohne Cloud."
+readme = "README.md"
+requires-python = ">=3.11"
+# Platzhalter bis zur Lizenzklaerung (die Texte schreibt ein anderer Arbeitsschritt).
+license = { text = "LicenseRef-Proprietary-Evaluation" }
+dependencies = [
+  "numpy>=1.26",
+  "shapely>=2.0",
+  "ezdxf>=1.4.4",
+  "pydantic>=2.6",
+  "ifcopenshell>=0.8",
+]
+
+[project.optional-dependencies]
+rest = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "python-multipart>=0.0.9",
+]
+xlsx = [
+  "openpyxl>=3.1",
+]
+# WallGraph.to_networkx() und WallGraph.outer_face_polygon(); die DXF-Pipeline braucht es nicht.
+graph = [
+  "networkx>=3.0",
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "networkx>=3.0",
+  # Nur fuer den REST-Test (starlette TestClient). Kein Laufzeit-Bestandteil, steht nicht in
+  # den Pflicht-Abhaengigkeiten.
+  "httpx>=0.27",
+]
+
+[project.scripts]
+planproof-cad = "planproof_cad.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["planproof_cad*"]
+
+[tool.setuptools.package-data]
+# Katalog-Seeds (Materialien und Templates); geladen ueber importlib.resources.
+"planproof_cad.catalog" = ["data/**/*.json"]
+# Regeltabelle des Kostengruppen-Vorschlags (die eingebettete Konstante in kg/zuordnung.py
+# muss gleich bleiben, ein Test prueft das).
+"planproof_cad.kg" = ["kg_rules.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B"]

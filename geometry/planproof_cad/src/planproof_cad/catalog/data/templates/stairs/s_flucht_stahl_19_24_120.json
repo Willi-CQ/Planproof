@@ -1,0 +1,34 @@
+{
+  "template_key": "s_flucht_stahl_19_24_120",
+  "name": "Außenfluchttreppe Stahl 19/24 (B 1.20)",
+  "element_type": "stair",
+  "ifc_entity_type": "IfcStair",
+  "category": "necessary_stair",
+  "layers": [],
+  "geometry_params": {
+    "riser_height_mm": 190,
+    "tread_depth_mm": 240,
+    "width_mm": 1200,
+    "material_primary": "steel_hot_dip",
+    "typical_for": [
+      "Industrie",
+      "Fluchtweg"
+    ]
+  },
+  "computed_properties": {
+    "step_ratio": 620,
+    "fire_resistance": "R 30"
+  },
+  "ifc_psets": {
+    "Pset_StairCommon": {
+      "FireRating": "R 30"
+    }
+  },
+  "din_references": [
+    "DIN 18065",
+    "DIN EN 1991-1-1"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18065 (2020)"
+}

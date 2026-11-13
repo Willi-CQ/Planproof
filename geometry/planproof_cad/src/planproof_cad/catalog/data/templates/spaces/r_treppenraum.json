@@ -1,0 +1,36 @@
+{
+  "template_key": "r_treppenraum",
+  "name": "Treppenraum",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "stairwell",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "stairwell",
+    "nuf_class": "NUF6.2",
+    "min_area_m2": 6,
+    "min_height_mm": 2400,
+    "ventilation": "natural",
+    "typical_for": [
+      "MFH",
+      "Buero"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "stairwell",
+      "GrossPlannedArea": 6
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "stairwell"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "MBO §35"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

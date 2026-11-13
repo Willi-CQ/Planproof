@@ -1,0 +1,54 @@
+{
+  "template_key": "decke_beton250_buero",
+  "name": "Bürodecke Beton 250 + Hohlraumboden",
+  "element_type": "slab",
+  "ifc_entity_type": "IfcSlab",
+  "category": "ceiling_slab",
+  "layers": [
+    {
+      "material_key": "stahlbeton_decke_250",
+      "thickness_mm": 250.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "trittschall_mw_t_30",
+      "thickness_mm": 30.0,
+      "function": "impact_sound"
+    },
+    {
+      "material_key": "estrich_zement_60",
+      "thickness_mm": 60.0,
+      "function": "screed"
+    }
+  ],
+  "geometry_params": {
+    "is_ground_slab": false,
+    "typical_for": [
+      "Buero",
+      "Industriedecke"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 58,
+    "impact_sound_ln_w": 48,
+    "fire_resistance": "REI 120",
+    "u_value": 0.96,
+    "total_thickness_mm": 340.0,
+    "r_total": 1.042
+  },
+  "ifc_psets": {
+    "Pset_SlabCommon": {
+      "LoadBearing": true,
+      "IsExternal": false,
+      "FireRating": "REI 120",
+      "AcousticRating": "R'w >= 58 dB",
+      "ThermalTransmittance": 0.96
+    }
+  },
+  "din_references": [
+    "DIN 1045"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"235.3\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"117.6\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">250</text><rect x=\"235.3\" y=\"0\" width=\"28.2\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"249.4\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">30</text><rect x=\"263.5\" y=\"0\" width=\"56.5\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"291.8\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">60</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

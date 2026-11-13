@@ -1,0 +1,12 @@
+{
+  "material_key": "aufsparrendaemm_pir_024_120",
+  "name": "Aufsparren PIR 024 / 120 mm",
+  "category": "insulation",
+  "thickness_mm": 120.0,
+  "properties": {
+    "thermal_conductivity": 0.024,
+    "density": 35,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

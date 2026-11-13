@@ -1,0 +1,12 @@
+{
+  "material_key": "tuerblatt_t30_stahl",
+  "name": "Brandschutztürblatt T30 Stahl",
+  "category": "metal",
+  "thickness_mm": 60.0,
+  "properties": {
+    "thermal_conductivity": 0.3,
+    "density": 800,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

@@ -1,0 +1,33 @@
+{
+  "template_key": "s_beton_buero_17_30_150",
+  "name": "Treppe Stahlbeton Büro (17/30, B 1.50)",
+  "element_type": "stair",
+  "ifc_entity_type": "IfcStair",
+  "category": "necessary_stair",
+  "layers": [],
+  "geometry_params": {
+    "riser_height_mm": 170,
+    "tread_depth_mm": 300,
+    "width_mm": 1500,
+    "material_primary": "reinforced_concrete",
+    "typical_for": [
+      "Buero",
+      "Sonderbau"
+    ]
+  },
+  "computed_properties": {
+    "step_ratio": 640,
+    "fire_resistance": "REI 90"
+  },
+  "ifc_psets": {
+    "Pset_StairCommon": {
+      "FireRating": "REI 90"
+    }
+  },
+  "din_references": [
+    "DIN 18065"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18065 (2020)"
+}

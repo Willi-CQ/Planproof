@@ -1,0 +1,33 @@
+{
+  "template_key": "t_t90_125_220",
+  "name": "Brandschutztür T90 125 × 220 (Industrie)",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "fire_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1250,
+    "default_height_mm": 2200,
+    "leaf_type": "steel_t90",
+    "opening_direction": "single_swing",
+    "typical_for": [
+      "Industrie",
+      "Brandwand"
+    ]
+  },
+  "computed_properties": {
+    "fire_resistance": "EI 90"
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false,
+      "FireRating": "EI 90"
+    }
+  },
+  "din_references": [
+    "DIN 4102-5"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

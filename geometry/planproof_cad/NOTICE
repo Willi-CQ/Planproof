@@ -1,0 +1,23 @@
+planproof-cad
+Copyright (c) 2026 Willi Horn. All rights reserved. See LICENSE.
+
+This package uses the following third-party software. Versions and licenses were read from the
+installed package metadata (Python 3.11.15, Windows AMD64); the full list including transitive
+dependencies and the license texts are in THIRD_PARTY_LICENSES.md.
+
+  ezdxf 1.4.5 - MIT License - https://github.com/mozman/ezdxf
+  ifcopenshell 0.9.0.post1 - LGPL-3.0-or-later - http://ifcopenshell.org
+  numpy 2.4.6 - BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 - https://numpy.org
+  pydantic 2.14.1 - MIT - https://github.com/pydantic/pydantic
+  shapely 2.2.0 - BSD-3-Clause - https://github.com/shapely/shapely
+
+LGPL components (ifcopenshell, GEOS inside the shapely wheel): used unmodified as separate,
+replaceable libraries installed by pip. Source: https://github.com/ifcopenshell/ifcopenshell,
+https://libgeos.org. Details in THIRD_PARTY_LICENSES.md section 3.
+
+Test drawings under goldset/data/ are derived from the Swiss Dwellings dataset
+(Archilyse AG et al., CC BY 4.0). Attribution and the statement of changes are in
+goldset/data/ATTRIBUTION.md.
+
+Not part of this package and not delivered with it: ultralytics (AGPL-3.0), torch, OpenCV, trained
+model weights, the ODA File Converter and LibreDWG. See docs/ODA_AND_DWG.md.

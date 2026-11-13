@@ -1,0 +1,37 @@
+{
+  "template_key": "sd_unausgebaut_kaltdach",
+  "name": "Satteldach unausgebaut (Kaltdach, keine Wärmedämmung)",
+  "element_type": "roof",
+  "ifc_entity_type": "IfcRoof",
+  "category": "pitched_roof_residential",
+  "layers": [
+    {
+      "material_key": "dachziegel_pfanne",
+      "thickness_mm": 30.0,
+      "function": "exterior_finish"
+    }
+  ],
+  "geometry_params": {
+    "typical_for": [
+      "EFH_unausgebaut",
+      "Scheune"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 5.882,
+    "total_thickness_mm": 30.0,
+    "r_total": 0.17
+  },
+  "ifc_psets": {
+    "Pset_RoofCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 5.882
+    }
+  },
+  "din_references": [
+    "DIN 4108-2"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"320.0\" height=\"96\" fill=\"#a07050\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">30</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}
