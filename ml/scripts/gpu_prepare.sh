@@ -16,7 +16,7 @@ planproof-ml fetch --source cubicasa5k --data-root "$PLANPROOF_DATA_ROOT" --extr
 planproof-ml prepare --source cubicasa5k --raw "$PLANPROOF_DATA_ROOT/extracted/cubicasa5k" --out "$PLANPROOF_DATA_ROOT/processed"
 planproof-ml audit --manifest "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl" --deep --near --out "$PLANPROOF_DATA_ROOT/processed/audit.json"
 planproof-ml inspect --manifest "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl" --out "$PLANPROOF_DATA_ROOT/inspection" --per-source 12
-planproof-ml preflight --config ml/configs/baseline.yaml --manifest "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl"
+planproof-ml preflight --config ml/configs/hackathon.yaml --manifest "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl"
 printf '\nPreparation completed. Review audit.json and inspection overlays before launching:\n'
-printf 'planproof-ml train --config ml/configs/baseline.yaml --manifest %q --run %q\n' \
-  "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl" "$PLANPROOF_DATA_ROOT/runs/baseline"
+printf 'planproof-ml train --config ml/configs/hackathon.yaml --manifest %q --run %q --max-steps 100 --max-minutes 10\n' \
+  "$PLANPROOF_DATA_ROOT/processed/manifest.jsonl" "$PLANPROOF_DATA_ROOT/runs/fast-baseline"

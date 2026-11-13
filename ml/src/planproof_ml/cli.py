@@ -14,6 +14,11 @@ def parser():
     )
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("sources", help="List original dataset sources without downloading")
+    q = sub.add_parser(
+        "status", help="Read run health, validation trend, throughput and session cost estimate"
+    )
+    q.add_argument("--run", type=Path, required=True)
+    q.add_argument("--hourly-rate", type=float)
     q = sub.add_parser("compare", help="Select experiments using matching validation cohorts")
     q.add_argument("--baseline", type=Path, required=True)
     q.add_argument("--candidate", type=Path, required=True)
@@ -57,6 +62,11 @@ def parser():
     q.add_argument("--run", type=Path, required=True)
     q.add_argument("--device", default="cuda")
     q.add_argument("--resume", type=Path)
+    q.add_argument(
+        "--max-minutes",
+        type=float,
+        help="Soft session time cap; finish update, validate and save before exiting",
+    )
     q.add_argument(
         "--max-steps",
         type=int,
@@ -106,6 +116,10 @@ def execute(args):
         target = args.out if args.command not in {"audit", "calibrate", "compare"} else args.out.parent
         ensure_artifact_directory(target)
     command = args.command
+    if command == "status":
+        from .supervision import status
+
+        return status(args.run, args.hourly_rate)
     if command == "compare":
         from .compare import compare
 
@@ -159,7 +173,9 @@ def execute(args):
     if command == "train":
         from .train import train
 
-        return train(args.config, args.manifest, args.run, args.device, args.resume, args.max_steps)
+        return train(
+            args.config, args.manifest, args.run, args.device, args.resume, args.max_steps, args.max_minutes
+        )
     if command == "smoke":
         from .checks import smoke
 

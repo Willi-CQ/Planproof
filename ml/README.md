@@ -1,5 +1,8 @@
 # Floor-plan detection training
 
+For the current deadline, use [HACKATHON.md](HACKATHON.md): short first runs,
+automatic session time caps, live status checks and a reserved retry window.
+
 Start with [GPU_READY.md](GPU_READY.md) when attaching the GPU. This package is a
 standalone implementation on branch **ml-training-preparation**. It does not wire
 the deterministic packages or call Gemini.

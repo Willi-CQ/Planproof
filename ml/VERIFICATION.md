@@ -23,3 +23,11 @@ verified. These checks happen on the GPU host using [GPU_READY.md](GPU_READY.md)
 
 Contract fixtures do not establish that every variant of a publisher's export
 format is supported. Inspect real ground-truth overlays before long training.
+
+## Hackathon update — 2026-11-14
+
+All 42 CPU tests passed after adding bounded sessions, STOP-file checkpoint/resume,
+run status and health warnings. Ruff lint/format and Bash syntax checks passed.
+The initial launch profile now uses 512px, 2000 updates maximum and explicit
+session time limits. See [HACKATHON.md](HACKATHON.md). GPU performance and actual
+training quality remain unmeasured until a host is connected.

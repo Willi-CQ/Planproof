@@ -1,5 +1,9 @@
 # Connecting the training GPU
 
+For the active hackathon deadline, start with [HACKATHON.md](HACKATHON.md):
+short 512px runs, session time caps, independent GPU experiments and supervision.
+The 40k-update baseline commands below remain the longer research workflow.
+
 The training implementation is prepared on branch **ml-training-preparation**.
 The deterministic code remains on its separate branch. The root README stays empty.
 No training archives, annotations, model files or private brain notes belong in GitHub.

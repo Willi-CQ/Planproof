@@ -16,6 +16,7 @@ from planproof_ml.schema import write_json
 from planproof_ml.storage import ensure_artifact_directory
 from planproof_ml.targets import encode
 from planproof_ml.audit import audit_manifest
+from planproof_ml.supervision import status
 
 
 def test_generated_storage_refuses_source_tree_but_accepts_ignored_directory():
@@ -35,6 +36,36 @@ def test_deep_audit_detects_changed_pixels(tmp_path):
     Image.fromarray(np.zeros((64, 64, 3), np.uint8)).save(manifest.parent / "fixture-0.png")
     with pytest.raises(ValueError, match="Image hash mismatch"):
         audit_manifest(manifest, deep=True)
+
+
+def test_supervision_flags_stale_failed_and_plateauing_runs(tmp_path):
+    write_json(
+        tmp_path / "status.json",
+        {
+            "updated_unix": 1,
+            "state": "training",
+            "loss": 1.0,
+            "planned_stop_step": 2000,
+            "step": 400,
+            "steps_per_second": 2,
+            "elapsed_seconds": 200,
+        },
+    )
+    write_json(tmp_path / "failure.json", {"updated_unix": 2, "error": "diagnostic failure"})
+    for step in (100, 200, 300, 400):
+        write_json(
+            tmp_path / "validation" / f"step-{step:07d}.json",
+            {
+                "step": step,
+                "selection_score": 0.6,
+            },
+        )
+    report = status(tmp_path, 3.6)
+    assert len(report["warnings"]) == 3
+    assert report["remaining_step_time_estimate_seconds"] == 800
+    assert report["session_compute_cost_estimate_eur"] == pytest.approx(0.2)
+    with pytest.raises(ValueError, match="nonnegative"):
+        status(tmp_path, -1)
 
 
 def test_geometry_dedup_is_invariant_to_d4_translation_scale_and_vertex_order():

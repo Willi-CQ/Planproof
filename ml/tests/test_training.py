@@ -14,6 +14,7 @@ from planproof_ml.config import load_config
 from planproof_ml.manifest import load_manifest
 from planproof_ml.export import export
 from planproof_ml.inference import detect
+from planproof_ml.supervision import status
 
 
 def config_file(tmp_path):
@@ -108,6 +109,24 @@ def test_train_resume_matches_continuous_run_and_refuses_dataset_changes(tmp_pat
     manifest.write_text("\n".join(lines) + "\n")
     with pytest.raises(ValueError, match="Dataset changed"):
         train(cfg, manifest, tmp_path / "resumed", "cpu", resume=tmp_path / "resumed/last.pt", max_steps=3)
+
+
+def test_session_time_cap_checkpoints_and_resumes_without_changing_recipe(tmp_path):
+    manifest = check_corpus(tmp_path / "data")
+    cfg = config_file(tmp_path)
+    run = tmp_path / "bounded"
+    result = train(cfg, manifest, run, "cpu", max_minutes=1e-9)
+    assert result["steps"] == 1 and result["stop_reason"] == "time_limit"
+    health = status(run, hourly_rate=2.0)
+    assert health["state"] == "paused" and health["last_checkpoint_exists"]
+    assert health["session_compute_cost_estimate_eur"] > 0
+    assert health["latest_validation"]["step"] == 1
+    (run / "STOP").touch()
+    result = train(cfg, manifest, run, "cpu", resume=run / "last.pt")
+    assert result["steps"] == 2 and result["stop_reason"] == "stop_file"
+    for minutes in (0, -1, float("nan")):
+        with pytest.raises(ValueError, match="positive"):
+            train(cfg, manifest, tmp_path / "invalid", "cpu", max_minutes=minutes)
 
 
 def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):

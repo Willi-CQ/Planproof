@@ -71,7 +71,18 @@ def atomic_checkpoint(path, data):
     tmp.replace(path)
 
 
-def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path | None = None, max_steps=None):
+def train(
+    config: Path,
+    manifest: Path,
+    run: Path,
+    device="cuda",
+    resume: Path | None = None,
+    max_steps=None,
+    max_minutes=None,
+):
+    started = time.monotonic()
+    if max_minutes is not None and (not math.isfinite(max_minutes) or max_minutes <= 0):
+        raise ValueError("max_minutes must be finite and positive")
     cfg = load_config(config)
     ensure_artifact_directory(run)
     records = load_manifest(manifest, verify_files=True)
@@ -186,7 +197,8 @@ def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path |
     stop = min(total, max_steps) if max_steps is not None else total
     if stop <= start:
         raise ValueError("Requested stop step is not after resumed step")
-    started = time.monotonic()
+    stop_reason = "step_limit"
+    last_validation = None
     try:
         for step in range(start, stop):
             model.train()
@@ -233,6 +245,17 @@ def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path |
                 torch.distributed.all_reduce(reduced)
                 total_loss = float(reduced) / world
             completed = step + 1
+            time_up = max_minutes is not None and time.monotonic() - started >= max_minutes * 60
+            stop_requested = (run / "STOP").exists() if rank == 0 else False
+            if world > 1:
+                stop_flags = torch.tensor([int(time_up), int(stop_requested)], device=device)
+                torch.distributed.all_reduce(stop_flags, op=torch.distributed.ReduceOp.MAX)
+                time_up, stop_requested = map(bool, stop_flags.tolist())
+            stopping = completed == stop or time_up or stop_requested
+            if time_up:
+                stop_reason = "time_limit"
+            elif stop_requested:
+                stop_reason = "stop_file"
             if rank == 0:
                 log = {
                     "step": completed,
@@ -241,12 +264,14 @@ def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path |
                     "lr": optimizer.param_groups[-1]["lr"],
                     "elapsed_seconds": time.monotonic() - started,
                     "loss_parts_rank0_last_microbatch": parts,
+                    "steps_per_second": (completed - start) / max(time.monotonic() - started, 1e-6),
+                    "peak_gpu_memory_gib": torch.cuda.max_memory_allocated(device) / 1024**3 if amp else None,
                 }
                 with (run / "training.jsonl").open("a", encoding="utf-8") as f:
                     f.write(json.dumps(log) + "\n")
                 if completed % 10 == 0 or completed == stop:
                     print(json.dumps(log), flush=True)
-            validation_due = completed % cfg.get("validation_every", 1000) == 0 or completed == stop
+            validation_due = completed % cfg.get("validation_every", 1000) == 0 or stopping
             improved = False
             if rank == 0 and validation_due:
                 plain.eval()
@@ -265,6 +290,7 @@ def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path |
                 )
                 write_json(run / "validation" / f"step-{completed:07d}.json", report)
                 score = report["selection_score"]
+                last_validation = {"step": completed, "score": score, "macro": report["macro"]}
                 if score is not None and score > best:
                     best = score
                     improved = True
@@ -286,14 +312,47 @@ def train(config: Path, manifest: Path, run: Path, device="cuda", resume: Path |
                 atomic_checkpoint(run / "last.pt", state)
                 if improved:
                     atomic_checkpoint(run / "best.pt", state)
+            if rank == 0:
+                log["elapsed_seconds"] = time.monotonic() - started
+                write_json(
+                    run / "status.json",
+                    {
+                        **log,
+                        "state": "paused" if stopping else "training",
+                        "stop_reason": stop_reason if stopping else None,
+                        "session_start_step": start,
+                        "planned_stop_step": stop,
+                        "max_minutes": max_minutes,
+                        "latest_validation": last_validation,
+                        "checkpoint_step": completed
+                        if validation_due or completed % cfg.get("checkpoint_every", 1000) == 0
+                        else None,
+                        "updated_unix": time.time(),
+                    },
+                )
             if world > 1 and validation_due:
                 torch.distributed.barrier()
+            if stopping:
+                break
         return {
-            "steps": stop,
+            "steps": completed,
             "best_validation_score": best,
             "run": str(run),
             "seconds": time.monotonic() - started,
+            "stop_reason": stop_reason,
         }
+    except Exception as exc:
+        if rank == 0:
+            write_json(
+                run / "failure.json",
+                {
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                    "updated_unix": time.time(),
+                    "recovery": "Inspect failure and resume the last completed checkpoint in a fresh supervised session.",
+                },
+            )
+        raise
     finally:
         if world > 1:
             torch.distributed.destroy_process_group()
