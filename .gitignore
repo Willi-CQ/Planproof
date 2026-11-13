@@ -7,6 +7,7 @@ AGENTS.md
 /data/downloads/
 /data/extracted/
 /data/processed/
+/data/evaluation/
 
 # Local secrets and machine state
 .env
