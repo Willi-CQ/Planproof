@@ -1,6 +1,6 @@
 # Data registry and local layout
 
-Tracked files in this folder contain source metadata and acquisition guidance only. The local working copy has ignored dataset files under `downloads/`, `extracted/`, and `evaluation/`; none are tracked. The root `README.md` remains empty until the team has a project description.
+Tracked files in this folder contain acquisition guidance only. Dataset archives, extracted files, evaluation records, and `manifest.csv` stay local and are ignored by Git. The root `README.md` remains empty until the team has a project description.
 
 ## Why raw datasets are not committed
 
@@ -10,7 +10,6 @@ Tracked files in this folder contain source metadata and acquisition guidance on
 
 ## Tracked files
 
-- `manifest.csv`: dataset source, role, current Stoa-preview overlap, access state, terms, and collection notes.
 - `training-plan.md`: external training-source roles, access gates, split policy, and local-only data boundary.
 - `gpu-training-datasets.csv`: planned original datasets and publisher download routes for the GPU machine; independent of laptop download state.
 - `README.md`: instructions and storage policy.
@@ -23,7 +22,7 @@ data/
 ├── extracted/   # source files, ignored by Git
 ├── processed/   # derived training data, ignored by Git
 ├── evaluation/  # Stoa records and final evaluation data, ignored by Git
-├── manifest.csv # tracked metadata only
+├── manifest.csv # local registry, ignored by Git
 └── training-plan.md # tracked acquisition/training policy only
 ```
 
