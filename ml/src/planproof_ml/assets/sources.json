@@ -1,0 +1,153 @@
+﻿{
+    "cubicasa5k":  {
+                       "role":  "core",
+                       "name":  "CubiCasa5K",
+                       "artifacts":  [
+                                         {
+                                             "url":  "https://zenodo.org/records/2613548/files/cubicasa5k.zip",
+                                             "name":  "cubicasa5k.zip",
+                                             "bytes":  5469495706
+                                         },
+                                         {
+                                             "name":  "train.txt",
+                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/train.txt"
+                                         },
+                                         {
+                                             "name":  "val.txt",
+                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/val.txt"
+                                         },
+                                         {
+                                             "name":  "test.txt",
+                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/test.txt"
+                                         }
+                                     ],
+                       "access":  "Use original upstream release independently of Stoa package; retain dataset-specific NC-SA terms",
+                       "source_url":  "https://github.com/CubiCasa/CubiCasa5k"
+                   },
+    "cvcfp":  {
+                  "artifacts":  [
+                                    {
+                                        "name":  "CVC-FP.zip",
+                                        "url":  "https://dag.cvc.uab.es/DATASETS/CVC-FP.zip"
+                                    }
+                                ],
+                  "role":  "core",
+                  "name":  "CVC-FP",
+                  "access":  "Publisher states CC BY-NC 4.0; endpoint previously timed out on laptop; resolve on GPU host",
+                  "source_url":  "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+              },
+    "rplan":  {
+                  "artifacts":  [
+
+                                ],
+                  "role":  "core",
+                  "name":  "RPLAN",
+                  "access":  "Confirm current access request and release terms on GPU machine",
+                  "source_url":  "http://staff.ustc.edu.cn/~fuxm/projects/DeepLayout/index.html"
+              },
+    "sesyd":  {
+                  "artifacts":  [
+
+                                ],
+                  "role":  "core",
+                  "name":  "SESYD",
+                  "access":  "Select floor-plan subset; preserve publisher terms and symbol annotations",
+                  "source_url":  "http://mathieu.delalandre.free.fr/projects/sesyd/"
+              },
+    "resplan":  {
+                    "role":  "supplementary",
+                    "name":  "ResPlan",
+                    "artifacts":  [
+                                      {
+                                          "url":  "https://raw.githubusercontent.com/m-agour/ResPlan/main/ResPlan.zip",
+                                          "name":  "ResPlan.zip",
+                                          "bytes":  100106537,
+                                          "checksum":  "sha256:f718de8865e51bbe93b49b584798e3c536ed6b4b8a5d32f01b56812f389aeb46"
+                                      },
+                                      {
+                                          "name":  "split.json",
+                                          "url":  "https://raw.githubusercontent.com/m-agour/ResPlan/main/split.json"
+                                      },
+                                      {
+                                          "name":  "LICENSE",
+                                          "url":  "https://raw.githubusercontent.com/m-agour/ResPlan/main/LICENSE"
+                                      }
+                                  ],
+                    "access":  "CC BY 4.0 data; also fetch LICENSE and split.json; render paired inputs/labels as needed",
+                    "source_url":  "https://github.com/m-agour/ResPlan"
+                },
+    "houseexpo":  {
+                      "role":  "supplementary",
+                      "name":  "HouseExpo",
+                      "artifacts":  [
+                                        {
+                                            "name":  "json.tar.gz",
+                                            "url":  "https://raw.githubusercontent.com/TeaganLi/HouseExpo/master/HouseExpo/json.tar.gz"
+                                        }
+                                    ],
+                      "access":  "Review SUNCG-derived data terms separately from software MIT license; access details resolved later",
+                      "source_url":  "https://github.com/TeaganLi/HouseExpo"
+                  },
+    "modres":  {
+                   "artifacts":  [
+                                     {
+                                         "name":  "ModRes-main.zip",
+                                         "url":  "https://github.com/emmashelley/ModRes/archive/refs/heads/main.zip"
+                                     }
+                                 ],
+                   "role":  "supplementary",
+                   "name":  "ModRes",
+                   "access":  "Confirm release/license; shared ResPlan provenance requires grouped splitting",
+                   "source_url":  "https://github.com/emmashelley/ModRes"
+               },
+    "robin":  {
+                  "role":  "optional",
+                  "name":  "ROBIN",
+                  "artifacts":  [
+                                    {
+                                        "name":  "ROBIN.zip",
+                                        "url":  "https://raw.githubusercontent.com/gesstalt/ROBIN/master/ROBIN.zip"
+                                    }
+                                ],
+                  "access":  "Check labels and dataset terms; auxiliary classification rather than dense segmentation labels",
+                  "source_url":  "https://github.com/gesstalt/ROBIN"
+              },
+    "zind":  {
+                 "artifacts":  [
+
+                               ],
+                 "role":  "optional",
+                 "name":  "Zillow Indoor Dataset",
+                 "access":  "Dataset agreement/access may be required; use if grounding task is included",
+                 "source_url":  "https://github.com/zillow/zind"
+             },
+    "floorplancad":  {
+                         "artifacts":  [
+                                           {
+                                               "drive_id":  "1HcyKt6qWeXog-tRfvEjdO3O3TN91PXGL",
+                                               "name":  "train-00.tar.xz"
+                                           },
+                                           {
+                                               "drive_id":  "1kSS7OB_EEu7VJzb0W8DK9_nu1EvshioV",
+                                               "name":  "train-01.tar.xz"
+                                           },
+                                           {
+                                               "drive_id":  "1jxpYgxnLUbXEzMOsjaMPQFSuvmvHimiZ",
+                                               "name":  "test-00.tar.xz"
+                                           }
+                                       ],
+                         "role":  "core",
+                         "name":  "FloorPlanCAD",
+                         "access":  "Annotation/site CC BY-NC 4.0; retain underlying drawing rights notice",
+                         "source_url":  "https://floorplancad.github.io/"
+                     },
+    "structured3d":  {
+                         "artifacts":  [
+
+                                       ],
+                         "role":  "supplementary",
+                         "name":  "Structured3D",
+                         "access":  "Requires dataset terms agreement; derive plan-view training pairs for the selected task",
+                         "source_url":  "https://structured3d-dataset.org/"
+                     }
+}
