@@ -12,6 +12,7 @@ Tracked files in this folder contain source metadata and acquisition guidance on
 
 - `manifest.csv`: dataset source, role, current Stoa-preview overlap, access state, terms, and collection notes.
 - `training-plan.md`: external training-source roles, access gates, split policy, and local-only data boundary.
+- `gpu-training-datasets.csv`: planned original datasets and publisher download routes for the GPU machine; independent of laptop download state.
 - `README.md`: instructions and storage policy.
 
 ## Local-only layout
