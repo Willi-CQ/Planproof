@@ -1,0 +1,17 @@
+# Private project instructions and research notes must stay local.
+AGENTS.md
+.brain/
+
+# Dataset binaries are obtained from their original sources and are not committed.
+/data/raw/
+/data/downloads/
+/data/extracted/
+/data/processed/
+
+# Local secrets and machine state
+.env
+.env.*
+!.env.example
+*.log
+Thumbs.db
+.DS_Store
