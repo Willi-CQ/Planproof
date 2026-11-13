@@ -32,3 +32,9 @@ Vector and scene datasets need preprocessing into compatible input/label pairs. 
 FloorNet and indoor scan datasets remain potential 3D extensions; IFC samples support the deterministic BIM parser; FloorPlanQA supports reasoning evaluation. They remain in the broader registry and are not part of this 2D floor-plan training download list.
 
 ResPlan was downloaded previously into ignored local storage. Stoa question references are under ignored data/evaluation/. Local download state is separate from this planned GPU corpus.
+
+## Dataset size and format audit (2026-11-13)
+
+The GPU CSV records sample counts, sample units, verified byte sizes where available, publisher size displays, source links, technical fit, and conversion requirements. Unknown byte sizes are explicit; no complete corpus disk total is established. CubiCasa5K ZIP is 5,469,495,706 bytes (5.47 GB) from Zenodo metadata; its publisher's approximately 105 GB figure describes the optional preprocessed LMDB. ResPlan ZIP is 100,106,537 bytes from the earlier local collection. HouseExpo's JSON archive is displayed as 24.4 MB on GitHub; its PNG archive is separate. Original ROBIN.zip is displayed as 15.1 MB. ZInD's publisher states about 40 GB for the full data.
+
+Technical compatibility is assessed for the intended label task, not as a claim that releases share a format. CubiCasa5K/CVC-FP provide structural image supervision; FloorPlanCAD needs primitive-label conversion; RPLAN needs semantic-channel decoding and independent inputs/targets; ResPlan/HouseExpo/ModRes support rendered or room-graph supervision; Structured3D needs scene-to-plan preprocessing. Missing class labels must not be treated as background negatives. ROBIN and ZInD remain optional auxiliary tasks. Source counts are not a unique-data sum: ModRes derives from ResPlan and Structured3D counts house scenes, not equivalent annotated drawing images.
