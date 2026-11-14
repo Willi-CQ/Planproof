@@ -47,8 +47,8 @@ planproof-ml sources
 
 | Source | Role | Reader/acquisition behavior |
 | --- | --- | --- |
-| CubiCasa5K | Primary real drawings | Original model.svg and paired PNG; publisher train/val/test lists downloaded separately |
-| FloorPlanCAD | CAD object instances | Original semanticId/instanceId SVG; explicit release-specific map; black-stroke render when paired PNG is absent |
+| CubiCasa5K | Primary real drawings | Original model.svg and F1_scaled PNG; publisher train/val/test lists embedded in ZIP |
+| FloorPlanCAD | CAD object instances | Original semantic-id/instance-id SVG; explicit raw-release map; monochrome stroke rendering |
 | CVC-FP | External test only in v1 | Named SVG structural annotations and paired raster; publisher endpoint must be reachable |
 | ResPlan | Synthetic geometry/room types | Original geometry pickle plus publisher split; explicit trust flag required |
 | ModRes | Synthetic cleaned geometry | Annotated GeoJSON, geometry dictionaries, or recognized indexed-face JSON; incompatible TopologicPy exports must be converted to the interchange contract |
@@ -58,17 +58,19 @@ planproof-ml sources
 | Structured3D | Derived room-plan supervision | Original scene annotation_3d.json incidence matrices; no invented wall/opening labels |
 | ROBIN / ZInD | Future auxiliary tasks | Cataloged; not part of the v1 structural training loader |
 
-Readers are tested against generated schema fixtures. **Real archive imports are
-not claimed verified locally.** GPU preparation must pass deep audit and visual
-inspection. Unknown/mismatched schemas stop preparation rather than silently
-emitting empty labels. Access-dependent sources remain access-dependent.
+Readers have generated schema tests. CubiCasa, ResPlan and FloorPlanCAD original
+releases have also been inspected on the GPU host; see
+[DATA_VALIDATION.md](DATA_VALIDATION.md) for measured corpus counts, corrected
+schemas and split caveats. Each full import must pass deep audit and visual
+inspection. Unknown/mismatched schemas stop preparation. Access-dependent
+sources remain access-dependent.
 
 Examples on the GPU machine:
 
 ~~~bash
 planproof-ml fetch --source floorplancad --data-root /data --extract
 planproof-ml prepare --source floorplancad --raw /data/extracted/floorplancad \
-  --class-map ml/configs/floorplancad-35.json --out /data/processed
+  --class-map ml/configs/floorplancad-v2-map.json --out /data/processed
 
 planproof-ml fetch --source modres --data-root /data --extract
 planproof-ml prepare --source modres --raw /data/extracted/modres --out /data/processed
