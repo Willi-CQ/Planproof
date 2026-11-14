@@ -33,6 +33,8 @@ def load_config(path: Path) -> dict:
     if cfg.get("box_loss", "smooth_l1") not in {"smooth_l1", "giou"}:
         raise ValueError("box_loss must be smooth_l1 or giou")
     box_weight = cfg.get("box_loss_weight", 2.0)
+    if not isinstance(cfg.get("class_balanced_heads", False), bool):
+        raise ValueError("class_balanced_heads must be boolean")
     if not isinstance(box_weight, (int, float)) or not math.isfinite(box_weight) or box_weight < 0:
         raise ValueError("box_loss_weight must be finite and nonnegative")
     cfg["image_size"] = size

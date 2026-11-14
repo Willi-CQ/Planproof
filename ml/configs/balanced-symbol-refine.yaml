@@ -1,0 +1,22 @@
+name: supervised-class-balanced-symbol-refinement
+seed: 42
+image_size: 1024
+effective_batch: 4
+micro_batch: 2
+data_workers: 4
+encoder_weights: null
+encoder_lr: 0.00001
+head_lr: 0.00008
+weight_decay: 0.01
+box_loss: giou
+box_loss_weight: 0.5
+class_balanced_heads: true
+crop_probability: 0.65
+validation_every: 250
+validation_limit_per_source: 32
+checkpoint_every: 100
+phases:
+  - name: balanced-symbols-with-structural-replay
+    steps: 1500
+    lr_scale: 1.0
+    sources: {cubicasa5k: 0.5, resplan: 0.1, floorplancad: 0.4}

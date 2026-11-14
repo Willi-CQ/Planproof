@@ -199,10 +199,13 @@ def test_overlap_loss_recipe_checkpoints_with_unchanged_inference_encoding(tmp_p
     cfg = config_file(tmp_path)
     config = yaml.safe_load(cfg.read_text())
     config["box_loss"] = "giou"
+    config["class_balanced_heads"] = True
+    config["box_loss_weight"] = 0.5
     cfg.write_text(yaml.safe_dump(config))
     train(cfg, manifest, tmp_path / "overlap", "cpu", max_steps=1)
     _, checkpoint = load_detector(tmp_path / "overlap/last.pt")
     assert checkpoint["config"]["box_loss"] == "giou"
+    assert checkpoint["config"]["class_balanced_heads"]
     assert "normalized width,height" in checkpoint["model_metadata"]["box_encoding"]
     config["box_loss"] = "unknown-loss"
     cfg.write_text(yaml.safe_dump(config))

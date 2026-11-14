@@ -7,15 +7,19 @@ def masked_mean(value, valid):
     return (value * valid).sum() / valid.sum().clamp_min(1)
 
 
-def focal_centers(logits, target, valid):
+def focal_centers(logits, target, valid, balance_classes=False):
     p = logits.float().sigmoid().clamp(1e-5, 1 - 1e-5)
     positive = (target == 1).float() * valid
     negative = (target < 1).float() * valid
     loss = -(torch.log(p) * (1 - p) ** 2 * positive + torch.log(1 - p) * p**2 * (1 - target) ** 4 * negative)
+    if balance_classes:
+        covered = valid.sum((0, 2, 3)) > 0
+        per_class = loss.sum((0, 2, 3)) / positive.sum((0, 2, 3)).clamp_min(1)
+        return per_class[covered].mean() if covered.any() else loss.sum() * 0
     return loss.sum() / positive.sum().clamp_min(1)
 
 
-def giou_boxes(encoded, target, valid):
+def giou_boxes(encoded, target, valid, balance_classes=False):
     """Paired GIoU at supervised centers, preserving the existing box encoding.
 
     Width/height are image-normalized; offsets are half-pixel coordinates.
@@ -39,10 +43,18 @@ def giou_boxes(encoded, target, valid):
     enclosing = (torch.maximum(phigh, thigh) - torch.minimum(plow, tlow)).clamp_min(0).prod(1)
     eps = torch.finfo(encoded.dtype).eps
     giou = intersection / union.clamp_min(eps) - (enclosing - union) / enclosing.clamp_min(eps)
-    return (1 - giou).mean()
+    losses = 1 - giou
+    if balance_classes:
+        classes = torch.arange(valid.shape[1], device=valid.device)[None, :, None, None].expand_as(valid)[
+            selected
+        ]
+        return torch.stack(
+            [losses[classes == c].mean() for c in range(valid.shape[1]) if (classes == c).any()]
+        ).mean()
+    return losses.mean()
 
 
-def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0):
+def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balance_classes=False):
     logits = pred["masks"].float()
     gt, valid = batch["masks"], batch["valid"]
     bce = masked_mean(F.binary_cross_entropy_with_logits(logits, gt, reduction="none"), valid)
@@ -60,13 +72,13 @@ def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0):
         ),
         batch["boundary_valid"],
     )
-    centers = focal_centers(pred["centers"], batch["centers"], batch["center_valid"])
+    centers = focal_centers(pred["centers"], batch["centers"], batch["center_valid"], balance_classes)
     box_parts = pred["boxes"].float().reshape(-1, 3, 4, *logits.shape[-2:])
     encoded = torch.cat((box_parts[:, :, :2].sigmoid(), box_parts[:, :, 2:].tanh() * 0.5), dim=2)
     target = batch["boxes"].reshape_as(encoded)
     box_valid = batch["box_valid"][:, :, None].expand_as(encoded)
     if box_loss == "giou":
-        boxes = giou_boxes(encoded, target, batch["box_valid"])
+        boxes = giou_boxes(encoded, target, batch["box_valid"], balance_classes)
     elif box_loss == "smooth_l1":
         boxes = masked_mean(F.smooth_l1_loss(encoded, target, reduction="none"), box_valid)
     else:

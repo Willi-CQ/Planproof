@@ -155,3 +155,12 @@ thresholds. A final ordinary evaluation confirms their combined result. It never
 uses test data and the CLI refuses a different training-manifest fingerprint.
 Candidate settings, source cohorts and inference-pass counts are retained.
 Thresholds describe an operating point, not correctness probabilities.
+
+`balanced-symbol-refine.yaml` is a bounded rare-class experiment. It averages
+center losses per covered class and GIoU per represented object class, so a
+stair target is not divided by the count of unrelated doors/windows. Legacy
+recipes retain their original reductions. It samples 50% CubiCasa, 10% ResPlan,
+40% CAD at low learning rates and validates 32 examples/source every250 updates,
+including CAD stairs absent from the original eight-example preview. Start with
+250 updates, inspect per-class changes and regressions, then decide whether to
+continue. Keep the validated ResPlan checkpoint as the fallback.

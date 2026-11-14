@@ -27,6 +27,8 @@ def test_cached_task_calibration_confirms_same_production_metrics(tmp_path, monk
     confirmation = evaluate(model, manifest, "val", "cpu", 64, result["thresholds"], 1, tiled=False)
     assert result["validation_score"] == pytest.approx(confirmation["selection_score"])
     assert result["validation_macro"] == confirmation["macro"]
+    assert result["validation_report"]["sources"] == confirmation["sources"]
+    assert result["image_size"] == 64
     assert result["cohort_fingerprints"] == confirmation["cohort_fingerprints"]
     for component, metric in (
         ("wall", "wall_iou"),
