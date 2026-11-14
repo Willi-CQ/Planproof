@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/Willi-CQ/Planproof",
+  "branch": "iamd-johan-deterministic-fix",
+  "upstream_commit": "24e37023c9441c657050b8595f1cf738230e6b17",
+  "original_implementation_commit": "d4b8c003c250bfdccb9e47b8b4d73c367597b21d",
+  "source_path": "deterministic/src/planproof_evidence/pixels.py",
+  "source_sha256": "9e54014a21a2cefb7d4ff82ea71ca867a990c2148ee3a5564ca8c8138db0ba2d",
+  "functions": [
+    "extract_ink_mask",
+    "extract_components",
+    "extract_contour_rings",
+    "extract_line_segments",
+    "detect_opening_candidates",
+    "detect_stair_candidates"
+  ],
+  "changes": [
+    "Pure routines retained; app-specific Pydantic imports omitted.",
+    "Formatting/lint normalization only in imported routines; integration logic lives in track1_adapter.py.",
+    "Latest Hough coordinate-shape correction included.",
+    "Upstream opening/stair proposals remain unclassified cues, not accepted semantic objects."
+  ]
+}

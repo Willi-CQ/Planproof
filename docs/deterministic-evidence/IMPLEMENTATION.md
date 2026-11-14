@@ -1,5 +1,8 @@
 # Implemented local baseline and development findings
 
+This records the earlier reference-pixel baseline. The newer teammate-pixel
+integration and interactive visual workspace are documented in [INTEGRATION.md](INTEGRATION.md).
+
 The CPU evidence pipeline is implemented in [`deterministic/`](../../deterministic/README.md).
 This is a working geometry/evidence baseline with a replaceable pixel extractor.
 Its classical recognition is not ready to replace the frozen ML detector.

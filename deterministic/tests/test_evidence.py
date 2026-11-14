@@ -331,6 +331,23 @@ def test_dependency_cycle_is_rejected(plan, tmp_path):
         validate_document(document)
 
 
+def test_unsupported_ml_classes_do_not_create_false_differences(plan, tmp_path):
+    path, image = plan
+    binding = make_binding(tmp_path, image)
+    prediction_path = tmp_path / "prediction.json"
+    prediction = json.loads(prediction_path.read_text())
+    prediction["intended_classes"] = ["door"]
+    write_json(prediction_path, prediction)
+    binding["sources"][0]["prediction_sha256"] = sha256(prediction_path)
+    write_json(tmp_path / "binding.json", binding)
+    document = analyze(path, tmp_path / "coverage", ml_predictions=tmp_path / "binding.json")
+    by_id = {o["id"]: o for o in document["observations"]}
+    assert document["comparisons"]
+    assert all(
+        by_id[oid]["class"] == "door" for c in document["comparisons"] for oid in c["source_ids"]
+    )
+
+
 def test_track1_can_supply_only_raw_masks_segments_and_ocr(plan, tmp_path):
     path, _ = plan
 

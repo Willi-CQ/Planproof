@@ -1,9 +1,11 @@
 # Local 2D evidence engine
 
-Implemented CPU-only baseline for PNG/PDF geometry and independent-versus-ML
-cross-checks. The reference pixel adapter is deliberately replaceable by Track 1.
-It is not a reliable replacement for the trained detector. See the measured
-[development results](../docs/deterministic-evidence/IMPLEMENTATION.md).
+CPU-only PNG/PDF geometry and independent-versus-ML cross-checks. The default
+pixel backend now runs the teammate's pinned GitHub extraction routines through
+a validated adapter. See the
+[integration and interactive Evidence Lab](../docs/deterministic-evidence/INTEGRATION.md).
+The older reference backend and its [measured results](../docs/deterministic-evidence/IMPLEMENTATION.md)
+remain documented. Classical recognition is not a reliable replacement for ML.
 
 ```powershell
 python -m venv .venv

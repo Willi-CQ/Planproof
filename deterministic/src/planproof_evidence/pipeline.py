@@ -43,6 +43,7 @@ from .geometry import (
 from .inputs import load_pages
 from .measurements import associate_dimension, classify_room_text, quantities
 from .pixels import extract_pixels, vectorize_pixels
+from .track1_adapter import extract_primitives, runtime_identity
 
 COLORS = {
     "wall": "#e38b25",
@@ -89,11 +90,12 @@ def _cached_extract(image, config, cache, adapter):
             for pair in saved["pairs"]:
                 pair["polygon"] = shape(pair["polygon"])
             return saved, True
-    data = (
-        vectorize_pixels(image, adapter(image, config), config)
-        if adapter
-        else extract_pixels(image, config)
-    )
+    if adapter:
+        data = vectorize_pixels(image, adapter(image, config), config)
+    elif config.pixel_backend == "track1":
+        data = vectorize_pixels(image, extract_primitives(image, config), config)
+    else:
+        data = extract_pixels(image, config)
     serializable = {k: v for k, v in data.items() if k not in mask_names}
     serializable["candidates"] = [
         {**c, "geometry": mapping(c["geometry"])} for c in data["candidates"]
@@ -147,8 +149,11 @@ def _ml_sources(binding, frames):
             raise ValueError("ML prediction frame/schema mismatch")
         ids = set()
         normalized = {}
+        intended = prediction.get("intended_classes", list(CLASSES))
+        if not set(intended).issubset(CLASSES):
+            raise ValueError("Invalid declared model class coverage")
         for item in prediction["instances"]:
-            if item["id"] in ids or item["class"] not in CLASSES:
+            if item["id"] in ids or item["class"] not in intended:
                 raise ValueError("Duplicate/invalid ML instance")
             ids.add(item["id"])
             validate_bbox(item["bbox"], frame.image_size)
@@ -272,6 +277,8 @@ def analyze(
                 "measurements",
                 "compare",
                 "context",
+                "track1_adapter",
+                "track1_pixels",
             )
         },
         "pages": [],
@@ -280,7 +287,9 @@ def analyze(
         "aggregates": [],
         "calibrations": [],
         "artifacts": [],
-        "warnings": ["reference classical adapter; candidates are not verified physical facts"],
+        "warnings": [
+            "Independent classical candidates are not verified physical facts; agreement is not proof"
+        ],
     }
 
     def artifact(path, kind, frame, **metadata):
@@ -302,10 +311,11 @@ def analyze(
         artifact(raster, "clean_canonical_raster", frame, image_size=frame.image_size)
         extraction_code = {
             name: document["implementation_hashes"][name]
-            for name in ("pixels", "geometry", "contracts")
+            for name in ("pixels", "geometry", "contracts", "track1_adapter", "track1_pixels")
         }
         cache_key = stable_id(
-            "pixels", [frame.raster_sha256, asdict(config), extraction_code]
+            "pixels",
+            [frame.raster_sha256, asdict(config), extraction_code, runtime_identity(config)],
         ).split(":")[1]
         data, hit = _cached_extract(image, config, root / ".cache" / cache_key, pixel_adapter)
         validate_pixels(data, frame.image_size)
@@ -336,6 +346,7 @@ def analyze(
             "native_segments": native_lines,
             "native_coverage": native_coverage,
             "unclassified_patterns": data.get("unclassified_patterns", []),
+            "pixel_details": data["pixel_details"],
         }
         write_json(raw_path, raw)
         artifact(raw_path, "pixel_evidence", frame)
@@ -657,7 +668,8 @@ def analyze(
                 },
             )
             artifact(ml_vector_path, "hybrid_wall_geometry", frame, model_source=name)
-            comparisons = compare_sources(observations, ml_observations, config.match_iou)
+            comparable = [o for o in observations if o["class"] in intended]
+            comparisons = compare_sources(comparable, ml_observations, config.match_iou)
             for comparison in comparisons:
                 comparison.update(page_index=frame.page_index, model_source=name)
                 comparison["crop_bbox"] = contextual_box(

@@ -1,6 +1,7 @@
 # Planproof: deterministic 2D evidence implementation handoff
 
-Status: **specification ready; engine not implemented**. Updated 14 November 2026.
+Status: **local integrated CPU engine implemented; recognition limits measured**.
+Updated 14 November 2026. Start with the [current integration and Evidence Lab](INTEGRATION.md).
 This document is the entry point for a teammate or AI agent with only this branch.
 
 Local-only update: [ten existing labeled validation plans](REFERENCE10.md) are
@@ -9,7 +10,8 @@ offline viewer. They replace a proposed synthetic base dataset; generated arrays
 remain only for focused contract tests. The local CPU implementation now lives in
 [`deterministic/`](../../deterministic/README.md). See the
 [implementation and measured limits](IMPLEMENTATION.md) before interpreting its
-candidate outputs. The reference pixel adapter is replaceable by Track 1.
+candidate outputs. The teammate's GitHub pixel routines are now the default
+backend; the reference adapter remains selectable for comparison.
 
 ## Outcome and boundaries
 

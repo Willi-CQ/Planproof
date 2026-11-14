@@ -1,5 +1,13 @@
 # Geometry adaptation record
 
+The integrated pixel front end also contains the team's GitHub contribution,
+pinned at `24e37023c9441c657050b8595f1cf738230e6b17` (original implementation
+`d4b8c003c250bfdccb9e47b8b4d73c367597b21d`). Source/function hashes and the
+adapter changes are recorded in [TRACK1_SOURCE.json](TRACK1_SOURCE.json) and the
+[integration guide](../docs/deterministic-evidence/INTEGRATION.md). Original pure
+pixel routines are preserved apart from import/format normalization; no blanket
+license is inferred from the duplicate upstream application's package metadata.
+
 This implementation adapts algorithmic ideas from the owner's supplied local
 ConstructQ-derived geometry snapshot. It does not import its BIM application or
 claim that these helpers were production-validated for this task.

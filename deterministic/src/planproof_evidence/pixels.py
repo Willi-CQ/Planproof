@@ -397,6 +397,21 @@ def detect_window_bands(segments, ink, stroke, config):
     return suppress(results)
 
 
+def wall_mask_from_ink(ink):
+    """Shared scale-free wall-body preparation for both pixel front ends."""
+    skeleton = skeletonize(ink > 0)
+    distances = cv2.distanceTransform(ink, cv2.DIST_L2, 5)
+    values = distances[skeleton]
+    stroke = max(1.0, float(2 * np.percentile(values, 35))) if len(values) else 1.0
+    core = (distances >= max(1.5, stroke * 0.4)).astype(np.uint8)
+    k = max(3, int(stroke) | 1)
+    expanded = cv2.dilate(core, np.ones((k, k), np.uint8)) & ink
+    length = max(9, int(stroke * 5))
+    horizontal = cv2.morphologyEx(expanded, cv2.MORPH_OPEN, np.ones((1, length), np.uint8))
+    vertical = cv2.morphologyEx(expanded, cv2.MORPH_OPEN, np.ones((length, 1), np.uint8))
+    return cv2.dilate(horizontal | vertical, np.ones((3, 3), np.uint8)) & ink, stroke
+
+
 def extract_pixels(image, config):
     start = time.perf_counter()
     original_h, original_w = image.shape[:2]
@@ -405,21 +420,7 @@ def extract_pixels(image, config):
     working = cv2.resize(image, (w, h), interpolation=cv2.INTER_AREA) if scale < 1 else image
     gray = cv2.cvtColor(working, cv2.COLOR_RGB2GRAY)
     _, ink = cv2.threshold(gray, 0, 1, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-    skeleton = skeletonize(ink > 0)
-    distances = cv2.distanceTransform(ink, cv2.DIST_L2, 5)
-    values = distances[skeleton]
-    stroke = max(1.0, float(2 * np.percentile(values, 35))) if len(values) else 1.0
-    # Filled-wall cores separated from thin text and symbol strokes; oriented opening
-    # restores long wall strokes without closing unobserved door gaps.
-    # Distance values are radii, whereas stroke is a full width. Comparing the
-    # radius to 0.8 * full width would erase an otherwise clean thick-wall plan.
-    core = (distances >= max(1.5, stroke * 0.4)).astype(np.uint8)
-    k = max(3, int(stroke) | 1)
-    expanded = cv2.dilate(core, np.ones((k, k), np.uint8)) & ink
-    long = max(9, int(stroke * 5))
-    horizontal = cv2.morphologyEx(expanded, cv2.MORPH_OPEN, np.ones((1, long), np.uint8))
-    vertical = cv2.morphologyEx(expanded, cv2.MORPH_OPEN, np.ones((long, 1), np.uint8))
-    wall = cv2.dilate(horizontal | vertical, np.ones((3, 3), np.uint8)) & ink
+    wall, stroke = wall_mask_from_ink(ink)
     lsd = cv2.createLineSegmentDetector(cv2.LSD_REFINE_STD)
     detected = lsd.detect(gray)[0]
     raw = (
@@ -574,6 +575,9 @@ def vectorize_pixels(image, primitives, config, *, start=None):
         "candidates": candidates,
         "unclassified_patterns": abstentions,
         "text_spans": primitives.get("text_spans", []),
+        "pixel_details": primitives.get(
+            "pixel_details", {"backend": "reference", "independent": True}
+        ),
         "warnings": warnings,
         "availability": {
             "walls": "reference_adapter",

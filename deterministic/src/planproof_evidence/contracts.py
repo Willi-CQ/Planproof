@@ -80,7 +80,10 @@ def item_geometry(item):
 
 @dataclass(frozen=True)
 class Config:
-    version: str = "reference-geometry-0.2.1"
+    version: str = "integrated-evidence-0.3"
+    pixel_backend: str = "track1"
+    enable_ocr: bool = True
+    ocr_languages: str = "eng"
     max_side: int = 1400
     max_segments: int = 1800
     max_pairs: int = 1200
@@ -98,6 +101,14 @@ class Config:
     min_stair_treads: int = 5
 
     def __post_init__(self):
+        if self.pixel_backend not in ("track1", "reference"):
+            raise ValueError("Unknown pixel backend")
+        if (
+            not isinstance(self.enable_ocr, bool)
+            or not self.ocr_languages
+            or len(self.ocr_languages) > 100
+        ):
+            raise ValueError("Invalid OCR configuration")
         if not (128 <= self.max_side <= 4096 and 1 <= self.max_segments <= 10000):
             raise ValueError("Invalid bounded extraction budget")
         if not (0 < self.angle_deg < 45 and 0 < self.match_iou <= 1):
