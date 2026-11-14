@@ -1,90 +1,57 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f3ef" />
-    <title>Stoa — Vérification de plans</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=stoa-plan-review" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <a class="brand" href="#" aria-label="Stoa, accueil">
-          <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true"><path d="M6 4h18l-8 8H1z"/><path d="M10 15h17l-8 9H3z"/></svg>
-          <span>STOA</span>
-        </a>
-        <div class="workspace-switcher">
-          <div class="workspace-avatar">S</div>
-          <div class="workspace-copy"><b>Chantier pilote</b><small>Espace de projet</small></div>
-          <span class="chevron">⌄</span>
-        </div>
-        <div class="nav-caption">ESPACE PROJET</div>
-        <nav class="nav-list" aria-label="Navigation principale">
-          <a class="nav-item active" href="#analyse"><span class="nav-icon">⌕</span><span>Analyse de plan</span><span class="nav-badge">01</span></a>
-          <a class="nav-item" href="#results"><span class="nav-icon">▤</span><span>Mes analyses</span></a>
-          <a class="nav-item" href="#integrations"><span class="nav-icon">⌘</span><span>Intégrations</span></a>
-        </nav>
-        <div class="sidebar-spacer"></div>
-        <div class="sidebar-note">
-          <div class="note-icon">✳</div>
-          <b>Un doute sur un résultat ?</b>
-          <p>Les écarts entre algorithmes sont signalés pour une vérification humaine.</p>
-          <a href="#how-it-works">Comprendre le contrôle <span>↗</span></a>
-        </div>
-        <button class="profile-button"><span class="profile-avatar">JM</span><span class="profile-copy"><b>Johan Martin</b><small>Administrateur</small></span><span class="more">···</span></button>
-      </aside>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#172a22" />
+  <meta name="apple-mobile-web-app-title" content="Stoa" />
+  <title>Stoa — Revue de plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials" />
+  <link rel="apple-touch-icon" href="stoa-icon-192.png" />
+  <link rel="icon" type="image/png" href="stoa-icon-192.png" />
+  <link rel="stylesheet" href="styles.css?v=stoa-field-review" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./" aria-label="Stoa, accueil">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span class="brand-name">STOA</span>
+        <span class="brand-caption">Junction 2026</span>
+      </a>
+      <div class="topbar-actions">
+        <span class="connection-status" id="modeLabel">Connexion…</span>
+        <button class="button button-light" id="newAnalysis" type="button">Nouvelle analyse</button>
+      </div>
+    </div>
+  </header>
 
-      <main class="main-area" id="analyse">
-        <header class="topbar">
-          <div class="breadcrumbs"><span>Projets</span><span class="crumb-slash">/</span><b>Nouvelle analyse</b></div>
-          <div class="topbar-right"><div class="mode-pill"><i></i><span id="modeLabel">Mode démo</span></div><button class="icon-button" aria-label="Notifications">♧<span class="notification-dot"></span></button><div class="top-avatar">JM</div></div>
+  <main class="workspace">
+    <section class="hero" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">Métré de chantier</p>
+        <h1 id="pageTitle">Vérifier les portes sur plan</h1>
+        <p>Comparez les détections des deux moteurs et ouvrez directement les zones signalées.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="button button-primary" id="runDemo" type="button" aria-describedby="demoScope">Tester le plan d’exemple <span aria-hidden="true">↗</span></button>
+        <small id="demoScope">Cas synthétique avec une revue visuelle par Sona.</small>
+      </div>
+    </section>
+
+    <div class="workspace-grid">
+      <section class="card plan-card" aria-labelledby="planTitle">
+        <header class="card-header plan-heading">
+          <div><p class="eyebrow">Document source</p><h2 id="planTitle">Le plan</h2></div>
+          <button class="button button-secondary" id="replaceFile" type="button" hidden>Changer de fichier</button>
         </header>
-
-        <section class="content-wrap">
-          <div class="page-heading">
-            <div>
-              <div class="eyebrow"><span class="eyebrow-line"></span> CONTRÔLE DE PLAN</div>
-              <h1>Vérification du plan</h1>
-              <p class="page-subtitle">Comparez les détections et retrouvez chaque constat sur sa page source.</p>
-            </div>
-            <button class="button button-secondary" id="newAnalysis"><span>＋</span> Nouvelle analyse</button>
-          </div>
-
-          <div class="pipeline" aria-label="Étapes de l'analyse">
-            <div class="pipeline-step completed"><span class="step-number">✓</span><div><b>Importer</b><small>Plan source</small></div></div>
-            <span class="pipeline-connector done"></span>
-            <div class="pipeline-step current"><span class="step-number">2</span><div><b>Analyser</b><small>Déterministe et ML</small></div></div>
-            <span class="pipeline-connector"></span>
-            <div class="pipeline-step"><span class="step-number">3</span><div><b>Décider</b><small>Contrôle croisé</small></div></div>
-          </div>
-
-          <div class="workspace-grid">
-            <section class="plan-column">
-              <div class="card plan-card">
-                <div class="card-heading plan-heading">
-                  <div><div class="section-kicker">DOCUMENT SOURCE</div><h2>Votre plan</h2></div>
-                  <button class="text-button" id="replaceFile" type="button">↻ Choisir un fichier</button>
-                </div>
-                <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden />
-                <button class="dropzone" id="dropzone" type="button" aria-label="Choisir ou déposer un plan">
-                  <span class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" /></svg></span>
-                  <b id="uploadTitle">Glissez votre plan ici</b>
-                  <span id="uploadHint">ou <u>parcourir vos fichiers</u></span>
-                  <small>PDF, PNG, JPG <span>·</span> jusqu’à 10 Mo</small>
-                </button>
-                <div class="file-row" id="fileRow" hidden>
-                  <span class="file-type" id="fileType">PDF</span>
-                  <div class="file-meta"><b id="fileName">plan.pdf</b><small id="fileSize">2,4 Mo · prêt à analyser</small></div>
-                  <button class="remove-file" id="removeFile" aria-label="Retirer le fichier">×</button>
-                </div>
-                <div class="plan-preview" id="planPreview">
-                  <div class="preview-topline"><span><i class="tiny-dot"></i> PLAN D’EXEMPLE</span><span>ÉCHELLE 1:100</span></div>
-                  <div class="drawing-wrap" id="drawingWrap">
-                    <svg class="floorplan" viewBox="0 0 600 380" role="img" aria-label="Exemple de plan 2D d'un appartement">
+        <div class="plan-preview" id="planPreview">
+          <div class="preview-topline"><span>Aperçu d’un plan d’étage</span><span></span></div>
+          <div class="drawing-wrap" id="drawingWrap">
+            <svg class="floorplan" viewBox="0 0 600 380" role="img" aria-label="Exemple de plan 2D d'un appartement">
                       <defs>
                         <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#e8e8e3" stroke-width=".65"/></pattern>
                         <pattern id="gridBig" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="url(#grid)"/><path d="M50 0H0V50" fill="none" stroke="#dbddd7" stroke-width=".9"/></pattern>
@@ -104,82 +71,98 @@
                         <path class="dimension" d="M25 7H347M25 4v6m322-6v6"/><text class="dimension-label" x="160" y="3">10,20 m</text>
                       </g>
                     </svg>
-                  </div>
-                  <div class="preview-foot" id="planLegend" hidden>
-                    <span><i class="zone-dot zone-dot--deterministic"></i> Déterministe</span>
-                    <span><i class="zone-dot zone-dot--ml"></i> Modèle ML</span>
-                    <span class="scale-label">Cadres des propositions</span>
-                  </div>
-                </div>
-                <p class="plan-scope">Le comptage de portes est prévu pour les plans d’étage vus de dessus. Sur une coupe ou une façade, les propositions peuvent être trompeuses.</p>
-                <div class="analysis-options">
-                  <label>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label>
-                  <div>
-                    <label><input id="assistantPermission" type="checkbox" disabled aria-describedby="assistantConsent" /> Demander une explication à l’assistant Stoa</label>
-                    <small id="assistantConsent">En cas de désaccord, un service externe peut examiner la zone concernée.</small>
-                  </div>
-                </div>
-                <div class="plan-actions"><button class="button button-quiet" id="runDemo" type="button">Tester le plan d’exemple</button><button class="button button-primary" id="runAnalysis" type="button" disabled>Analyser le plan <span class="button-arrow">→</span></button></div>
-              </div>
-
-              <div class="card result-card" id="results">
-                <div class="card-heading result-title-row"><div><div class="section-kicker">SYNTHÈSE DU CONTRÔLE</div><h2>Décision</h2></div><span class="decision-badge review" id="decisionBadge">En attente</span></div>
-                <div class="decision-summary"><span class="decision-symbol" id="decisionSymbol">…</span><div><b id="decisionTitle">Lancez une analyse</b><p id="decisionCopy">Les résultats apparaîtront ici.</p></div></div>
-                <div class="metrics-row">
-                  <div class="metric"><small>PORTES CONFIRMÉES</small><b id="metricRooms">—</b></div>
-                  <div class="metric"><small>PAIRES CONCORDANTES</small><b id="metricArea">—</b></div>
-                  <div class="metric"><small>PROPOSITIONS À VÉRIFIER</small><b id="metricIssues" class="metric-warn">—</b></div>
-                </div>
-                <div class="algorithm-results">
-                  <div class="algo-result"><span class="algo-icon det-icon">ƒ</span><div class="algo-label"><b>Déterministe</b><small>Règles & géométrie</small></div><span class="algo-value" id="detValue">—</span><span class="result-check" hidden></span></div>
-                  <div class="algo-result"><span class="algo-icon ml-icon">✳</span><div class="algo-label"><b>Modèle ML</b><small>Détection visuelle</small></div><span class="algo-value" id="mlValue">—</span><span class="result-check" hidden></span></div>
-                </div>
-                <div id="evidenceList"></div>
-                <div class="result-actions"><button class="button button-quiet" id="jsonButton" disabled>Voir le JSON <span>⌄</span></button></div>
-                <div class="json-panel" id="jsonPanel" hidden>
-                  <div class="json-tabs"><button class="json-tab active" data-json="cross">Contrôle croisé</button><button class="json-tab" data-json="det">Déterministe</button><button class="json-tab" data-json="ml">ML</button><button class="copy-json" id="copyJson">Copier</button></div>
-                  <pre id="jsonOutput"></pre>
-                </div>
-              </div>
-            </section>
-
-            <aside class="assistant-column">
-              <div class="card assistant-card">
-                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Stoa</b><small><span class="online-dot"></span> Explication de l’analyse</small></div></div>
-                <div class="assistant-context"><span class="context-icon">▧</span><span><b id="assistantContextTitle">Aucun plan analysé</b><small id="assistantPage"></small></span></div>
-                <div class="chat-body" id="chatBody" aria-live="polite">
-                  <figure class="zone-inspection" id="zoneInspection" hidden>
-                    <figcaption><strong id="zoneTitle"></strong><span id="zoneStatus"></span></figcaption>
-                    <canvas id="zoneCrop" role="img"></canvas>
-                    <div class="zone-navigation">
-                      <button type="button" id="previousZone" aria-label="Zone précédente">←</button>
-                      <span id="zonePosition"></span>
-                      <button type="button" id="nextZone" aria-label="Zone suivante">→</button>
-                    </div>
-                  </figure>
-                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><p id="reviewMessage">Activez l’assistant pour obtenir une explication du résultat.</p><div id="assistantReferences"></div></div></div>
-                </div>
-                <div class="assistant-disclaimer">Les résultats doivent être validés par un professionnel.</div>
-              </div>
-              <div class="integration-card" id="integrations">
-                <div class="integration-top"><span class="integration-icon">⌘</span><div><b>Intégrations</b><small>Disponibilité des services</small></div></div>
-                <div class="integration-items">
-                  <span class="integration-item"><i class="status-check">✦</i><b>Assistant Stoa</b><span class="connector-state" id="assistantState">—</span></span>
-                  <span class="integration-item"><i class="status-check">ƒ</i><b>Déterministe</b><span class="connector-state" id="detState">—</span></span>
-                  <span class="integration-item"><i class="status-check ml-mini">✳</i><b>ML</b><span class="connector-state" id="mlState">—</span></span>
-                </div>
-                <details id="how-it-works">
-                  <summary>Comment vérifier un résultat</summary>
-                  <p>Sélectionnez une zone dans le résultat pour la retrouver sur le plan. Les zones signalées restent à vérifier.</p>
-                </details>
-              </div>
-            </aside>
           </div>
-          <footer class="page-footer"><span>STOA <span>·</span> Prototype d’analyse</span><span><a href="#how-it-works">Aide</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
-        </section>
-      </main>
+          <div class="preview-foot" id="planLegend" hidden>
+            <span><i class="zone-dot zone-dot--deterministic"></i> Déterministe</span>
+            <span><i class="zone-dot zone-dot--ml"></i> Modèle ML</span>
+            <span class="scale-label">Cadres des propositions</span>
+          </div>
+        </div>
+        <div class="plan-toolbar">
+          <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden />
+          <button class="dropzone" id="dropzone" type="button" aria-label="Choisir ou déposer un plan">
+            <span class="upload-icon" aria-hidden="true">↑</span>
+            <span><strong>Importer un plan d’étage</strong><small>PDF, PNG ou JPEG · 10 Mo maximum</small></span>
+          </button>
+          <div class="file-row" id="fileRow" hidden>
+            <span class="file-type" id="fileType"></span>
+            <div class="file-meta"><b id="fileName"></b><small id="fileSize"></small></div>
+            <button class="remove-file" id="removeFile" type="button" aria-label="Retirer le fichier">×</button>
+          </div>
+          <div class="analysis-options" id="uploadOptions" hidden>
+            <label id="pageInputLabel" hidden>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label>
+            <label class="assistant-option"><input id="assistantPermission" type="checkbox" disabled aria-describedby="assistantConsent" /> Demander une explication à Sona</label>
+            <small id="assistantConsent">En cas de désaccord, une zone du plan peut être examinée par un service externe.</small>
+            <div class="plan-actions"><button class="button button-primary" id="runAnalysis" type="button" disabled>Analyser le plan <span aria-hidden="true">→</span></button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card assistant-card" aria-labelledby="sonaTitle">
+        <header class="card-header sona-header">
+          <div class="sona-mark" aria-hidden="true"><span>✳</span></div>
+          <div class="sona-heading"><p class="eyebrow">Assistant Stoa</p><h2 id="sonaTitle">Sona</h2></div>
+          <span class="sona-state" id="sonaState" data-state="idle">En attente</span>
+        </header>
+        <div class="assistant-context" id="assistantContext" hidden>
+          <strong id="assistantContextTitle"></strong><span id="assistantPage"></span>
+        </div>
+
+        <figure class="zone-inspection" id="zoneInspection" hidden>
+          <figcaption><strong id="zoneTitle"></strong><span id="zoneStatus"></span></figcaption>
+          <canvas id="zoneCrop" role="img"></canvas>
+          <div class="zone-navigation">
+            <button type="button" id="previousZone" aria-label="Zone précédente">←</button>
+            <span id="zonePosition" aria-live="polite"></span>
+            <button type="button" id="nextZone" aria-label="Zone suivante">→</button>
+          </div>
+        </figure>
+        <div class="sona-response" aria-live="polite">
+          <p id="reviewMessage">Lancez le plan d’exemple pour voir comment Sona explique un désaccord.</p>
+          <div id="assistantReferences"></div>
+        </div>
+      </section>
+
+      <section class="card result-card" id="results" aria-labelledby="resultTitle" hidden>
+        <header class="card-header">
+          <div><p class="eyebrow">Contrôle croisé</p><h2 id="resultTitle">Résultat du métré</h2></div>
+          <span class="decision-badge review" id="decisionBadge">En attente</span>
+        </header>
+        <div class="decision-summary"><span class="decision-symbol" id="decisionSymbol">…</span><div><b id="decisionTitle">Lancez une analyse</b><p id="decisionCopy">Les résultats apparaîtront ici.</p></div></div>
+        <div class="metrics-row">
+          <div class="metric"><small>Total confirmé</small><b id="metricRooms">—</b></div>
+          <div class="metric"><small>Paires concordantes</small><b id="metricArea">—</b></div>
+          <div class="metric"><small>Propositions à vérifier</small><b id="metricIssues" class="metric-warn">—</b></div>
+        </div>
+        <div class="algorithm-results">
+          <div class="algo-result"><span class="zone-dot zone-dot--deterministic"></span><b>Déterministe</b><span id="detValue">—</span></div>
+          <div class="algo-result"><span class="zone-dot zone-dot--ml"></span><b>Modèle ML</b><span id="mlValue">—</span></div>
+        </div>
+        <div id="evidenceList"></div>
+        <div class="result-actions"><button class="button button-secondary" id="jsonButton" type="button" aria-expanded="false" aria-controls="jsonPanel" disabled>Voir le résultat technique</button></div>
+        <div class="json-panel" id="jsonPanel" hidden>
+          <div class="json-tabs"><button type="button" class="json-tab active" data-json="cross">Contrôle croisé</button><button type="button" class="json-tab" data-json="det">Déterministe</button><button type="button" class="json-tab" data-json="ml">ML</button><button type="button" class="copy-json" id="copyJson">Copier</button></div>
+          <pre id="jsonOutput"></pre>
+        </div>
+      </section>
     </div>
-    <div class="toast" id="toast" role="status"></div>
-    <script src="app.js?v=stoa-plan-review" type="module"></script>
-  </body>
+
+    <footer class="workspace-footer">
+      <details class="short" id="how-it-works">
+        <summary>Comment lire le résultat</summary>
+        <p>Utilisez un plan d’étage vu de dessus. Les propositions restent à examiner si les moteurs divergent. Une zone citée par Sona renvoie au dessin source.</p>
+      </details>
+      <details class="integration-card" id="integrations">
+        <summary>État des services</summary>
+        <ul class="service-list">
+          <li>Sona <span id="assistantState">—</span></li>
+          <li>Déterministe <span id="detState">—</span></li>
+          <li>Modèle ML <span id="mlState">—</span></li>
+        </ul>
+      </details>
+    </footer>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js?v=stoa-field-review" type="module"></script>
+</body>
 </html>

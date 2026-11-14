@@ -36,6 +36,14 @@ app.add_middleware(
     allow_methods=["GET", "POST"], allow_headers=["Content-Type"],
 )
 frontend = Path(__file__).resolve().parents[1] / "plan-checker"
+frontend_assets = {
+    "index.html": "text/html",
+    "app.js": "text/javascript",
+    "styles.css": "text/css",
+    "manifest.webmanifest": "application/manifest+json",
+    "stoa-icon-192.png": "image/png",
+    "stoa-icon-512.png": "image/png",
+}
 
 
 @app.get("/planwise/", include_in_schema=False)
@@ -45,9 +53,9 @@ def planwise():
 
 @app.get("/planwise/{asset}", include_in_schema=False)
 def planwise_asset(asset: str):
-    if asset not in {"index.html", "app.js", "styles.css"} or not (frontend / asset).is_file():
+    if asset not in frontend_assets or not (frontend / asset).is_file():
         raise HTTPException(404, "Page not found.")
-    return FileResponse(frontend / asset)
+    return FileResponse(frontend / asset, media_type=frontend_assets[asset])
 
 
 @app.get("/", include_in_schema=False)

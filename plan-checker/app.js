@@ -19,12 +19,19 @@ let assistantAvailable = false;
 let busy = false;
 let currentJsonTab = 'cross';
 
+function setSonaState(state, label) {
+  const indicator = $('#sonaState');
+  indicator.dataset.state = state;
+  indicator.textContent = label;
+}
+
 async function api(path, options) {
   const response = await fetch(path, options);
-  const payload = await response.json();
+  const payload = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
   if (!response.ok) {
-    throw new Error(typeof payload.detail === 'string' ? payload.detail : 'Échec de la requête.');
+    throw new Error(typeof payload?.detail === 'string' ? payload.detail : 'Le serveur ne répond pas. Réessayez dans un instant.');
   }
+  if (!payload) throw new Error('Réponse inattendue du serveur.');
   return payload;
 }
 
@@ -48,6 +55,8 @@ function updateControls() {
 
 function resetResult() {
   analysis = null;
+  $('#results').hidden = true;
+  $('#assistantContext').hidden = true;
   $('#decisionBadge').textContent = 'En attente';
   $('#decisionBadge').className = 'decision-badge review';
   $('#decisionTitle').textContent = 'Lancez une analyse';
@@ -58,12 +67,16 @@ function resetResult() {
   }
   $('#assistantContextTitle').textContent = selectedFile?.name || 'Aucun plan analysé';
   $('#assistantPage').textContent = '';
-  $('#reviewMessage').textContent = 'Activez l’assistant pour obtenir une explication du résultat.';
+  setSonaState('idle', 'En attente');
+  $('#reviewMessage').textContent = selectedFile
+    ? 'Analysez le plan pour afficher les zones à inspecter.'
+    : 'Lancez le plan d’exemple pour voir comment Sona explique un désaccord.';
   $('#assistantReferences').replaceChildren();
   $('#zoneInspection').hidden = true;
   $('#planLegend').hidden = true;
   $('#evidenceList').replaceChildren();
   $('#jsonPanel').hidden = true;
+  $('#jsonButton').setAttribute('aria-expanded', 'false');
   $('#jsonButton').disabled = true;
 }
 
@@ -77,6 +90,9 @@ function setFile(file) {
   $('#fileSize').textContent = `${Math.max(1, Math.round(file.size / 1024))} Ko`;
   $('#fileType').textContent = file.type.split('/')[1].toUpperCase();
   $('#fileRow').hidden = false;
+  $('#uploadOptions').hidden = false;
+  $('#replaceFile').hidden = false;
+  $('#pageInputLabel').hidden = file.type !== 'application/pdf';
   dropzone.hidden = true;
   $('#pageNumber').value = 1;
   $('#assistantPermission').checked = false;
@@ -94,9 +110,11 @@ function resetApp() {
   fileInput.value = '';
   dropzone.hidden = false;
   $('#fileRow').hidden = true;
+  $('#uploadOptions').hidden = true;
+  $('#replaceFile').hidden = true;
   $('#assistantPermission').checked = false;
   drawing.innerHTML = initialDrawing;
-  setPreviewLabel('PLAN D’EXEMPLE', '');
+  setPreviewLabel('Aperçu d’un plan d’étage', '');
   resetResult();
   updateControls();
 }
@@ -144,11 +162,18 @@ function renderEvidence(result) {
   list.replaceChildren();
   const references = $('#assistantReferences');
   references.replaceChildren();
+  let visibleMessage = $('#reviewMessage').textContent;
   $('#planLegend').hidden = evidence.length === 0;
   $('#zoneInspection').hidden = true;
   const markers = [];
+  const showOverview = evidence.length <= 24;
   const buttons = [];
   const largeList = evidence.length > 8;
+  const focusDetail = () => {
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      $('#zoneInspection').scrollIntoView({ block: 'nearest' });
+    }
+  };
   const selector = document.createElement('select');
   selector.id = 'evidenceZone';
   let currentZone = 0;
@@ -156,12 +181,16 @@ function renderEvidence(result) {
     const item = evidence[position];
     if (!item) return;
     currentZone = position;
-    markers.forEach((marker, index) => { marker.hidden = index !== position; });
+    markers.forEach((marker, index) => {
+      marker.hidden = !showOverview && index !== position;
+      marker.classList.toggle('evidence-marker--active', index === position);
+      marker.setAttribute('aria-pressed', String(index === position));
+    });
     buttons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === position)));
     selector.value = String(position);
     const label = `Zone ${position + 1} · ${counts[item.provider]}`;
     $('#zoneTitle').textContent = label;
-    $('#zoneStatus').textContent = cited.has(item.id) ? 'Citée par Stoa'
+    $('#zoneStatus').textContent = cited.has(item.id) ? 'Citée par Sona'
       : primary.length ? 'À vérifier' : 'Détections concordantes';
     $('#zoneCrop').setAttribute('aria-label', `Agrandissement de la zone ${position + 1} du plan, proposition ${counts[item.provider]}`);
     $('#zonePosition').textContent = `${position + 1} / ${evidence.length}`;
@@ -174,9 +203,16 @@ function renderEvidence(result) {
   }
   for (const [position, item] of evidence.entries()) {
     const [left, top, right, bottom] = item.bbox_xyxy;
-    const marker = document.createElement('span');
+    const marker = document.createElement('button');
+    marker.type = 'button';
     marker.className = `evidence-marker evidence-marker--${item.provider}`;
-    marker.hidden = position !== 0;
+    marker.classList.toggle('evidence-marker--cited', cited.has(item.id));
+    marker.hidden = !showOverview && position !== 0;
+    marker.setAttribute('aria-label', `Inspecter la zone ${position + 1} · ${counts[item.provider]}`);
+    marker.addEventListener('click', () => {
+      showZone(position);
+      focusDetail();
+    });
     Object.assign(marker.style, {
       left: `${left / width * 100}%`, top: `${top / height * 100}%`,
       width: `${(right - left) / width * 100}%`, height: `${(bottom - top) / height * 100}%`,
@@ -185,10 +221,16 @@ function renderEvidence(result) {
     markers.push(marker);
     const label = `Zone ${position + 1} · ${counts[item.provider]}${cited.has(item.id) ? ' · citée' : ''}`;
     if (cited.has(item.id)) {
+      const escapedId = item.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const referencePattern = new RegExp(`(?<![\\w:-])${escapedId}(?![\\w:-])`, 'g');
+      visibleMessage = visibleMessage.replace(referencePattern, `zone ${position + 1}`);
       const reference = document.createElement('button');
       reference.type = 'button';
       reference.textContent = `Voir la zone ${position + 1}`;
-      reference.addEventListener('click', () => showZone(position));
+      reference.addEventListener('click', () => {
+        showZone(position);
+        $('#zoneInspection').scrollIntoView({ block: 'nearest' });
+      });
       references.append(reference);
     }
     if (largeList) {
@@ -200,15 +242,22 @@ function renderEvidence(result) {
     button.className = 'text-button';
     button.textContent = label;
     button.setAttribute('aria-pressed', String(position === 0));
-    button.addEventListener('click', () => showZone(position));
+    button.addEventListener('click', () => {
+      showZone(position);
+      focusDetail();
+    });
     buttons.push(button);
     list.append(button);
   }
+  $('#reviewMessage').textContent = visibleMessage;
   if (largeList) {
     const label = document.createElement('label');
     label.htmlFor = selector.id;
     label.textContent = `Zones du plan (${evidence.length})`;
-    selector.addEventListener('change', () => showZone(Number(selector.value)));
+    selector.addEventListener('change', () => {
+      showZone(Number(selector.value));
+      focusDetail();
+    });
     list.append(label, selector);
   }
   drawing.replaceChildren(wrapper);
@@ -245,6 +294,8 @@ function jsonForTab() {
 
 function render(result, fileName) {
   analysis = result;
+  $('#results').hidden = false;
+  $('#assistantContext').hidden = false;
   const supported = result.status === 'SUPPORTED';
   const labels = { SUPPORTED: 'Concordant', NEEDS_REVIEW: 'À vérifier', INSUFFICIENT_EVIDENCE: 'Preuves insuffisantes' };
   $('#decisionBadge').textContent = labels[result.status] || result.status;
@@ -268,6 +319,14 @@ function render(result, fileName) {
   $('#assistantContextTitle').textContent = fileName;
   $('#assistantPage').textContent = `Page ${result.source.page_index + 1}`;
   const assistant = result.assistant;
+  const observed = Boolean(assistant?.evidence_ids?.length);
+  if (assistant?.status === 'answered') {
+    setSonaState('answered', observed ? 'Zone citée' : 'Synthèse des résultats');
+  } else if (assistant?.status === 'unavailable') {
+    setSonaState('unavailable', 'Explication indisponible');
+  } else {
+    setSonaState('local', 'Revue du plan');
+  }
   const assistantStates = {
     not_needed: 'Ce résultat ne nécessite pas d’explication supplémentaire.',
     not_authorized: 'Activez l’assistant si vous souhaitez une explication.',
@@ -283,9 +342,15 @@ async function analyze(demo = false) {
   if (busy || (!demo && !selectedFile)) return;
   busy = true;
   updateControls();
-  const permission = assistantAvailable && $('#assistantPermission').checked;
-  $('#runAnalysis').textContent = 'Analyse…';
-  if (permission) $('#reviewMessage').textContent = 'L’assistant Stoa prépare son explication…';
+  const permission = assistantAvailable && (demo || $('#assistantPermission').checked);
+  const trigger = $(demo ? '#runDemo' : '#runAnalysis');
+  const label = trigger.innerHTML;
+  resetResult();
+  trigger.textContent = 'Analyse en cours…';
+  setSonaState('busy', 'Analyse en cours');
+  $('#reviewMessage').textContent = permission
+    ? 'Sona prépare l’explication et les zones à retrouver sur le plan.'
+    : 'Les deux moteurs analysent le plan.';
   try {
     let path = '/api/v1/demo/door-count';
     const params = new URLSearchParams();
@@ -300,12 +365,17 @@ async function analyze(demo = false) {
     }
     const report = await api(`${path}?${params}`, { method: 'POST' });
     render(report, demo ? 'Plan synthétique' : selectedFile.name);
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      $('#planPreview').scrollIntoView({ block: 'start' });
+    }
   } catch (error) {
     resetResult();
+    setSonaState('unavailable', 'Analyse interrompue');
+    $('#reviewMessage').textContent = error.message;
     toast(error.message);
   } finally {
     busy = false;
-    $('#runAnalysis').textContent = 'Analyser le plan →';
+    trigger.innerHTML = label;
     updateControls();
   }
 }
@@ -313,7 +383,7 @@ async function analyze(demo = false) {
 async function readConfig() {
   try {
     const config = await api('/api/v1/engines');
-    $('#modeLabel').textContent = config.deterministic || config.ml ? 'Moteurs configurés' : 'En attente des moteurs';
+    $('#modeLabel').textContent = config.assistant ? 'Sona disponible' : 'Vérification locale';
     $('#detState').textContent = config.deterministic ? 'Configuré' : 'Indisponible';
     $('#mlState').textContent = config.ml ? 'Configuré' : 'Indisponible';
     assistantAvailable = Boolean(config.assistant);
@@ -334,7 +404,10 @@ $('#removeFile').addEventListener('click', resetApp);
 $('#newAnalysis').addEventListener('click', resetApp);
 $('#runAnalysis').addEventListener('click', () => analyze());
 $('#runDemo').addEventListener('click', () => analyze(true));
-$('#jsonButton').addEventListener('click', () => { $('#jsonPanel').hidden = !$('#jsonPanel').hidden; });
+$('#jsonButton').addEventListener('click', () => {
+  $('#jsonPanel').hidden = !$('#jsonPanel').hidden;
+  $('#jsonButton').setAttribute('aria-expanded', String(!$('#jsonPanel').hidden));
+});
 document.querySelectorAll('.json-tab').forEach((tab) => tab.addEventListener('click', () => {
   currentJsonTab = tab.dataset.json;
   document.querySelectorAll('.json-tab').forEach((item) => item.classList.toggle('active', item === tab));
