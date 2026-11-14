@@ -155,6 +155,14 @@ configuration; the new question panel is the general agent entry point.
 
 ## Validation and honest performance boundary
 
+Latest full eight-question result: adaptive and fresh direct Gemini each scored
+**7/8**, missing the same window-count case, with no execution/tool failures.
+Adaptive routing chose algorithms once, five Nemotron calls on detail crops,
+and four optional self-checks. It used more time/tokens without an accuracy gain
+on this previously inspected cohort. See [the frozen pilot report](AGENT_PILOT_RESULTS.md)
+for routing, timings, the shared mistake, validation and local artifact paths.
+The older experiments below remain a historical record, not the latest score.
+
 Host tests exercise direct routing without models, room-assisted search, visual
 feedback without algorithms, citation transforms, permissions, failed-tool visual
 fallback, signature retention, caching, budgets and provider failure redaction.

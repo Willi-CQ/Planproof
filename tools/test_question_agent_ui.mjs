@@ -52,12 +52,21 @@ try{
   if(process.argv[3]){
     await rpc('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
     await rpc('Page.navigate',{url:pathToFileURL(path.resolve(process.argv[3])).href});
-    await until(()=>evaluate("document.querySelectorAll('#cards .card').length===3 && document.getElementById('drawing').naturalWidth>0"));
+    await until(()=>evaluate("document.querySelectorAll('#cards .card').length===Object.keys(JSON.parse(document.getElementById('data').textContent).summary).length && document.getElementById('drawing').naturalWidth>0"));
     await evaluate("document.getElementById('case').selectedIndex=1;document.getElementById('case').dispatchEvent(new Event('change'));document.querySelector('#cards button').click()");
     assert.ok(await evaluate("document.querySelectorAll('#overlay rect').length>0"));
+    const cropPanels = await evaluate("[...document.querySelectorAll('#cards details')].filter(d=>d.querySelector('summary').textContent==='Crops actually supplied to Nemotron').map(d=>{d.open=true;return true}).length");
+    assert.ok(cropPanels>0,'Fixture question must show the crops actually sent to Nemotron');
+    await until(()=>evaluate("document.querySelectorAll('#cards canvas').length>0"));
+    // file:// image canvases are intentionally origin-tainted in Chromium.
+    // Check loaded image rendering dimensions; inspect the saved screenshot visually.
+    assert.ok(await evaluate("[...document.querySelectorAll('#cards canvas')].every(c=>c.width>0&&c.height>0&&c.getBoundingClientRect().width>0)"));
     assert.equal(errors.length,0);
     const shot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'live-comparison.png'),Buffer.from(shot.data,'base64'));
-    checks.push('Real comparison report renders both questions, three modes and source citations');
+    await evaluate("document.querySelector('#cards canvas').scrollIntoView({block:'center'})");
+    const cropShot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'live-crops.png'),Buffer.from(cropShot.data,'base64'));
+    checks.push('Real comparison report renders questions, all available modes and source citations');
+    checks.push('Actual Nemotron detail crops load and render at valid dimensions');
   }
   await fs.writeFile(path.join(out,'report.json'),JSON.stringify({simulated_answer:true,checks},null,2));
   console.log(JSON.stringify({checks},null,2));
