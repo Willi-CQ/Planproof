@@ -4,8 +4,8 @@ The user has 33 hours from Saturday 01:00 to Sunday 10:00 submission. These are
 planning targets, not measured training times or a promise of sufficient accuracy.
 This supersedes the 40k-update research schedule as the initial launch path.
 
-Use available 2x A100 80GB for independent experiments after the first short run
-verifies data and loss. No DDP setup. One A100 80GB also works if 2x is unavailable.
+The connected training host has one A100 80GB. Run curriculum stages sequentially;
+use CPU workers for source preparation while training. No DDP setup is required.
 This prioritizes time to working weights with the prepared stack; no claim of
 absolute speed versus RTX PRO 6000, which we have not benchmarked for our detector.
 [Verda pricing](https://verda.com/pricing?currency=eur), checked 2026-11-14:
@@ -87,9 +87,11 @@ It validates/checkpoints after the next update. Remove STOP before resume.
 Nonfinite losses/gradients raise errors; retain earlier completed checkpoints.
 Hard process kills can lose updates since the latest checkpoint.
 
-No GPU host or background agent is connected yet. Live supervision requires an
+The GPU host is connected and supervised over SSH. Live supervision requires an
 active connected session. Time caps protect runs between checks, not account-wide
-spending. Never send private SSH keys in chat.
+spending. Never send private SSH keys in chat. Checkpoints are saved before
+validation, so a validation failure preserves the completed optimizer updates;
+only successfully evaluated improvements replace best.pt.
 
 ## Targets relative to the user's clock
 
@@ -124,3 +126,8 @@ Separate release partitions during FloorPlanCAD extraction and group related
 filename prefixes conservatively to keep cropped drawing families together.
 Audit new data against prior-stage training groups before selecting checkpoints.
 Do not mix Stoa into any stage.
+
+See [real-source validation](DATA_VALIDATION.md) before changing adapters or
+assembling another curriculum. Diagnostic imports and the old pre-curation
+manifests must not initialize production stages. Session --max-steps is an
+absolute optimizer-step ceiling, including updates completed before --resume.
