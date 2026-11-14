@@ -36,6 +36,15 @@ Migration reused 15,567 geometry exports, rendered 750 missing originals, and
 re-rendered eight reused examples to verify pixel and target hashes exactly.
 Stable publisher ID and archive index are recorded separately.
 
+A subsequent perceptual audit found 37 cross-split pairs. Conservatively grouping
+all those candidates as similar families produces the transfer manifest
+`resplan-canonical-processed/resplan-clean-manifest.jsonl`: 13,014/1,655/1,648
+records, 16,261 groups, fingerprint
+`b2d100be7b10471a74c3963336e1b417ca9b2bebb2e5365e0a7adadf69bd888c`.
+This is precautionary grouping, not a claim that every pair is identical. It was
+done before ResPlan model training. Tensor content remains identical to the
+deeply audited canonical corpus.
+
 ## FloorPlanCAD
 
 The original three archives contain 15,663 SVGs: 3,760 train-00, 6,401 train-01,
@@ -58,6 +67,10 @@ as fully annotated negative pages. Explicit source-relative exclusions and
 reasons are retained in GPU provenance. Expected usable training-source count:
 9,920, before project family splitting. These are project metrics, not a
 reproduction of the published benchmark.
+
+The completed import contains 8,697 project training and 1,223 validation crops
+in 879 families, fingerprint
+`b93530908667006d5d65d878309c64b856d3f578c002dffc6cebaf234f37875b`.
 
 ## Curriculum safeguards
 

@@ -131,3 +131,13 @@ See [real-source validation](DATA_VALIDATION.md) before changing adapters or
 assembling another curriculum. Diagnostic imports and the old pre-curation
 manifests must not initialize production stages. Session --max-steps is an
 absolute optimizer-step ceiling, including updates completed before --resume.
+
+`refine-cubicasa.yaml` and `detail-cubicasa.yaml` are bounded fallback recipes,
+using the clean baseline through --init-weights. The latter raises input size to
+1024 pixels. They and the transfer recipes use paired GIoU box loss while keeping
+the existing width/height/offset inference encoding. The original baseline keeps
+its Smooth L1 loss and exact-resume config unchanged. Original-pixel opening boxes
+had weak overlap even at ground-truth centers in the early baseline; image-sized
+Smooth L1 errors underweighted thin-object proportions. GIoU directly supervises
+overlap across object scales. This motivates an ablation, not a promised gain.
+See the [GIoU paper](https://giou.stanford.edu/).

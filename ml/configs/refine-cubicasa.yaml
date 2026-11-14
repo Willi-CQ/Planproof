@@ -8,6 +8,7 @@ encoder_weights: null
 encoder_lr: 0.00005
 head_lr: 0.0002
 weight_decay: 0.01
+box_loss: giou
 crop_probability: 0.5
 validation_every: 250
 validation_limit_per_source: 8
