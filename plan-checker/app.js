@@ -87,7 +87,7 @@ function resetApp() {
   fileInput.value = '';
   dropzone.hidden = false;
   $('#fileRow').hidden = true;
-  $('#geminiPermission').checked = false;
+  $('#nemotronPermission').checked = false;
   drawing.innerHTML = initialDrawing;
   setPreviewLabel('PLAN D’EXEMPLE', '');
   resetResult();
@@ -171,17 +171,18 @@ function render(result, fileName) {
   }
   $('#assistantContextTitle').textContent = fileName;
   $('#assistantPage').textContent = `Page ${result.source.page_index + 1}`;
-  const advisory = result.gemini.advisory;
+  const review = result.nemotron;
+  const advisory = review.advisory;
   const reviewStates = {
-    not_needed: 'Aucun appel Gemini pour ce résultat.',
-    not_authorized: 'Analyse Gemini non autorisée pour cette demande.',
-    disabled: 'Gemini est désactivé.',
+    not_needed: 'Ce résultat ne nécessite pas de revue NVIDIA.',
+    not_authorized: 'La revue NVIDIA n’a pas été autorisée pour cette demande.',
+    disabled: 'La revue NVIDIA est désactivée.',
     outside_scope: 'La zone de désaccord est trop large pour la revue.',
-    unavailable: 'La revue Gemini est indisponible.',
+    unavailable: 'La revue NVIDIA est indisponible.',
   };
   $('#reviewMessage').textContent = advisory
     ? `${advisory.reason} ${advisory.evidence_ids.length ? `Références : ${advisory.evidence_ids.join(', ')}.` : ''}`
-    : reviewStates[result.gemini.status];
+    : reviewStates[review.status];
   renderEvidence(result);
   $('#jsonOutput').textContent = JSON.stringify(jsonForTab(), null, 2);
   $('#jsonButton').disabled = false;
@@ -191,11 +192,11 @@ async function analyze(demo = false) {
   if (busy || (!demo && !selectedFile)) return;
   busy = true;
   updateControls();
-  const permission = $('#geminiPermission').checked;
+  const permission = $('#nemotronPermission').checked;
   $('#runAnalysis').textContent = 'Analyse…';
   try {
     let path = '/api/v1/demo/door-count';
-    const params = new URLSearchParams({ allow_gemini_review: String(permission) });
+    const params = new URLSearchParams({ allow_nemotron_review: String(permission) });
     if (demo) params.set('scenario', 'disputed');
     if (!demo) {
       const form = new FormData();
@@ -222,8 +223,8 @@ async function readConfig() {
     $('#modeLabel').textContent = config.deterministic || config.ml ? 'Moteurs configurés' : 'En attente des moteurs';
     $('#detState').textContent = config.deterministic ? 'Configuré' : 'Indisponible';
     $('#mlState').textContent = config.ml ? 'Configuré' : 'Indisponible';
-    $('#geminiState').textContent = config.gemini ? 'Disponible' : 'Désactivé';
-    $('#geminiPermission').disabled = !config.gemini;
+    $('#nemotronState').textContent = config.nemotron ? 'Disponible' : 'Désactivé';
+    $('#nemotronPermission').disabled = !config.nemotron;
   } catch {
     $('#modeLabel').textContent = 'API indisponible';
   }

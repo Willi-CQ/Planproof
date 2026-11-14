@@ -1,7 +1,12 @@
-# Planwise — interface PlanProof
+# Stoa
 
-Interface issue de la branche `front` (`a465bba`). FastAPI sert la page et l’API sur le même port. Ouvrez `/planwise/` et cliquez sur **Tester le plan d’exemple** pour voir un écart simulé et cliquer sur la zone correspondante.
+FastAPI sert l’interface et l’API. L’analyse envoie le même PNG canonique aux moteurs déterministe et ML. En cas de désaccord, le visiteur peut autoriser NVIDIA Nemotron à examiner le recadrage. Le total reste à vérifier après un avis.
 
-Pour analyser un fichier, choisissez un PDF, PNG ou JPEG. Choisissez la page pour un PDF. Le serveur envoie le même PNG RGB aux deux moteurs locaux configurés. Le visiteur peut autoriser une revue Gemini sur la demande en cours lorsque le serveur dispose d’une clé. Le total reste indéterminé si la couverture est inconnue ou si les propositions divergent.
+## Lancer le front et l’API
 
-Les commandes pour configurer les moteurs et lancer l’interface sont dans le [guide de lancement](../docs/gemini-arbitration.md). L’[architecture et l’état des branches](../docs/project-context.md) sont documentés pour l’audit.
+1. Installer les dépendances Python de `backend/requirements.txt` et celles des deux moteurs. Le [guide de configuration des moteurs](../docs/gemini-arbitration.md) indique les variables de leurs environnements Python et du modèle ML.
+2. Configurer `NVIDIA_NEMOTRON_KEY` dans l’environnement du serveur. La clé est lue au démarrage et la page ne demande aucune clé.
+3. À la racine, lancer `python -m uvicorn app:app --app-dir backend --port 8001` et ouvrir [Stoa](http://127.0.0.1:8001/).
+4. Autoriser l’examen de la zone, puis cliquer sur **Tester le plan d’exemple**. Pour utiliser les deux moteurs sur un plan, importer un PDF, PNG ou JPEG et cliquer sur **Analyser le plan**.
+
+Le [site GitHub Pages](https://willi-cq.github.io/Planproof/) est l’aperçu statique de la branche `front`. Le parcours avec les moteurs et Nemotron utilise une instance FastAPI hébergée.
