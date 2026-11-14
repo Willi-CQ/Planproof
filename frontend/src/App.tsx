@@ -1,16 +1,42 @@
-import { useEffect, useRef, useState } from "react";
-import { Upload, FileText } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import {
+  ArrowUpRight,
+  FileText,
+  FolderOpen,
+  LoaderCircle,
+  Plus,
+  X,
+  MessageCircle,
+  Scan,
+} from "lucide-react";
+import { DrawingLibrary } from "./components/DrawingLibrary";
+import {
+  readLibrary,
+  getSavedDrawing,
+  saveDrawing,
+  removeDrawing,
+  leaveDrawing,
+  drawingId,
+  type LibraryEntry,
+  type SavedDrawing,
+} from "./lib/library";
+import { BrandMark } from "./components/BrandMark";
 import { PlanCanvas2D } from "./components/PlanCanvas2D";
 import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
+import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
+
+import { EvidenceInspector } from "./components/EvidenceInspector";
 import {
-  agentStatus,
-  ApiError,
-  askDrawing,
-  uploadDrawing,
-  validateFile,
-  type Drawing,
-  type Permissions,
-} from "./lib/api";
+  startRun,
+  getRun,
+  getEvidence,
+  mergeRun,
+  terminal,
+  sameSource,
+  type AgentRun,
+  type EvidenceShape,
+  type Region,
+} from "./lib/runs";
 
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -24,24 +50,151 @@ export default function App() {
   const [zoom, setZoom] = useState(100);
   const [busy, setBusy] = useState<"upload" | "ask" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [configuration, setConfiguration] = useState(
-    "Checking agent configuration…",
-  );
-  const [permissions, setPermissions] = useState<Permissions>({
-    allow_gemini: false,
-    allow_nemotron: false,
-  });
+  const [dragging, setDragging] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"drawing" | "ask">("ask");
   const input = useRef<HTMLInputElement>(null);
   const pending = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [entries, setEntries] = useState<LibraryEntry[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [cacheError, setCacheError] = useState<string | null>(null);
+  const [inspectionId, setInspectionId] = useState<string | null>(null);
+  const [focusRegion, setFocusRegion] = useState<Region | null>(null);
+  const [shapes, setShapes] = useState<EvidenceShape[]>([]);
+  const [follow, setFollow] = useState(false);
+  const [comparisonSplit, setComparisonSplit] = useState<number | null>(null);
+  const [connection, setConnection] = useState("");
+  const [layersLoading, setLayersLoading] = useState(false);
+  const [layerError, setLayerError] = useState("");
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+  const closeInspector = () => {
+    setComparisonSplit(null);
+    setInspectionId(null);
+    setFocusRegion(null);
+    setShapes([]);
+    setFollow(false);
+  };
+  const cacheFailure = () =>
+    setCacheError(
+      "Your browser couldn't save these changes. Keep this tab open, or free browser storage and try again.",
+    );
+
+  async function restore(saved: SavedDrawing) {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy("upload");
+    setLibraryOpen(false);
+    setError(null);
+    try {
+      // Renew the ephemeral backend document using the unchanged original. No inference.
+      const fresh = await uploadDrawing(saved.file, saved.drawing.page);
+      const sameFrame =
+        fresh.width === saved.drawing.width &&
+        fresh.height === saved.drawing.height &&
+        fresh.page === saved.drawing.page;
+      closeInspector();
+      setFile(saved.file);
+      setPage(fresh.page);
+      setDrawing(fresh);
+      setSavedId(saved.id);
+      setMessages(saved.messages);
+      setDraft(saved.draft);
+      setZoom(saved.zoom);
+      setSelectedEvidence(sameFrame ? saved.selectedEvidence : null);
+      const activeRun = saved.messages.find((m) => m.run && !terminal(m.run));
+      if (activeRun?.run)
+        setTimeout(() => {
+          void resumeRun(activeRun.id, activeRun.run!);
+        }, 0);
+      if (saved.interrupted && !activeRun)
+        setError(
+          "The previous question was interrupted by a refresh. It may still be processing; it has not been sent again.",
+        );
+      else if (!sameFrame)
+        setError(
+          "This page rendered differently. Your conversation is saved, but previous highlights may no longer align.",
+        );
+    } catch {
+      setError(
+        "Couldn't reopen the saved drawing. Your original and conversation are still saved. Open Your drawings to try again when the server is available.",
+      );
+    } finally {
+      pending.current = false;
+      setBusy(null);
+    }
+  }
   useEffect(() => {
-    agentStatus()
-      .then((s) =>
-        setConfiguration(
-          s.configured ? "Agent configured" : "Server configuration required",
-        ),
-      )
-      .catch(() => setConfiguration("Backend unavailable"));
+    void readLibrary()
+      .then(async (library) => {
+        setEntries(library.entries);
+        if (library.active) await restore(library.active);
+      })
+      .catch(cacheFailure)
+      .finally(() => setReady(true));
   }, []);
+  useEffect(() => {
+    if (!ready || !savedId || !file || !drawing || busy === "upload") return;
+    void saveDrawing({
+      id: savedId,
+      file,
+      drawing,
+      messages,
+      draft,
+      zoom,
+      selectedEvidence,
+      interrupted: busy === "ask",
+      updated: Date.now(),
+    })
+      .then(() => {
+        setEntries((previous) => [
+          {
+            id: savedId,
+            name: file.name,
+            page: drawing.page,
+            updated: Date.now(),
+          },
+          ...previous.filter((entry) => entry.id !== savedId),
+        ]);
+        setCacheError(null);
+      })
+      .catch(cacheFailure);
+  }, [
+    ready,
+    savedId,
+    file,
+    drawing,
+    messages,
+    draft,
+    zoom,
+    selectedEvidence,
+    busy,
+  ]);
+  async function openSaved(id: string) {
+    try {
+      const saved = await getSavedDrawing(id);
+      if (saved) await restore(saved);
+    } catch {
+      cacheFailure();
+    }
+  }
+  async function deleteSaved(id: string) {
+    try {
+      await removeDrawing(id, id === savedId);
+      if (id === savedId) reset();
+      setEntries((previous) => previous.filter((entry) => entry.id !== id));
+    } catch {
+      cacheFailure();
+    }
+  }
+
   async function loadFile(nextFile: File, nextPage: number) {
     if (pending.current) return;
     const validation = validateFile(nextFile);
@@ -50,75 +203,216 @@ export default function App() {
       return;
     }
     pending.current = true;
+    const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
+    closeInspector();
     setError(null);
-    setDrawing(null);
-    setMessages([]);
-    setSelectedEvidence(null);
-    setZoom(100);
+    if (!changingPage) {
+      setDrawing(null);
+      setSavedId(null);
+    }
     setFile(nextFile);
     setPage(nextPage);
+    if (!changingPage) setMobileTab("ask");
     try {
-      setDrawing(await uploadDrawing(nextFile, nextPage));
+      const fresh = await uploadDrawing(nextFile, nextPage);
+      const id = changingPage && savedId ? savedId : await drawingId(nextFile);
+      setDrawing(fresh);
+      setSavedId(id);
+      setDraft("");
+      setMessages([]);
+      setSelectedEvidence(null);
+      setZoom(100);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed. Please retry.");
+      if (changingPage) setPage(drawing.page);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "We couldn’t open that drawing. Please try again.",
+      );
     } finally {
       pending.current = false;
       setBusy(null);
     }
   }
-  async function sendMessage(question: string) {
-    if (pending.current || !drawing || !permissions.allow_gemini) return;
+  function updateRun(id: string, run: AgentRun) {
+    setMessages((previous) =>
+      previous.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              run: {
+                ...run,
+                evidence: run.evidence ?? m.run?.evidence,
+              },
+              result:
+                run.result ||
+                (["failed", "interrupted"].includes(run.status)
+                  ? { status: "unavailable" }
+                  : undefined),
+            }
+          : m,
+      ),
+    );
+  }
+  async function watchRun(id: string, initial: AgentRun): Promise<boolean> {
+    let current = initial;
+    updateRun(id, current);
+    let missing = 0;
+    while (mounted.current && !terminal(current)) {
+      try {
+        const next = await getRun(current.request_id, current.last_sequence);
+        current = mergeRun(current, next);
+        updateRun(id, current);
+        setConnection("");
+        missing = 0;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404 && ++missing >= 3) {
+          current = {
+            ...current,
+            status: "interrupted",
+            message:
+              "Activity is unavailable. This question has not been sent again.",
+          };
+          updateRun(id, current);
+          setError(current.message!);
+          break;
+        }
+        setConnection("Reconnecting to activity");
+      }
+      if (!terminal(current))
+        await new Promise((resolve) =>
+          setTimeout(resolve, document.hidden ? 3000 : 1000),
+        );
+    }
+    if (current.status === "failed" || current.status === "interrupted")
+      setError(
+        current.message ||
+          "The run was interrupted; it has not been resubmitted.",
+      );
+    if (current.result?.status === "ok") setDraft("");
+    return current.result?.status === "ok";
+  }
+  async function resumeRun(id: string, run: AgentRun) {
+    if (pending.current || !mounted.current) return;
+    pending.current = true;
+    setBusy("ask");
+    try {
+      await watchRun(id, run);
+    } finally {
+      pending.current = false;
+      setBusy(null);
+      setConnection("");
+    }
+  }
+  async function sendMessage(question: string): Promise<boolean> {
+    if (pending.current || !drawing || !file) return false;
     pending.current = true;
     setBusy("ask");
     setError(null);
     setSelectedEvidence(null);
+    closeInspector();
     const id = crypto.randomUUID();
-    setMessages((previous) => [
-      ...previous,
+    const run: AgentRun = {
+      request_id: id,
+      status: "queued",
+      source: drawing.source || {
+        raster_sha256: "",
+        page_index: drawing.page - 1,
+        width: drawing.width,
+        height: drawing.height,
+      },
+      events: [],
+      last_sequence: 0,
+    };
+    const nextMessages: Message[] = [
+      ...messages,
       { id: id + "-question", role: "user", content: question },
-    ]);
+      { id, role: "assistant", content: "", run },
+    ];
+    setMessages(nextMessages);
     try {
-      const result = await askDrawing(
-        drawing.document_id,
-        question,
-        permissions,
-      );
-      setMessages((previous) => [
-        ...previous,
-        { id, role: "assistant", content: "", result },
-      ]);
+      // Save the ID before dispatch so refresh cannot accidentally submit twice.
+      if (savedId)
+        await saveDrawing({
+          id: savedId,
+          file,
+          drawing,
+          messages: nextMessages,
+          draft: question,
+          zoom,
+          selectedEvidence: null,
+          interrupted: true,
+          updated: Date.now(),
+        }).catch(cacheFailure);
+      let accepted: AgentRun;
+      try {
+        accepted = await startRun(drawing.document_id, id, question);
+      } catch (e) {
+        if (!(e instanceof ApiError)) {
+          setConnection("Reconnecting to activity");
+          return await watchRun(id, run);
+        }
+        updateRun(id, { ...run, status: "failed", message: e.message });
+        if (e.status === 404) {
+          setDrawing(null);
+          setMessages([]);
+          throw new ApiError(
+            "This uploaded page has expired. Reopen the saved drawing before asking again.",
+            404,
+          );
+        }
+        throw e;
+      }
+      return await watchRun(id, accepted);
     } catch (e) {
       setError(
-        e instanceof TypeError
-          ? "Connection interrupted. The server may still be processing; no automatic retry was made."
-          : e instanceof Error
-            ? e.message
-            : "Connection interrupted. The server may still be processing.",
+        e instanceof Error ? e.message : "This question could not be started.",
       );
-      setMessages((previous) => [
-        ...previous,
-        {
-          id,
-          role: "assistant",
-          content: "",
-          result: { status: "unavailable" },
-        },
-      ]);
-      if (e instanceof ApiError && e.status === 404) {
-        setDrawing(null);
-        setMessages([]);
-      }
+      return false;
     } finally {
       pending.current = false;
       setBusy(null);
+      setConnection("");
     }
   }
-  const evidenceMessage = selectedEvidence
-    ? messages.find((m) => m.id === selectedEvidence.message)
-    : [...messages].reverse().find((m) => m.result);
+  const inspected = messages.find((m) => m.id === inspectionId);
+  async function loadLayers() {
+    const run = inspected?.run;
+    if (!run || layersLoading) return;
+    setLayersLoading(true);
+    setLayerError("");
+    try {
+      const evidence = await getEvidence(run.request_id);
+      setMessages((previous) =>
+        previous.map((m) =>
+          m.id === inspectionId && m.run
+            ? { ...m, run: { ...m.run, evidence } }
+            : m,
+        ),
+      );
+    } catch {
+      setLayerError("Recorded layers could not be loaded.");
+    } finally {
+      setLayersLoading(false);
+    }
+  }
+  function focus(region: Region) {
+    if (
+      !sameSource(inspected?.run?.source, drawing?.source) ||
+      region.page_index !== drawing!.page - 1
+    )
+      return;
+    setFocusRegion(region);
+    setSelectedEvidence(null);
+    setMobileTab("drawing");
+  }
   const reset = () => {
     if (pending.current) return;
+    closeInspector();
+    setSavedId(null);
+    setDraft("");
+    void leaveDrawing().catch(cacheFailure);
     setFile(null);
     setDrawing(null);
     setMessages([]);
@@ -127,145 +421,305 @@ export default function App() {
     setZoom(100);
     setSelectedEvidence(null);
   };
+  const highlight = (message: string, index: number) => {
+    setFocusRegion(null);
+    setSelectedEvidence({ message, index });
+    setMobileTab("drawing");
+  };
+  const evidenceMessage =
+    inspected ||
+    (selectedEvidence
+      ? messages.find((m) => m.id === selectedEvidence.message)
+      : [...messages].reverse().find((m) => m.role === "assistant"));
+  function drop(e: DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    if (pending.current || !ready) return;
+    if (e.dataTransfer.files.length !== 1) {
+      setError("Choose one drawing at a time.");
+      return;
+    }
+    void loadFile(e.dataTransfer.files[0], 1);
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#F5F6F8] text-[#0F172A] md:h-screen md:overflow-hidden">
-      <header className="shrink-0 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-5">
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              reset();
-            }}
-            className="font-display text-xl font-bold tracking-tight"
-          >
-            Planproof<span className="text-blue-700">.</span>
-          </a>
-          <div className="flex min-w-0 items-center gap-2 text-xs text-slate-600">
-            <FileText size={15} />
-            <span className="max-w-72 truncate">
-              {file?.name || "Drawing workspace"}
-            </span>
-            {drawing && (
-              <span className="rounded bg-slate-100 px-2 py-1">
-                Page {drawing.page}
+    <div
+      className={`product ${drawing ? "product-loaded" : ""} ${dragging ? "product-dragging" : ""}`}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          if (!pending.current) setDragging(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node))
+          setDragging(false);
+      }}
+      onDrop={drop}
+    >
+      <header className="app-header">
+        <button
+          className="brand"
+          onClick={reset}
+          disabled={!!busy || !ready}
+          aria-label="Planproof home"
+        >
+          <BrandMark />
+          <span>Planproof</span>
+        </button>
+        <div className="header-context">
+          {drawing ? (
+            <>
+              <span className="header-divider" />
+              <FileText size={14} />
+              <span className="filename" title={file?.name}>
+                {file?.name}
               </span>
+            </>
+          ) : (
+            <span>Clarity, built in.</span>
+          )}
+        </div>
+        <div className="header-actions">
+          <button
+            className="subtle-button"
+            aria-label="Your drawings"
+            title="Your drawings"
+            disabled={!!busy || !ready}
+            onClick={() => setLibraryOpen(true)}
+          >
+            <FolderOpen size={16} />
+            <span>Your drawings</span>
+          </button>
+          {drawing && (
+            <button
+              className="subtle-button mobile-new"
+              aria-label="New drawing"
+              disabled={!!busy || !ready}
+              onClick={() => input.current?.click()}
+            >
+              <Plus size={16} />
+            </button>
+          )}
+        </div>
+        <input
+          ref={input}
+          className="visually-hidden"
+          type="file"
+          aria-label="Upload drawing"
+          accept="application/pdf,image/png,image/jpeg"
+          disabled={!!busy || !ready}
+          onChange={(e) => {
+            const selected = e.target.files?.[0];
+            e.target.value = "";
+            if (selected) void loadFile(selected, 1);
+          }}
+        />
+      </header>
+
+      {(error || cacheError) && (
+        <div role="alert" className="error-banner">
+          <p>{error || cacheError}</p>
+          <button
+            className="icon-button"
+            onClick={() => {
+              setError(null);
+              setCacheError(null);
+            }}
+            aria-label="Dismiss error"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {!drawing ? (
+        <main className="welcome">
+          <div className="welcome-content">
+            <div className="welcome-emblem" aria-hidden="true">
+              <FileText strokeWidth={1.1} />
+              <span>
+                <Scan size={15} />
+              </span>
+            </div>
+            <h1>
+              Your plans.
+              <br />
+              <span>Clearly understood.</span>
+            </h1>
+            <p className="welcome-description">
+              Ask a question. Find the answer in your drawing.
+            </p>
+            <button
+              className={`upload-card ${dragging ? "upload-card-active" : ""}`}
+              disabled={!!busy || !ready}
+              onClick={() =>
+                file && !busy
+                  ? void loadFile(file, page)
+                  : input.current?.click()
+              }
+            >
+              <span className="upload-card-icon">
+                {busy === "upload" ? (
+                  <LoaderCircle className="spinning" size={22} />
+                ) : (
+                  <Plus size={24} strokeWidth={1.5} />
+                )}
+              </span>
+              <span className="upload-card-copy">
+                <strong>
+                  {busy === "upload"
+                    ? "Opening your drawing…"
+                    : file
+                      ? "Try opening this drawing again"
+                      : "Add your drawing"}
+                </strong>
+                <span>
+                  {busy === "upload"
+                    ? file?.name
+                    : dragging
+                      ? "Drop it here"
+                      : file
+                        ? file.name
+                        : "Drop a file here, or browse"}
+                </span>
+              </span>
+              {!busy && (
+                <ArrowUpRight size={18} className="upload-card-arrow" />
+              )}
+            </button>
+            {file && !busy && (
+              <button
+                className="text-button"
+                onClick={() => input.current?.click()}
+              >
+                Choose a different drawing
+              </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <span
-              className="text-xs text-slate-500"
-              title="Configuration presence only; not a live provider connection test."
-            >
-              {configuration}
-            </span>
-            <input
-              ref={input}
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              aria-label="Upload drawing"
-              className="sr-only"
-              disabled={!!busy}
-              onChange={(e) => {
-                const selected = e.target.files?.[0];
-                e.target.value = "";
-                if (selected) void loadFile(selected, 1);
-              }}
-            />
+        </main>
+      ) : (
+        <>
+          <nav className="mobile-tabs" aria-label="Workspace view">
             <button
-              disabled={!!busy}
-              onClick={() => input.current?.click()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#1E40AF] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#1E3A8A] disabled:opacity-40"
+              aria-label="Show drawing"
+              aria-pressed={mobileTab === "drawing"}
+              onClick={() => setMobileTab("drawing")}
             >
-              <Upload size={15} />
-              Upload plan
+              <Scan size={16} />
+              Drawing
             </button>
+            <button
+              aria-label="Show conversation"
+              aria-pressed={mobileTab === "ask"}
+              onClick={() => setMobileTab("ask")}
+            >
+              <MessageCircle size={16} />
+              Ask Planproof
+            </button>
+          </nav>
+          <main className="workspace" data-mobile-tab={mobileTab}>
+            <div className="drawing-column">
+              <PlanCanvas2D
+                drawing={drawing}
+                name={file?.name}
+                shapes={shapes}
+                comparisonSplit={comparisonSplit}
+                focusRegion={focusRegion}
+                onManualView={() => {
+                  setFollow(false);
+                  setFocusRegion(null);
+                }}
+                result={
+                  busy === "ask" ||
+                  (evidenceMessage?.run &&
+                    !sameSource(evidenceMessage.run.source, drawing.source))
+                    ? undefined
+                    : evidenceMessage?.result
+                }
+                selectedIndex={selectedEvidence?.index ?? null}
+                onSelectEvidence={(index) => {
+                  if (evidenceMessage) highlight(evidenceMessage.id, index);
+                }}
+                zoom={zoom}
+                onZoomChange={setZoom}
+                isPdf={file?.type === "application/pdf"}
+                disabled={!!busy || !ready}
+                loadingPage={busy === "upload"}
+                onPageChange={(nextPage) => {
+                  if (file && Number.isInteger(nextPage) && nextPage > 0)
+                    void loadFile(file, nextPage);
+                }}
+              />
+            </div>
+            {inspectionId ? (
+              <EvidenceInspector
+                key={inspectionId}
+                run={inspected?.run}
+                drawing={drawing}
+                frame={drawing.source}
+                connection={connection}
+                onBack={closeInspector}
+                onLoadLayers={() => void loadLayers()}
+                loading={layersLoading}
+                layerError={layerError}
+                onFocus={focus}
+                onShapes={setShapes}
+                onCompare={setComparisonSplit}
+                follow={follow}
+                onFollow={setFollow}
+              />
+            ) : (
+              <PlanChatbotPanel
+                key={drawing.document_id}
+                draft={draft}
+                onDraftChange={setDraft}
+                onNewDrawing={() => input.current?.click()}
+                connection={connection}
+                onInspect={(id) => {
+                  closeInspector();
+                  setInspectionId(id);
+                  setLayerError("");
+                }}
+                messages={messages}
+                drawing={drawing}
+                busy={busy === "ask"}
+                disabled={!!busy || !ready}
+                onSendMessage={sendMessage}
+                onClearChat={() => {
+                  if (!pending.current) {
+                    setMessages([]);
+                    setSelectedEvidence(null);
+                  }
+                }}
+                selectedEvidence={selectedEvidence}
+                onHighlight={highlight}
+              />
+            )}
+          </main>
+        </>
+      )}
+      {libraryOpen && (
+        <DrawingLibrary
+          entries={entries}
+          active={savedId}
+          onClose={() => setLibraryOpen(false)}
+          onOpen={(id) => void openSaved(id)}
+          onRemove={(id) => void deleteSaved(id)}
+          onAdd={() => {
+            setLibraryOpen(false);
+            input.current?.click();
+          }}
+        />
+      )}
+      {dragging && (
+        <div className="drop-overlay" aria-hidden="true">
+          <div>
+            <Plus size={28} />
+            <strong>Drop your drawing</strong>
           </div>
         </div>
-      </header>
-      <main className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-1 gap-4 p-4 md:min-h-0 md:grid-cols-12">
-        <div className="min-w-0 md:col-span-5 md:min-h-0">
-          <PlanChatbotPanel
-            messages={messages}
-            drawing={drawing}
-            name={file?.name}
-            onSendMessage={sendMessage}
-            busy={busy}
-            error={error}
-            onDismissError={() => setError(null)}
-            permissions={permissions}
-            onPermissionsChange={setPermissions}
-            onClearChat={() => {
-              if (!pending.current) {
-                setMessages([]);
-                setSelectedEvidence(null);
-              }
-            }}
-            selectedEvidence={selectedEvidence}
-            onHighlight={(message, index) =>
-              setSelectedEvidence({ message, index })
-            }
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 md:col-span-7 md:min-h-0">
-          {file?.type === "application/pdf" && (
-            <form
-              className="flex items-center gap-2 text-xs"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (file) void loadFile(file, page);
-              }}
-            >
-              <label htmlFor="page-number">PDF page</label>
-              <input
-                id="page-number"
-                aria-label="PDF page"
-                type="number"
-                min="1"
-                step="1"
-                required
-                value={page}
-                disabled={!!busy}
-                onChange={(e) => setPage(Number(e.target.value))}
-                className="w-20 rounded border border-slate-300 bg-white p-2"
-              />
-              <button
-                disabled={!!busy || !Number.isInteger(page) || page < 1}
-                className="rounded border border-slate-300 bg-white px-3 py-2 disabled:opacity-40"
-              >
-                Load page
-              </button>
-              <span className="text-slate-500">
-                Questions use the loaded page only.
-              </span>
-            </form>
-          )}
-          {file && !drawing && !busy && (
-            <button
-              className="rounded border border-slate-300 bg-white p-2 text-sm"
-              onClick={() => void loadFile(file, page)}
-            >
-              Re-upload {file.name}
-            </button>
-          )}
-          <PlanCanvas2D
-            drawing={drawing}
-            name={file?.name}
-            result={busy === "ask" ? undefined : evidenceMessage?.result}
-            selectedIndex={selectedEvidence?.index ?? null}
-            onSelectEvidence={(index) => {
-              if (evidenceMessage)
-                setSelectedEvidence({ message: evidenceMessage.id, index });
-            }}
-            zoom={zoom}
-            onZoomChange={setZoom}
-            onReset={reset}
-            disabled={!!busy}
-            uploading={busy === "upload"}
-            onUpload={() => input.current?.click()}
-          />
-        </div>
-      </main>
+      )}
     </div>
   );
 }

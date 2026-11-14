@@ -1,5 +1,7 @@
 // Only the existing Python agent; no credentials, alternate agent or automatic retries.
+import type { SourceFrame } from "./runs";
 export interface Drawing {
+  source?: SourceFrame;
   document_id: string;
   page: number;
   image_url: string;
@@ -82,9 +84,19 @@ export async function uploadDrawing(
   const form = new FormData();
   form.append("file", file);
   form.append("page", String(page));
-  return readResponse<Drawing>(
+  const drawing = await readResponse<Drawing>(
     await fetch("/api/documents", { method: "POST", body: form }),
   );
+  try {
+    drawing.source = await readResponse<SourceFrame>(
+      await fetch(
+        `/api/v1/documents/${encodeURIComponent(drawing.document_id)}/frame`,
+      ),
+    );
+  } catch {
+    /* Older backends retain citations; activity overlays require a verified frame. */
+  }
+  return drawing;
 }
 export async function askDrawing(
   documentId: string,
@@ -117,12 +129,12 @@ export function resultText(result: AgentResult): string {
   if (isAnswered(result))
     return `${result.answer!.answer}${result.answer!.unit ? " " + result.answer!.unit : ""}`;
   if (result.status === "not_configured")
-    return "Agent configuration is missing on the server.";
+    return "Planproof isn’t available right now.";
   if (result.status === "not_authorized")
-    return "Provider permission is required.";
+    return "Planproof couldn’t start this question.";
   if (result.answer?.status === "abstain")
     return "Not enough evidence to answer";
-  return "The agent could not complete this question";
+  return "We couldn’t complete this question";
 }
 export function visibleCitations(
   result: AgentResult,

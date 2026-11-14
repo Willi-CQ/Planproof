@@ -11,10 +11,10 @@ from threading import Lock
 from typing import Annotated, Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pymupdf
-from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from PIL import Image, ImageOps
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -434,3 +434,61 @@ def door_count_demo(
         document_id=registered.document_id, deterministic=deterministic, ml=ml,
         allow_gemini_review=allow_gemini_review,
     ), demo=True)
+
+
+# Read-only live observation around the existing question agent. Legacy /ask stays intact.
+_run_store = None
+_run_store_lock = Lock()
+
+
+def run_store():
+    global _run_store
+    from run_tracking import RunStore
+    with _run_store_lock:
+        if _run_store is None:
+            root = Path(os.getenv("PLANPROOF_AGENT_TRACE_ROOT", str(Path(__file__).resolve().parents[1] / ".artifacts/agent/questions"))) / "runs"
+            _run_store = RunStore(root)
+        return _run_store
+
+
+class RunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    request: AgentRequest
+
+
+@app.post("/api/v1/documents/{document_id}/runs", status_code=202)
+def start_run(document_id: str, body: RunRequest):
+    number, page = get_page(document_id)
+    source = frame_for(document_id, number, page).model_dump()
+
+    def execute(observer):
+        result = ask(document_id, page, body.request, observer=observer)
+        for citation in result.get("canonical_citations", []):
+            citation["page_index"] = number - 1
+        return {**result, "source": source, "image_url": f"/api/documents/{document_id}/image"}
+
+    try:
+        return run_store().submit(str(body.request_id), source, body.request.model_dump(), execute)
+    except OverflowError as exc:
+        raise HTTPException(429, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, "Request ID belongs to a different question or drawing.") from exc
+    except OSError as exc:
+        raise HTTPException(503, "Could not safely register this question. No run was started.") from exc
+
+
+@app.get("/api/v1/runs/{request_id}")
+def get_run(request_id: UUID, after: int = Query(0, ge=0)):
+    try:
+        return run_store().snapshot(str(request_id), after)
+    except KeyError as exc:
+        raise HTTPException(404, "Run unavailable. It has not been resubmitted.") from exc
+
+
+@app.get("/api/v1/runs/{request_id}/evidence")
+def get_run_evidence(request_id: UUID):
+    try:
+        return run_store().evidence(str(request_id))
+    except KeyError as exc:
+        raise HTTPException(404, "Saved evidence unavailable.") from exc

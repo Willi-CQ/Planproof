@@ -1,0 +1,408 @@
+// Explicit simulated events test presentation and transport, not model accuracy.
+import { test, expect, type Page } from "@playwright/test";
+const source = {
+  raster_sha256: "fixture-raster",
+  page_index: 0,
+  width: 1000,
+  height: 600,
+};
+const drawing = {
+  document_id: "drawing",
+  page: 1,
+  image_url: "/api/documents/drawing/image",
+  width: 1000,
+  height: 600,
+};
+const region = {
+  image_id: "crop-1",
+  canonical_bbox: [100, 100, 400, 350],
+  page_index: 0,
+};
+const result = {
+  status: "ok",
+  answer: {
+    status: "answered",
+    answer: 2,
+    unit: "doors",
+    explanation: "Two candidates are visible in this crop.",
+    coverage: "Crop only; remaining page not established.",
+    uncertainties: ["Some symbols remain ambiguous."],
+  },
+  source,
+  canonical_citations: [region],
+};
+const events = [
+  {
+    sequence: 1,
+    stage: "get_algorithms",
+    state: "completed",
+    classes: ["room", "door"],
+    delivered_ids: ["m1"],
+    images: [],
+    citations: [],
+    elapsed: 1,
+    seconds: 0.4,
+  },
+  {
+    sequence: 2,
+    stage: "crop_region",
+    state: "completed",
+    images: [region],
+    citations: [],
+    elapsed: 2,
+    seconds: 0.2,
+  },
+  {
+    sequence: 3,
+    stage: "inspect_nemotron",
+    state: "completed",
+    images: [region],
+    citations: [region],
+    elapsed: 3,
+    seconds: 0.5,
+    advisory: {
+      findings: ["Two door-like symbols, with a partial edge symbol."],
+      verdict: "uncertain",
+    },
+  },
+  {
+    sequence: 4,
+    stage: "reflect",
+    state: "completed",
+    checks: ["Check overlapping crops for duplicates."],
+    unresolved: ["Remaining page unknown."],
+    images: [],
+    citations: [],
+    elapsed: 4,
+  },
+];
+const bundle = {
+  version: 1,
+  status: "available",
+  source,
+  shapes: [
+    { id: "m1", class: "door", layer: "ml", bbox: [100, 100, 140, 140] },
+    {
+      id: "d1",
+      class: "door",
+      layer: "deterministic",
+      bbox: [102, 100, 142, 140],
+      method: "quarter-arc-leaf",
+      cues: [{ name: "arc_support", value: 0.75 }],
+    },
+    {
+      id: "boundary:r1",
+      class: "room",
+      layer: "hybrid",
+      bbox: [80, 80, 500, 400],
+      status: "ml_assisted",
+      polygons: [
+        {
+          outer: [
+            [80, 80],
+            [500, 80],
+            [500, 400],
+            [80, 400],
+            [80, 80],
+          ],
+          holes: [],
+        },
+      ],
+    },
+  ],
+  comparisons: [
+    {
+      relation: "agreement",
+      source_ids: ["m1", "d1"],
+      bbox: [100, 100, 142, 140],
+      iou: 0.8,
+      semantics: "spatial/class agreement, not proof of correctness",
+    },
+  ],
+  warnings: ["Candidates are not verified physical counts."],
+};
+async function setup(page: Page) {
+  await page.route("**/api/**", (r) =>
+    r.fulfill({ status: 404, json: { detail: "Fixture resource unavailable." } }),
+  );
+  await page.route("**/api/documents", (r) => r.fulfill({ json: drawing }));
+  await page.route("**/api/v1/documents/*/frame", (r) =>
+    r.fulfill({ json: source }),
+  );
+  await page.route("**/api/documents/*/image", (r) =>
+    r.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600"><rect width="1000" height="600" fill="white"/></svg>',
+    }),
+  );
+  await page.goto("/");
+  await page.getByLabel("Upload drawing", { exact: true }).setInputFiles({
+    name: "test.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("synthetic fixture"),
+  });
+  await expect(page.getByTestId("source-image")).toBeAttached();
+}
+async function ask(page: Page) {
+  await page.getByLabel("Question about this drawing").fill("How many doors?");
+  await page
+    .getByRole("button", { name: "Ask Planproof", exact: true })
+    .click();
+}
+
+test("inspector links replay, layers, comparisons and Follow without extra submissions", async ({
+  page,
+}) => {
+  await setup(page);
+  let submissions = 0;
+  await page.route("**/api/v1/documents/*/runs", (r) => {
+    submissions++;
+    return r.fulfill({
+      json: {
+        request_id: r.request().postDataJSON().request_id,
+        status: "completed",
+        source,
+        events,
+        last_sequence: 4,
+        result,
+      },
+    });
+  });
+  await page.route("**/api/v1/runs/*/evidence", (r) =>
+    r.fulfill({ json: bundle }),
+  );
+  await ask(page);
+  await page
+    .getByRole("button", { name: "How this answer was found", exact: true })
+    .click();
+  await expect(page.getByLabel("Follow live regions")).not.toBeChecked();
+  await page
+    .getByRole("button", { name: "Inspect step 2 region 1", exact: true })
+    .click();
+  await expect(page.getByTestId("activity-region")).toHaveAttribute("x", "100");
+  await expect(
+    page.getByText("Remaining page unknown.", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Follow live regions").check();
+  await page.getByTestId("plan-viewport").dispatchEvent("wheel");
+  await expect(page.getByLabel("Follow live regions")).not.toBeChecked();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByLabel("ML detections", { exact: true }).check();
+  await page.getByLabel("Deterministic evidence", { exact: true }).check();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-shapes",
+    "2",
+  );
+  await page.locator(".object-list button").first().click();
+  await expect(page.locator(".object-detail")).toContainText("IoU 0.80");
+  await expect(page.locator(".object-detail")).toContainText(
+    "Supplied to the agent",
+  );
+  await page.locator(".object-list button").nth(1).click();
+  await expect(page.locator(".object-detail")).toContainText("quarter-circle arc");
+  await expect(page.locator(".object-detail")).toContainText("Swing arc support");
+  await expect(page.locator(".object-detail")).toContainText("0.750");
+  await expect(page.locator(".object-detail")).toContainText(
+    "not recorded as supplied to the agent",
+  );
+  await page.getByLabel("ML-assisted boundaries", { exact: true }).check();
+  await page.getByLabel("Evidence class").selectOption("room");
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-shapes",
+    "1",
+  );
+  await page
+    .getByRole("button", { name: "Compare ML / rules", exact: true })
+    .click();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-split",
+    "50",
+  );
+  await page.getByLabel("Comparison split", { exact: true }).fill("70");
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-split",
+    "70",
+  );
+  await page
+    .getByRole("button", { name: "Compare ML / rules", exact: true })
+    .click();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-split",
+    "off",
+  );
+  expect(submissions).toBe(1);
+  await page
+    .getByRole("button", { name: "Back to conversation", exact: true })
+    .click();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-shapes",
+    "0",
+  );
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+  await page.reload();
+  await page
+    .getByRole("button", { name: "How this answer was found", exact: true })
+    .click();
+  await page.route("**/api/v1/runs/*/evidence", (r) => r.abort());
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await expect(page.getByLabel("ML detections", { exact: true })).toBeVisible();
+  expect(submissions).toBe(1);
+});
+
+test("live polling reconnects after refresh to the same run and keeps sequence unique", async ({
+  page,
+}) => {
+  await setup(page);
+  let submissions = 0,
+    polls = 0,
+    runId = "",
+    completed = false,
+    disconnected = false;
+  await page.route("**/api/v1/documents/*/runs", (r) => {
+    submissions++;
+    runId = r.request().postDataJSON().request_id;
+    return r.fulfill({
+      json: {
+        request_id: runId,
+        status: "running",
+        source,
+        events: events.slice(0, 1),
+        last_sequence: 1,
+      },
+    });
+  });
+  await page.route("**/api/v1/runs/*?*", (r) => {
+    polls++;
+    if (disconnected) return r.abort();
+    return r.fulfill({
+      json: {
+        request_id: runId,
+        status: completed ? "completed" : "running",
+        source,
+        events: events.slice(0, completed ? 4 : 2),
+        last_sequence: completed ? 4 : 2,
+        result: completed ? result : null,
+      },
+    });
+  });
+  await ask(page);
+  await page
+    .getByRole("button", { name: "View activity", exact: true })
+    .click();
+  await expect(page.locator(".event-list > li")).toHaveCount(2);
+  await page.route("**/api/v1/runs/*/evidence", (r) =>
+    r.fulfill({ json: bundle }),
+  );
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByLabel("ML detections", { exact: true }).check();
+  const previousPolls = polls;
+  await expect.poll(() => polls).toBeGreaterThan(previousPolls);
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
+    "data-shapes", "1",
+  );
+  await page.getByRole("button", { name: "Steps", exact: true }).click();
+  disconnected = true;
+  await expect(
+    page.getByText("Reconnecting to activity", { exact: true }),
+  ).toBeVisible({ timeout: 6000 });
+  disconnected = false;
+  await page.reload();
+  await page
+    .getByRole("button", { name: "View activity", exact: true })
+    .click();
+  await expect(page.locator(".event-list > li")).toHaveCount(2);
+  completed = true;
+  await expect(page.locator(".event-list > li")).toHaveCount(4);
+  await expect(page.getByText(/Recorded activity/)).toBeVisible();
+  expect(submissions).toBe(1);
+  await page
+    .getByRole("button", { name: "Back to conversation", exact: true })
+    .click();
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+});
+
+test("direct answer and wrong-source evidence never pretend algorithms ran", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route("**/api/v1/documents/*/runs", (r) =>
+    r.fulfill({
+      json: {
+        request_id: r.request().postDataJSON().request_id,
+        status: "completed",
+        source,
+        events: [],
+        last_sequence: 0,
+        result,
+      },
+    }),
+  );
+  await page.route("**/api/v1/runs/*/evidence", (r) =>
+    r.fulfill({
+      json: { ...bundle, status: "not_run", shapes: [], comparisons: [] },
+    }),
+  );
+  await ask(page);
+  await page
+    .getByRole("button", { name: "How this answer was found", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await expect(
+    page.getByText("Algorithms not used for this answer."),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to conversation", exact: true })
+    .click();
+  await page.route("**/api/v1/documents/*/frame", (r) =>
+    r.fulfill({ json: { ...source, raster_sha256: "another-raster" } }),
+  );
+  await page.reload();
+  await page
+    .getByRole("button", { name: "How this answer was found", exact: true })
+    .click();
+  await expect(
+    page.getByText(/Source identity could not be matched/),
+  ).toBeVisible();
+  await expect(page.getByTestId("activity-region")).toHaveCount(0);
+});
+
+test("mobile inspector navigates to crops and back with keyboard and no overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.route("**/api/v1/documents/*/runs", (r) =>
+    r.fulfill({
+      json: {
+        request_id: r.request().postDataJSON().request_id,
+        status: "completed",
+        source,
+        events,
+        last_sequence: 4,
+        result,
+      },
+    }),
+  );
+  await ask(page);
+  const inspect = page.getByRole("button", {
+    name: "How this answer was found",
+    exact: true,
+  });
+  await inspect.focus();
+  await inspect.press("Enter");
+  await page
+    .getByRole("button", { name: "Inspect step 2 region 1", exact: true })
+    .click();
+  await expect(page.getByTestId("activity-region")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Show conversation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Evidence inspector" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
