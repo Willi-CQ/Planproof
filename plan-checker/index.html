@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f5f1" />
+    <title>Planwise — Analyse de plans</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="Planwise, accueil">
+          <span class="brand-mark"><span></span><span></span><span></span><span></span></span>
+          <span>planwise<span class="brand-dot">.</span></span>
+        </a>
+        <div class="workspace-switcher">
+          <div class="workspace-avatar">A</div>
+          <div class="workspace-copy"><b>Atelier Nord</b><small>Espace de travail</small></div>
+          <span class="chevron">⌄</span>
+        </div>
+        <div class="nav-caption">ESPACE PROJET</div>
+        <nav class="nav-list" aria-label="Navigation principale">
+          <a class="nav-item active" href="#analyse"><span class="nav-icon">⌕</span><span>Analyse de plan</span><span class="nav-badge">01</span></a>
+          <a class="nav-item" href="#results"><span class="nav-icon">▤</span><span>Mes analyses</span></a>
+          <a class="nav-item" href="#integrations"><span class="nav-icon">⌘</span><span>Intégrations</span></a>
+        </nav>
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-note">
+          <div class="note-icon">✳</div>
+          <b>Un doute sur un résultat ?</b>
+          <p>Les écarts entre algorithmes sont signalés pour une vérification humaine.</p>
+          <a href="#how-it-works">Comprendre le contrôle <span>↗</span></a>
+        </div>
+        <button class="profile-button"><span class="profile-avatar">JM</span><span class="profile-copy"><b>Johan Martin</b><small>Administrateur</small></span><span class="more">···</span></button>
+      </aside>
+
+      <main class="main-area" id="analyse">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Projets</span><span class="crumb-slash">/</span><b>Nouvelle analyse</b></div>
+          <div class="topbar-right"><div class="mode-pill"><i></i><span id="modeLabel">Mode démo</span></div><button class="icon-button" aria-label="Notifications">♧<span class="notification-dot"></span></button><div class="top-avatar">JM</div></div>
+        </header>
+
+        <section class="content-wrap">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> ESPACE D’ANALYSE</div>
+              <h1>Analyse de plan <span class="heading-spark">✳</span></h1>
+              <p class="page-subtitle">Déposez un plan, croisez les analyses et obtenez une décision traçable.</p>
+            </div>
+            <button class="button button-secondary" id="newAnalysis"><span>＋</span> Nouvelle analyse</button>
+          </div>
+
+          <div class="pipeline" aria-label="Étapes de l'analyse">
+            <div class="pipeline-step completed"><span class="step-number">✓</span><div><b>Importer</b><small>Plan source</small></div></div>
+            <span class="pipeline-connector done"></span>
+            <div class="pipeline-step current"><span class="step-number">2</span><div><b>Analyser</b><small>Déterministe et ML</small></div></div>
+            <span class="pipeline-connector"></span>
+            <div class="pipeline-step"><span class="step-number">3</span><div><b>Décider</b><small>Contrôle croisé</small></div></div>
+          </div>
+
+          <div class="workspace-grid">
+            <section class="plan-column">
+              <div class="card plan-card">
+                <div class="card-heading plan-heading">
+                  <div><div class="section-kicker">DOCUMENT SOURCE</div><h2>Votre plan</h2></div>
+                  <button class="text-button" id="replaceFile" type="button">↻ Choisir un fichier</button>
+                </div>
+                <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden />
+                <button class="dropzone" id="dropzone" type="button" aria-label="Choisir ou déposer un plan">
+                  <span class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" /></svg></span>
+                  <b id="uploadTitle">Glissez votre plan ici</b>
+                  <span id="uploadHint">ou <u>parcourir vos fichiers</u></span>
+                  <small>PDF, PNG, JPG <span>·</span> jusqu’à 10 Mo</small>
+                </button>
+                <div class="file-row" id="fileRow" hidden>
+                  <span class="file-type" id="fileType">PDF</span>
+                  <div class="file-meta"><b id="fileName">plan.pdf</b><small id="fileSize">2,4 Mo · prêt à analyser</small></div>
+                  <button class="remove-file" id="removeFile" aria-label="Retirer le fichier">×</button>
+                </div>
+                <div class="plan-preview" id="planPreview">
+                  <div class="preview-topline"><span><i class="tiny-dot"></i> PLAN D’EXEMPLE</span><span>ÉCHELLE 1:100</span></div>
+                  <div class="drawing-wrap" id="drawingWrap">
+                    <svg class="floorplan" viewBox="0 0 600 380" role="img" aria-label="Exemple de plan 2D d'un appartement">
+                      <defs>
+                        <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#e8e8e3" stroke-width=".65"/></pattern>
+                        <pattern id="gridBig" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="url(#grid)"/><path d="M50 0H0V50" fill="none" stroke="#dbddd7" stroke-width=".9"/></pattern>
+                      </defs>
+                      <rect x="0" y="0" width="600" height="380" fill="url(#gridBig)"/>
+                      <g class="plan-lines" transform="translate(115 35)">
+                        <path class="wall" d="M25 22H347V288H25Z"/>
+                        <path class="wall" d="M190 22V130M190 174V288M25 145H190M245 22V105M245 151V192M245 232V288M245 192H347"/>
+                        <path class="door" d="M190 130a44 44 0 0 1 44 44M245 105a46 46 0 0 1 46 46M245 232a43 43 0 0 0 43-40"/>
+                        <path class="window" d="M58 22h70m-70-5v10m70-10v10M347 52v54m-5-54h10m-10 54h10M274 288h47m-47-5v10m47-10v10"/>
+                        <path class="furniture" d="M47 53h110v65H47zM55 61h42v25H55zM105 61h43v25h-43zM53 95h98M53 106h26M269 38h52v41h-52zM277 46h36v25h-36zM268 124h58v47h-58zM276 132h42v29h-42zM38 202h72v60H38zM45 209h58v29H45zM47 245h19m8 0h19M136 204v63h27v-63zM141 210h17v33h-17zM262 215h65v52h-65zM270 223h49v23h-49z"/>
+                        <text class="room-label" x="86" y="151">SÉJOUR</text><text class="room-area" x="86" y="167">24,8 m²</text>
+                        <text class="room-label" x="254" y="93">CHAMBRE 01</text><text class="room-area" x="265" y="107">12,4 m²</text>
+                        <text class="room-label" x="47" y="188">ENTRÉE</text><text class="room-label" x="269" y="185">S. D'EAU</text>
+                        <text class="room-label" x="268" y="208">CUISINE</text><text class="room-area" x="280" y="218">8,1 m²</text>
+                        <text class="room-label" x="47" y="280">CHAMBRE 02</text><text class="room-area" x="56" y="292">10,2 m²</text>
+                        <path class="dimension" d="M25 7H347M25 4v6m322-6v6"/><text class="dimension-label" x="160" y="3">10,20 m</text>
+                      </g>
+                    </svg>
+                  </div>
+                  <div class="preview-foot"><span><span class="legend-dot"></span> Murs détectés</span><span><span class="legend-dot window-legend"></span> Ouvertures</span><span class="scale-label">Aperçu vectoriel</span></div>
+                </div>
+                <div class="analysis-options"><label>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label><label><input id="geminiPermission" type="checkbox" disabled /> Autoriser Gemini à examiner la zone en désaccord</label></div>
+                <div class="plan-actions"><button class="button button-quiet" id="runDemo" type="button">Tester le plan d’exemple</button><button class="button button-primary" id="runAnalysis" type="button" disabled>Analyser le plan <span class="button-arrow">→</span></button></div>
+                <div class="plan-card-footer"><span class="secure-icon">♢</span> Aucune clé API n’est stockée dans votre navigateur.</div>
+              </div>
+
+              <div class="card result-card" id="results">
+                <div class="card-heading result-title-row"><div><div class="section-kicker">SYNTHÈSE DU CONTRÔLE</div><h2>Décision</h2></div><span class="decision-badge review" id="decisionBadge">En attente</span></div>
+                <div class="decision-summary"><span class="decision-symbol" id="decisionSymbol">…</span><div><b id="decisionTitle">Lancez une analyse</b><p id="decisionCopy">Les résultats apparaîtront ici.</p></div></div>
+                <div class="metrics-row">
+                  <div class="metric"><small>PORTES CONFIRMÉES</small><b id="metricRooms">—</b></div>
+                  <div class="metric"><small>PAIRES CONCORDANTES</small><b id="metricArea">—</b></div>
+                  <div class="metric"><small>PROPOSITIONS À VÉRIFIER</small><b id="metricIssues" class="metric-warn">—</b></div>
+                </div>
+                <div class="algorithm-results">
+                  <div class="algo-result"><span class="algo-icon det-icon">ƒ</span><div class="algo-label"><b>Déterministe</b><small>Règles & géométrie</small></div><span class="algo-value" id="detValue">—</span><span class="result-check" hidden></span></div>
+                  <div class="algo-result"><span class="algo-icon ml-icon">✳</span><div class="algo-label"><b>Modèle ML</b><small>Détection visuelle</small></div><span class="algo-value" id="mlValue">—</span><span class="result-check" hidden></span></div>
+                </div>
+                <div id="evidenceList"></div>
+                <div class="result-actions"><button class="button button-quiet" id="jsonButton" disabled>Voir le JSON <span>⌄</span></button></div>
+                <div class="json-panel" id="jsonPanel" hidden>
+                  <div class="json-tabs"><button class="json-tab active" data-json="cross">Contrôle croisé</button><button class="json-tab" data-json="det">Déterministe</button><button class="json-tab" data-json="ml">ML</button><button class="copy-json" id="copyJson">Copier</button></div>
+                  <pre id="jsonOutput"></pre>
+                </div>
+              </div>
+            </section>
+
+            <aside class="assistant-column">
+              <div class="card assistant-card">
+                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Planwise</b><small><span class="online-dot"></span> Prêt à vous aider</small></div><button class="assistant-menu" aria-label="Options">···</button></div>
+                <div class="assistant-context"><span class="context-icon">▧</span><span><b id="assistantContextTitle">Aucun plan analysé</b><small id="assistantPage"></small></span></div>
+                <div class="chat-body" id="chatBody" aria-live="polite">
+                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><div class="message-author">Avis Gemini</div><p id="reviewMessage">L’avis apparaît ici après la revue d’une zone en désaccord.</p></div></div>
+                </div>
+                <div class="assistant-disclaimer">Les résultats doivent être validés par un professionnel.</div>
+              </div>
+              <div class="integration-card" id="integrations"><div class="integration-top"><span class="integration-icon">⌘</span><div><b>Intégrations</b><small>Configuration des moteurs</small></div></div><div class="integration-items"><span class="integration-item"><i class="gemini-orb">✦</i><b>Gemini</b><span class="connector-state" id="geminiState">—</span></span><span class="integration-item"><i class="status-check">ƒ</i><b>Déterministe</b><span class="connector-state" id="detState">—</span></span><span class="integration-item"><i class="status-check ml-mini">✳</i><b>ML</b><span class="connector-state" id="mlState">—</span></span></div><a class="configure-link" id="how-it-works" href="/docs">Documentation API ↗</a></div>
+            </aside>
+          </div>
+          <footer class="page-footer"><span>Planwise <span>·</span> Bêta privée</span><span><a href="#how-it-works">Documentation</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

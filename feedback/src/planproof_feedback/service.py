@@ -119,8 +119,10 @@ def validate_output(result: dict, role: str, images: list[ImageInput]):
 
 
 class FeedbackService:
-    def __init__(self, feedback: Backend, self_feedback: Backend):
+    def __init__(self, feedback: Backend, self_feedback: Backend, routing: Backend | None = None):
         self.backends = {"feedback": feedback, "self_feedback": self_feedback, "answer": feedback}
+        if routing is not None:
+            self.backends["routing"] = routing
 
     def _call(self, role, question, images, **context):
         if not isinstance(question, str) or not question.strip() or not images:
@@ -173,6 +175,17 @@ class FeedbackService:
         """Jev replacement boundary: inspect caller-provided clean regions and observations."""
         return self._call("feedback", question, images, candidate=candidate, evidence=evidence)
 
+    def answer_with_evidence(self, question, images, *, evidence, unit=None, question_type=None):
+        """Separate guided condition; the original zero-shot prompt remains unchanged."""
+        return self._call(
+            "answer",
+            question,
+            images,
+            requested_unit=unit,
+            question_type=question_type,
+            algorithm_evidence=evidence,
+        )
+
     def critique_draft(self, question, images, *, draft, evidence=None):
         """Advisory feedback for a future agent; executes no tools and changes no evidence."""
         return self._call("self_feedback", question, images, draft=draft, evidence=evidence)
@@ -215,5 +228,7 @@ def create_service(config: dict, *, backends=None) -> FeedbackService:
                 settings, get_key(config, settings), audit_dir=config.get("audit_dir")
             )
     return FeedbackService(
-        clients[config["routes"]["feedback"]], clients[config["routes"]["self_feedback"]]
+        clients[config["routes"]["feedback"]],
+        clients[config["routes"]["self_feedback"]],
+        clients.get(config["routes"].get("routing")),
     )

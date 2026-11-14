@@ -142,6 +142,10 @@ class NemotronClient:
             "max_tokens": self.settings.get("max_tokens", 4096),
             "stream": False,
         }
+        if "enable_thinking" in self.settings:
+            if not isinstance(self.settings["enable_thinking"], bool):
+                raise ValueError("enable_thinking must be a boolean")
+            payload["chat_template_kwargs"] = {"enable_thinking": self.settings["enable_thinking"]}
         audit = self.audit_dir / uuid.uuid4().hex if self.audit_dir else None
         data, elapsed = self._request("/chat/completions", payload, audit=audit)
         try:

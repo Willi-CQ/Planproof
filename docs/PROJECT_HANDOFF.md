@@ -1,11 +1,15 @@
 # Consolidated project handoff
 
-The completed ML, deterministic evidence and Nemotron feedback work is collected
-on `main`. Package boundaries and existing behavior are preserved by this merge.
+The ML, deterministic evidence, Nemotron specialist and question-aware Gemini
+agent are collected on `main`. Start with the [MVP/frontend handoff](MVP_FRONTEND_HANDOFF.md)
+for setup, API requests, result states and coordinate overlays.
 The root README remains empty at the owner's request.
 
 | Component | Entry point |
 | --- | --- |
+| Local MVP and frontend integration | [MVP/frontend handoff](MVP_FRONTEND_HANDOFF.md) |
+| Gemini question agent and optional tools | [Question agent](QUESTION_AGENT.md) |
+| Latest mixed 50-question evaluation | [Measured results and limits](AGENT_COHORT50.md) |
 | Training, inference, calibration and export | [ML package](../ml/README.md) |
 | Frozen weights, training checkpoints and restore checks | [Baseline v1](../models/baselines/v1/README.md) |
 | Pixel extraction, geometry and ML comparisons | [Deterministic package](../deterministic/README.md) |
@@ -33,12 +37,12 @@ Run each package's existing tests in its documented environment. Dependency
 versions differ between packages, so separate environments remain supported.
 `python ml/scripts/verify_baseline.py` verifies all frozen model payloads.
 
-This consolidation does not create the primary Gemini agent or attach a live
-Nemotron review loop to room selection. The feedback adapter currently consumes
-the ordinary `get_region` context schema. The newer `get_room_context` schema
-adds room boundaries and nested original evidence; its adapter and host tool
-registration are part of the next connection task. Preserve clean source crops,
-coordinate transforms, dependency IDs and explicit uncertainty in that work.
+The question-aware Gemini coordinator chooses direct vision, clean crops,
+Nemotron inspection/review and
+optional ML/geometry tools. See [QUESTION_AGENT.md](QUESTION_AGENT.md) for the
+architecture, local launch, API, execution budgets and three-mode comparison.
+The feedback adapter also accepts the newer room-context schema. Live QA scores
+for this coordinator must be measured separately from earlier Nemotron pilots.
 
 Room rules retain imported ML geometry by default, with deterministic boundaries
 as alternatives. Door rules remain weak and must not suppress stronger ML

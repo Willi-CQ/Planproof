@@ -52,6 +52,17 @@ def test_openai_request_and_reasoning_is_not_final():
     assert result["content"] == "final" and "reasoning_content" not in result
 
 
+def test_explicit_thinking_control_is_optional_and_preserves_token_budget():
+    for value in (True, False):
+        opener = Opener([completion()])
+        NemotronClient({**SETTINGS, "enable_thinking": value}, "secret", opener=opener).complete([])
+        body = json.loads(opener.requests[0].data)
+        assert body["chat_template_kwargs"] == {"enable_thinking": value}
+        assert body["max_tokens"] == SETTINGS["max_tokens"]
+    with pytest.raises(ValueError, match="boolean"):
+        NemotronClient({**SETTINGS, "enable_thinking": "false"}, "secret").complete([])
+
+
 @pytest.mark.parametrize("finish", ["length", "tool_calls", "content_filter", None])
 def test_nonfinal_completions_are_explicit_failures(finish):
     with pytest.raises(ProviderError, match="Incomplete"):
