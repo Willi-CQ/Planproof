@@ -38,7 +38,9 @@ separate on 5175. Do not merge this branch into main until the design is accepte
 - Upload original PDF/PNG/JPEG bytes as multipart `file` and 1-based `page` to
   `/api/documents`; render the canonical returned image. No browser resizing,
   filtering or re-encoding. The existing 10 MiB / 150 MP limits still apply.
-- PDF page changes explicitly upload the selected page and clear previous answers.
+- The bottom toolbar is the only page navigator: previous/next or enter a page
+  number. Successful PDF page changes clear previous answers. Failed page loads
+  retain the current source and conversation; sending is disabled during loading.
 - The composer discloses that sending allows Planproof's AI services to analyze
   the drawing. The explicit send action sets both existing permission flags;
   uploading or choosing a suggested question does not call inference. Ask sends
@@ -70,7 +72,8 @@ coordinates, explicit send, duplicate prevention, failures and mobile layout.
 They do not establish model accuracy. On Windows an installed browser may be
 selected with `PLANPROOF_BROWSER` pointing to `msedge.exe`.
 
-Validation: 14 browser checks, TypeScript and production build passed. One real
+Validation: 15 browser checks cover the UI, including page navigation failure
+recovery and narrow-screen controls. TypeScript and production build passed. One real
 end-to-end test used a generated, explicitly synthetic sheet: the unchanged agent
 returned the printed 24 m² room area and a source citation. This proves the UI/API
 flow, not real construction-plan accuracy. Private test artifacts are not included.

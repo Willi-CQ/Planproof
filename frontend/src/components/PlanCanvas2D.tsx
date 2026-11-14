@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus, Maximize, ExternalLink } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Maximize,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+} from "lucide-react";
 import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
 interface Props {
   drawing: Drawing;
@@ -9,6 +17,10 @@ interface Props {
   onSelectEvidence: (index: number) => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
+  isPdf: boolean;
+  disabled: boolean;
+  loadingPage: boolean;
+  onPageChange: (page: number) => void;
 }
 export function PlanCanvas2D({
   drawing,
@@ -18,6 +30,10 @@ export function PlanCanvas2D({
   onSelectEvidence,
   zoom,
   onZoomChange,
+  isPdf,
+  disabled,
+  loadingPage,
+  onPageChange,
 }: Props) {
   const viewport = useRef<HTMLDivElement>(null),
     sheet = useRef<HTMLDivElement>(null);
@@ -28,6 +44,11 @@ export function PlanCanvas2D({
     top: number;
   } | null>(null);
   const [panning, setPanning] = useState(false);
+  const [pageInput, setPageInput] = useState(String(drawing.page));
+  useEffect(
+    () => setPageInput(String(drawing.page)),
+    [drawing.document_id, drawing.page],
+  );
   const citations = result ? visibleCitations(result, drawing) : [];
   useEffect(() => {
     if (selectedIndex === null || !viewport.current) return;
@@ -141,8 +162,8 @@ export function PlanCanvas2D({
                     y={y0}
                     width={x1 - x0}
                     height={y1 - y0}
-                    fill={selected ? "#0071e326" : "#0071e30a"}
-                    stroke={selected ? "#005bb5" : "#0071e3"}
+                    fill={selected ? "#001d0020" : "#001d000a"}
+                    stroke={selected ? "#001d00" : "#42634a"}
                     strokeWidth={selected ? 3 : 1.5}
                     vectorEffect="non-scaling-stroke"
                     onClick={() => onSelectEvidence(index)}
@@ -161,6 +182,59 @@ export function PlanCanvas2D({
         </div>
       </div>
       <div className="viewer-toolbar" aria-label="Drawing controls">
+        <div className="page-flipper" aria-label="Page navigation">
+          <button
+            className="icon-button"
+            aria-label="Previous page"
+            title="Previous page"
+            disabled={disabled || !isPdf || drawing.page <= 1}
+            onClick={() => onPageChange(drawing.page - 1)}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          {isPdf ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const nextPage = Number(pageInput);
+                setPageInput(String(drawing.page));
+                if (
+                  Number.isInteger(nextPage) &&
+                  nextPage > 0 &&
+                  nextPage !== drawing.page
+                )
+                  onPageChange(nextPage);
+              }}
+            >
+              <input
+                aria-label="PDF page"
+                title="Go to page (Enter)"
+                type="number"
+                min="1"
+                step="1"
+                required
+                value={pageInput}
+                disabled={disabled}
+                onChange={(e) => setPageInput(e.target.value)}
+                onBlur={() => setPageInput(String(drawing.page))}
+              />
+            </form>
+          ) : (
+            <span className="current-page" aria-label="Current page">
+              1
+            </span>
+          )}
+          <button
+            className="icon-button"
+            aria-label="Next page"
+            title="Next page"
+            disabled={disabled || !isPdf}
+            onClick={() => onPageChange(drawing.page + 1)}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <span className="toolbar-divider" />
         <button
           className="icon-button"
           aria-label="Zoom out"
@@ -202,6 +276,12 @@ export function PlanCanvas2D({
           <ExternalLink size={15} />
         </a>
       </div>
+      {loadingPage && (
+        <div className="page-loading" role="status">
+          <LoaderCircle size={15} className="spinning" />
+          Opening page…
+        </div>
+      )}
       {citations.length > 0 && (
         <div className="evidence-count">
           <span />

@@ -140,7 +140,7 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
   );
   await expect(page.getByTestId("evidence-box")).toHaveAttribute(
     "stroke",
-    "#005bb5",
+    "#001d00",
   );
   const imageBox = await page.getByTestId("source-image").boundingBox();
   const evidenceBox = await page.getByTestId("evidence-box").boundingBox();
@@ -250,7 +250,7 @@ test("page upload uses selected PDF page and clears previous answer", async ({
     return r.fulfill({ json: { ...drawing, page: 2 } });
   });
   await page.getByLabel("PDF page", { exact: true }).fill("2");
-  await page.getByRole("button", { name: "Load page", exact: true }).click();
+  await page.getByLabel("PDF page", { exact: true }).press("Enter");
   await expect(page.getByTestId("source-image")).toHaveAttribute(
     "alt",
     /page 2/,
@@ -259,6 +259,55 @@ test("page upload uses selected PDF page and clears previous answer", async ({
   await expect(page.getByTestId("agent-answer")).toHaveCount(0);
   await expect(page.getByTestId("evidence-box")).toHaveCount(0);
 });
+test("bottom page flipper preserves the current drawing and answer when a page fails", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page, "plan.pdf", "application/pdf");
+  await expect(page.locator(".document-strip")).toHaveCount(0);
+  await expect(
+    page.locator(".viewer-toolbar").getByLabel("PDF page", { exact: true }),
+  ).toHaveValue("1");
+  await expect(
+    page.getByRole("button", { name: "Previous page", exact: true }),
+  ).toBeDisabled();
+  await page.route("**/api/documents", (r) =>
+    r.fulfill({ json: { ...drawing, page: 2 } }),
+  );
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({ json: result }),
+  );
+  await ask(page);
+  await expect(page.getByTestId("agent-answer")).toHaveCount(1);
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/documents", async (r) => {
+    await gate;
+    await r.fulfill({ status: 422, json: { detail: "Page does not exist" } });
+  });
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.getByLabel("Question about this drawing")).toBeDisabled();
+  await expect(page.getByTestId("source-image")).toHaveAttribute(
+    "alt",
+    /page 2/,
+  );
+  release();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
+  await expect(page.getByTestId("agent-answer")).toHaveCount(1);
+  await expect(page.getByLabel("Question about this drawing")).toBeEnabled();
+  await page.route("**/api/documents", (r) => r.fulfill({ json: drawing }));
+  await page
+    .getByRole("button", { name: "Previous page", exact: true })
+    .click();
+  await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("1");
+  await expect(page.getByTestId("agent-answer")).toHaveCount(0);
+});
+
 test("untrusted answer text is inert and mobile stays within viewport", async ({
   page,
 }) => {
@@ -440,4 +489,11 @@ test("narrow welcome and keyboard focus remain usable", async ({ page }) => {
     ),
   ).toBe(true);
   await expect(page.getByLabel("Question about this drawing")).toBeVisible();
+  await page.getByRole("button", { name: "Show drawing", exact: true }).click();
+  const toolbar = await page.locator(".viewer-toolbar").boundingBox();
+  expect(toolbar!.x).toBeGreaterThanOrEqual(0);
+  expect(toolbar!.x + toolbar!.width).toBeLessThanOrEqual(320);
+  await expect(
+    page.getByRole("button", { name: "Next page", exact: true }),
+  ).toBeDisabled();
 });

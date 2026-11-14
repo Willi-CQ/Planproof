@@ -9,12 +9,15 @@ read on 2026-11-14. Applied as an implementation spec, not an image-generation
 prompt. The reference is an Apple-like native utility: quiet, precise, direct.
 
 - Outcome: upload one drawing, ask Planproof, inspect the cited source.
-- Layout: focused upload screen; then a generous drawing canvas with a compact
-  conversation on the right. On phones, two tabs keep both usable.
+- Layout: focused upload screen; then an expanded drawing canvas beside a wide,
+  full-height floating conversation panel. On phones, two tabs keep both usable.
+  Page navigation appears only in the bottom drawing toolbar, beside zoom controls.
 - Typography: locally available system fonts, restrained weight, readable body
   text. No external font fetches.
 - Materials: near-white background, white panels, subtle borders, soft shadows.
-  One blue accent is reserved for actions and evidence.
+  Deep green (#001D00), observed on [Stoa](https://stoabuild.com/) on 2026-11-14,
+  accents actions and evidence. Supporting sage shades are our own derived palette.
+  Larger chat text and generous spacing keep the conversation easy to read.
 - Hierarchy: a single primary action per state. Tool counters, source dimensions,
   model names and connection diagnostics are absent from the normal flow.
 - Behavior: drop/upload, keyboard send, native-pixel highlights, zoom and pan.

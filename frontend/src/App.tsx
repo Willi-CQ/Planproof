@@ -5,7 +5,6 @@ import {
   LoaderCircle,
   Plus,
   X,
-  ChevronRight,
   MessageCircle,
   Scan,
 } from "lucide-react";
@@ -45,18 +44,20 @@ export default function App() {
       return;
     }
     pending.current = true;
+    const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
     setError(null);
-    setDrawing(null);
-    setMessages([]);
-    setSelectedEvidence(null);
-    setZoom(100);
+    if (!changingPage) setDrawing(null);
     setFile(nextFile);
     setPage(nextPage);
-    setMobileTab("ask");
+    if (!changingPage) setMobileTab("ask");
     try {
       setDrawing(await uploadDrawing(nextFile, nextPage));
+      setMessages([]);
+      setSelectedEvidence(null);
+      setZoom(100);
     } catch (e) {
+      if (changingPage) setPage(drawing.page);
       setError(
         e instanceof Error
           ? e.message
@@ -317,47 +318,6 @@ export default function App() {
           </nav>
           <main className="workspace" data-mobile-tab={mobileTab}>
             <div className="drawing-column">
-              <div className="document-strip">
-                <span className="document-label">Drawing</span>
-                {file?.type === "application/pdf" ? (
-                  <form
-                    className="page-control"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (file && Number.isInteger(page) && page > 0)
-                        void loadFile(file, page);
-                    }}
-                  >
-                    <label htmlFor="page-number">Page</label>
-                    <input
-                      id="page-number"
-                      aria-label="PDF page"
-                      type="number"
-                      min="1"
-                      step="1"
-                      required
-                      value={page}
-                      disabled={!!busy}
-                      onChange={(e) => setPage(Number(e.target.value))}
-                    />
-                    <button
-                      className="icon-button"
-                      aria-label="Load page"
-                      title="Load page"
-                      disabled={!!busy || !Number.isInteger(page) || page < 1}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                    {page !== drawing.page && (
-                      <span className="page-current">
-                        Viewing {drawing.page}
-                      </span>
-                    )}
-                  </form>
-                ) : (
-                  <span className="page-label">Page {drawing.page}</span>
-                )}
-              </div>
               <PlanCanvas2D
                 drawing={drawing}
                 name={file?.name}
@@ -368,6 +328,13 @@ export default function App() {
                 }}
                 zoom={zoom}
                 onZoomChange={setZoom}
+                isPdf={file?.type === "application/pdf"}
+                disabled={!!busy}
+                loadingPage={busy === "upload"}
+                onPageChange={(nextPage) => {
+                  if (file && Number.isInteger(nextPage) && nextPage > 0)
+                    void loadFile(file, nextPage);
+                }}
               />
             </div>
             <PlanChatbotPanel
@@ -375,6 +342,7 @@ export default function App() {
               messages={messages}
               drawing={drawing}
               busy={busy === "ask"}
+              disabled={!!busy}
               onSendMessage={sendMessage}
               onClearChat={() => {
                 if (!pending.current) {

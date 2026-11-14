@@ -25,6 +25,7 @@ interface Props {
   messages: Message[];
   drawing: Drawing;
   busy: boolean;
+  disabled?: boolean;
   onSendMessage: (question: string) => Promise<boolean>;
   onClearChat: () => void;
   selectedEvidence: { message: string; index: number } | null;
@@ -103,6 +104,7 @@ export function PlanChatbotPanel({
   messages,
   drawing,
   busy,
+  disabled = false,
   onSendMessage,
   onClearChat,
   selectedEvidence,
@@ -127,7 +129,7 @@ export function PlanChatbotPanel({
     }
   }, [draft]);
   async function submit() {
-    if (busy || !draft.trim()) return;
+    if (busy || disabled || !draft.trim()) return;
     const sent = draft.trim();
     const completed = await onSendMessage(sent);
     if (completed) setDraft("");
@@ -147,7 +149,7 @@ export function PlanChatbotPanel({
           className="icon-button"
           aria-label="Clear conversation"
           title="New conversation"
-          disabled={!messages.length || busy}
+          disabled={!messages.length || busy || disabled}
           onClick={() => {
             onClearChat();
             setDraft("");
@@ -248,7 +250,7 @@ export function PlanChatbotPanel({
             rows={2}
             value={draft}
             maxLength={2000}
-            disabled={busy}
+            disabled={busy || disabled}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Ask anything about this drawing…"
             onKeyDown={(e) => {
@@ -274,7 +276,7 @@ export function PlanChatbotPanel({
             </span>
             <button
               className="send-button"
-              disabled={busy || !draft.trim()}
+              disabled={busy || disabled || !draft.trim()}
               aria-label="Ask Planproof"
               title="Send question"
             >
