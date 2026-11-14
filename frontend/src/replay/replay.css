@@ -1,0 +1,46 @@
+.replay-header { display: flex; align-items: center; gap: 24px; padding: 16px 24px; flex-shrink: 0; border-bottom: 1px solid #e2e8dc; background: #fcfdf9; }
+.replay-header > div:nth-child(2) { display: flex; flex-direction: column; gap: 4px; }
+.replay-header strong { font-size: 14px; font-weight: 600; color: #40553b; }
+.replay-header > div > span:last-child { font-size: 11px; color: #7d8572; }
+.replay-header .brand > span:last-child { color: #1d1d1f; font-size: 19px; }
+.replay-header > label { margin-left: auto; display: flex; gap: 9px; align-items: center; font-size: 11px; color: #747e6a; min-width: 0; }
+.replay-shell select { border: 1px solid #dbe2d5; border-radius: 7px; padding: 7px 9px; background: #fff; color: #41583d; font-size: 12px; max-width: 100%; }
+.replay-controls { display: flex; gap: 20px; align-items: center; padding: 10px 24px; border-bottom: 1px solid #e3e8df; flex-shrink: 0; }
+.replay-transport { display: flex; align-items: center; gap: 5px; }
+.replay-play { display: inline-flex; align-items: center; gap: 6px; background: #e7efdf; color: #345133; padding: 8px 12px; border-radius: 7px; font-size: 12px; min-width: 78px; justify-content: center; }
+.replay-speed { margin-left: 6px; }
+.replay-scrubber { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.replay-scrubber input { width: 100%; accent-color: #61815b; }
+.replay-scrubber span { font-size: 10px; color: #75816a; font-variant-numeric: tabular-nums; }
+.replay-jumps { display: flex; gap: 5px; }
+.replay-jumps button { font-size: 11px; border: 1px solid #dce5d4; border-radius: 6px; padding: 7px 9px; background: #fff; color: #516846; }
+.replay-panel .assistant-header h2 { font-size: 14px; }
+.replay-panel .conversation { padding: 22px; }
+.replay-note { border-left: 2px solid #bfcea9; padding-left: 12px; font-size: 12px; color: #737a66; line-height: 1.7; margin: 0 0 18px; }
+.replay-original-note { font-size: 11px; line-height: 1.7; color: #8a8c7f; margin-bottom: 18px; }
+.replay-badge { color: #698059; background: #eff4e9; padding: 3px 7px; border-radius: 5px; font-size: 10px; }
+.replay-panel .user-message { margin-bottom: 20px; }
+.replay-footer { flex-shrink: 0; padding: 0 20px 9px; color: #7f8775; font-size: 10px; text-align: center; }
+@media (max-width: 1050px) {
+  .replay-controls { gap: 10px; flex-wrap: wrap; }
+  .replay-jumps { margin-left: auto; }
+}
+@media (max-width: 760px) {
+  .replay-header { flex-wrap: wrap; gap: 8px 16px; padding: 10px 14px; }
+  .replay-header > div:nth-child(2) { flex: 1; }
+  .replay-header strong { font-size: 12px; }
+  .replay-header > div > span:last-child { font-size: 10px; }
+  .replay-header > label { width: 100%; margin: 0; }
+  .replay-header select { flex: 1; width: 0; }
+  .replay-controls { padding: 8px 12px; gap: 8px; }
+  .replay-transport { width: 100%; gap: 2px; }
+  .replay-shell .replay-speed { flex: 1; min-width: 0; margin-left: 4px; }
+  .replay-speed select { font-size: 10px; padding: 7px 3px; width: 100%; }
+  .replay-play { min-width: 65px; padding: 7px; }
+  .replay-jumps { width: 100%; justify-content: stretch; }
+  .replay-jumps button { flex: 1; }
+  .replay-panel .assistant-header { min-height: 45px; padding: 12px 18px; }
+  .replay-panel .conversation { padding: 16px; }
+  .replay-footer { font-size: 9px; padding: 0 12px 6px; }
+  .replay-shell .mobile-tabs { margin-top: 8px; margin-bottom: 0; }
+}

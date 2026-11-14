@@ -50,7 +50,7 @@ function StepCard({step, done, drawing, bound, onFocus, onInspectCandidates}: {s
         return <button key={j} onClick={() => onFocus(region)} aria-label={`Inspect work step ${step.startSequence} source ${j + 1}`}>
           <CropPreview region={region} drawing={drawing} />
           <span><Focus size={12} />{step.state === "running" ? "Requested view" : "Source detail"}{regions.length > 1 ? ` ${j + 1}` : ""}</span>
-          <small>{resolution} · page {region.page_index + 1}</small>
+          <small>{region.image_id && <>{region.image_id} · </>}{resolution} · page {region.page_index + 1}</small>
         </button>;
       })}</div>}
       {family === "nemotron" && step.stage !== "inspect_regions" && regions.length > 0 && <p className="work-scope">Highlighted regions show the requested view, not detected objects.</p>}

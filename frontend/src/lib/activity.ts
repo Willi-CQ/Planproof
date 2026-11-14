@@ -95,7 +95,11 @@ export function liveActivity(run: AgentRun | undefined, frame?: SourceFrame) {
   const event = steps.at(-1);
   const spatial = [...steps].reverse().find(e => boundRegions(e, frame).length);
   const inspections = steps.filter(e => e.stage === "inspect_nemotron" && e.state === "running");
-  const views = inspections.flatMap(e => boundRegions(e, frame).map(region => ({region, label: `Nemotron · Detail ${e.detailNumber}`, active: true})));
+  const views = inspections.flatMap(e => {
+    const regions = boundRegions(e, frame);
+    return regions.map((region, i) => ({region,
+      label: `Nemotron · Detail ${e.detailNumber}${regions.length > 1 ? ` · View ${i + 1}` : ""}`, active: true}));
+  });
   const fallback = boundRegions(spatial, frame).map(region => ({region,
     label: spatial?.state === "running" ? "Requested source view" : "Last source view", active: spatial?.state === "running"}));
   const visible = sameSource(run.source, frame) ? views.length ? views : fallback : [];
