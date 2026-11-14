@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planproof · __PAGE_LABEL__</title>
+<style>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#17271e;background:#f5f7f2;color-scheme:light}*{box-sizing:border-box}body{margin:0}header{padding:24px 30px;border-bottom:1px solid #dce2d7;background:#fff}header small{font-size:11px;letter-spacing:2px;color:#59715c}h1{font-size:26px;font-weight:550;margin:8px 0}header p{margin:0;color:#5e6e60;font-size:13px}.layout{display:grid;grid-template-columns:350px minmax(0,1fr);min-height:calc(100vh - 130px)}aside{padding:20px;border-right:1px solid #dce2d7}label{display:block;font-size:12px;color:#506451}input{width:100%;padding:12px;border:1px solid #bdcbbb;border-radius:6px;background:white;font:inherit;margin:8px 0 12px}#count{font-size:12px;color:#637463;margin-bottom:14px}#list{display:grid;gap:8px;max-height:calc(100vh - 270px);overflow:auto}button{font:inherit;cursor:pointer}button.case{background:#fff;border:1px solid #dce2d7;border-radius:7px;text-align:left;padding:12px;line-height:1.45}.case strong{display:block;font-size:12px;color:#637463;margin-bottom:5px}.case span{font-size:13px}.case[aria-current=true]{border-color:#39754e;background:#edf5eb;box-shadow:inset 3px 0 #39754e}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #478aee;outline-offset:2px}main{padding:24px 30px;min-width:0}nav{display:flex;justify-content:space-between;align-items:center;gap:15px;font-size:12px;color:#637463}nav button{padding:8px 12px;border:1px solid #bdcbbb;border-radius:5px;background:#fff}nav button:disabled{opacity:.4;cursor:default}h2{font-size:22px;font-weight:550;line-height:1.45;margin:20px 0 16px;max-width:1000px}.file{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px}.file code{font-size:12px;overflow-wrap:anywhere;color:#526553}.file a{font-size:13px;color:#215a36;padding:8px 12px;border:1px solid #bdcbbb;border-radius:5px;background:#fff;text-decoration:none}#drawings{display:grid;gap:20px}#drawings a{display:block;background:#fff;border:1px solid #dce2d7;border-radius:6px;padding:12px}#drawings img{display:block;max-width:100%;height:auto;margin:auto;max-height:calc(100vh - 350px);object-fit:contain}footer{font-size:11px;color:#637463;padding:18px 0}footer a{color:inherit}#empty{padding:30px;color:#637463}@media(max-width:760px){header{padding:18px}.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #dce2d7;padding:16px}#list{max-height:220px}main{padding:18px}h2{font-size:19px}#drawings img{max-height:none}}
+</style>
+</head>
+<body id="question-browser">
+<header><small>PLANPROOF / STOA DATASET</small><h1>__PAGE_LABEL__</h1><p>Original questions, paired with their source files.</p></header>
+<div class="layout">
+<aside><label for="search">Find a question or filename</label><input id="search" type="search" placeholder="Search…"><div id="count" aria-live="polite"></div><div id="list" aria-label="Questions"></div></aside>
+<main><nav><button id="previous" aria-label="Previous question">← Previous</button><span id="position"></span><button id="next" aria-label="Next question">Next →</button></nav><section id="detail"><h2 id="question"></h2><div class="file"><code id="filename"></code><a id="original" target="_blank" rel="noopener">Open original file ↗</a></div><div id="drawings"></div></section><p id="empty" hidden>No matching questions.</p><footer><a href="../stoa-random-v1/notices/README.md" target="_blank" rel="noopener">Dataset credits & licences</a> · <a href="benchmark-results.html">Saved benchmark report</a></footer></main>
+</div>
+<script id="questions" type="application/json">__QUESTION_DATA__</script>
+<script>
+"use strict";
+const cases=JSON.parse(document.getElementById("questions").textContent);
+const el=id=>document.getElementById(id);
+let filtered=[...cases],selected=null;
+function select(item){
+ selected=item;
+ for(const button of el("list").children)button.setAttribute("aria-current",String(button.dataset.id===item?.id));
+ el("detail").hidden=!item;el("empty").hidden=!!item;
+ const position=filtered.indexOf(item);
+ el("position").textContent=item?`${position+1} / ${filtered.length}`:"0 / 0";
+ el("previous").disabled=position<=0;el("next").disabled=position<0||position>=filtered.length-1;
+ if(!item)return;
+ el("question").textContent=item.question;el("filename").textContent=item.name;el("original").href=item.file;
+ el("drawings").replaceChildren();
+ for(const [index,path] of item.images.entries()){
+  const link=document.createElement("a");link.href=path;link.target="_blank";link.rel="noopener";link.title="Open full-size drawing";
+  const image=document.createElement("img");image.src=path;image.alt=`${item.name}, page ${index+1}`;link.append(image);el("drawings").append(link);
+ }
+ history.replaceState(null,"",`#${item.id}`);
+}
+function filter(){
+ const query=el("search").value.trim().toLocaleLowerCase();
+ filtered=cases.filter(item=>`${item.question} ${item.name}`.toLocaleLowerCase().includes(query));
+ el("count").textContent=`${filtered.length} question–file pairs${query?` of ${cases.length}`:""}`;
+ el("list").replaceChildren();
+ for(const item of filtered){
+  const button=document.createElement("button");button.type="button";button.className="case";button.dataset.id=item.id;
+  const name=document.createElement("strong");name.textContent=`${cases.indexOf(item)+1}. ${item.name}`;
+  const question=document.createElement("span");question.textContent=item.question;button.append(name,question);button.onclick=()=>select(item);el("list").append(button);
+ }
+ select(filtered.includes(selected)?selected:filtered[0]);
+}
+el("search").addEventListener("input",filter);
+el("previous").onclick=()=>select(filtered[filtered.indexOf(selected)-1]);
+el("next").onclick=()=>select(filtered[filtered.indexOf(selected)+1]);
+selected=cases.find(item=>item.id===location.hash.slice(1));filter();
+</script>
+</body>
+</html>
