@@ -427,34 +427,12 @@ h1 span {
   color: #909099;
   flex-shrink: 0;
 }
-.file-hint {
-  color: #7a7a82;
-  font-size: 11px;
-  margin: 16px 0 0;
-}
-.file-hint span {
-  padding: 0 7px;
-}
 .text-button {
   border: 0;
   background: none;
   color: var(--accent);
   padding: 12px;
   font-size: 13px;
-}
-.welcome-footer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 64px 0 0;
-  font-size: 11px;
-  color: #7c7c85;
-}
-.mini-rule {
-  display: block;
-  width: 22px;
-  height: 1px;
-  background: #bdbdc5;
 }
 .workspace {
   flex: 1;
@@ -1086,11 +1064,6 @@ h1 span {
   }
   .upload-card-copy > span {
     font-size: 11px;
-  }
-  .welcome-footer {
-    font-size: 10px;
-    gap: 7px;
-    margin-top: 48px;
   }
   .mobile-tabs {
     display: flex;

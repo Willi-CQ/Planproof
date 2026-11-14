@@ -434,14 +434,7 @@ export default function App() {
                 Choose a different drawing
               </button>
             )}
-            <p className="file-hint">
-              PDF, PNG or JPG <span>·</span> Up to 10 MB
-            </p>
           </div>
-          <p className="welcome-footer">
-            <span className="mini-rule" />
-            From the big picture to the smallest detail.
-          </p>
         </main>
       ) : (
         <>
