@@ -50,3 +50,19 @@ Preparation accepts 1-16 bounded CPU workers; CubiCasa workers parse and convert
 drawings in separate processes, preserving deterministic record order. Serial
 and parallel fixtures produce identical manifests. The full corpus import and
 real-data model accuracy are still pending at this checkpoint.
+
+
+## Supervised original-source training ? 2026-11-14
+
+59 CPU tests pass on the overnight source, including strict transfer/resume,
+deterministic prefetch parity, optimized postprocessing/metric equivalence,
+original CAD raw IDs, shuffled ResPlan publisher IDs, explicit import exclusions,
+paired GIoU/reference parity, gradient coverage, and pre-validation checkpoints.
+Ruff lint/format pass. The pinned A100 container has completed clean-data CUDA
+updates, validation and checkpoint saves. This verifies execution, not the
+requested accuracy targets. See DATA_VALIDATION.md for dataset evidence.
+
+The initial 512-pixel model learns walls and rooms but has weak opening-box
+localization. A bounded overlap-loss refinement is evaluated independently;
+previous baseline weights are preserved. Final numerical claims belong in the
+measured run report after matched-cohort validation, not this readiness record.
