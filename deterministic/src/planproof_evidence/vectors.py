@@ -156,8 +156,10 @@ def merge_collinear_segments(
             line_dir = line_dir / line_len
             
             # Distance from a2 to line through a1,b1
-            dist_a2 = abs(np.cross(line_dir, a2 - a1))
-            dist_b2 = abs(np.cross(line_dir, b2 - a1))
+            # 2D cross product written out: np.cross rejects 2D vectors in NumPy >= 2.5.
+            offset_a2, offset_b2 = a2 - a1, b2 - a1
+            dist_a2 = abs(line_dir[0] * offset_a2[1] - line_dir[1] * offset_a2[0])
+            dist_b2 = abs(line_dir[0] * offset_b2[1] - line_dir[1] * offset_b2[0])
             
             if dist_a2 < distance_tolerance and dist_b2 < distance_tolerance:
                 # Merge segments
