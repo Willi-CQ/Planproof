@@ -1,0 +1,33 @@
+{
+  "template_key": "s_stahl_industrie_19_24_90",
+  "name": "Industrie-Stahltreppe (19/24, B 0.90)",
+  "element_type": "stair",
+  "ifc_entity_type": "IfcStair",
+  "category": "industrial_stair",
+  "layers": [],
+  "geometry_params": {
+    "riser_height_mm": 190,
+    "tread_depth_mm": 240,
+    "width_mm": 900,
+    "material_primary": "steel_galvanized",
+    "typical_for": [
+      "Industrie",
+      "Wartungstreppe"
+    ]
+  },
+  "computed_properties": {
+    "step_ratio": 620,
+    "fire_resistance": "R 30"
+  },
+  "ifc_psets": {
+    "Pset_StairCommon": {
+      "FireRating": "R 30"
+    }
+  },
+  "din_references": [
+    "DIN EN ISO 14122-3"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18065 (2020)"
+}

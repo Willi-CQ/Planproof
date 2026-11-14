@@ -1,0 +1,12 @@
+{
+  "material_key": "sandwich_pir_kern_80",
+  "name": "Sandwich-Element PIR-Kern 80 mm",
+  "category": "insulation",
+  "thickness_mm": 80.0,
+  "properties": {
+    "thermal_conductivity": 0.024,
+    "density": 40,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

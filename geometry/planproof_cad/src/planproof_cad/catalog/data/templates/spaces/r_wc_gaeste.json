@@ -1,0 +1,36 @@
+{
+  "template_key": "r_wc_gaeste",
+  "name": "Gäste-WC",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "wc",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "sanitary",
+    "nuf_class": "NUF1.3",
+    "min_area_m2": 2,
+    "min_height_mm": 2400,
+    "ventilation": "mechanical_extract",
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "sanitary",
+      "GrossPlannedArea": 2
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "sanitary"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "DIN 18599"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

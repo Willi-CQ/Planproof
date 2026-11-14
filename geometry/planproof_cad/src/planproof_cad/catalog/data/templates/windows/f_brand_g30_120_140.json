@@ -1,0 +1,36 @@
+{
+  "template_key": "f_brand_g30_120_140",
+  "name": "Brandschutzfenster G30 120 × 140",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "fire_window",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1200,
+    "default_height_mm": 1400,
+    "frame_material": "steel",
+    "glazing_type": "brand_g30",
+    "opening_direction": "fixed",
+    "typical_for": [
+      "Industrie",
+      "Brandwand"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 2.5
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 2.5,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN 4102-13",
+    "DIN EN 1364-1"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

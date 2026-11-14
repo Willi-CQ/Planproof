@@ -1,0 +1,13 @@
+{
+  "material_key": "iso_2fach_low_e",
+  "name": "Iso-Verglasung 2-fach Low-E",
+  "category": "glass",
+  "thickness_mm": 24.0,
+  "properties": {
+    "thermal_conductivity": 0.03,
+    "density": 2500,
+    "fire_class": "A1",
+    "ug_value": 1.1
+  },
+  "source": "Planproof"
+}

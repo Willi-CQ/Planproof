@@ -1,0 +1,12 @@
+{
+  "material_key": "wdvs_eps_035_180",
+  "name": "WDVS EPS 035 / 180 mm",
+  "category": "insulation",
+  "thickness_mm": 180.0,
+  "properties": {
+    "thermal_conductivity": 0.035,
+    "density": 20,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

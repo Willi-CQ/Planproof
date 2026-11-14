@@ -1,0 +1,35 @@
+{
+  "template_key": "s_beton_mfh_17_29_125",
+  "name": "Treppe Stahlbeton MFH notwendig (17/29, B 1.25)",
+  "element_type": "stair",
+  "ifc_entity_type": "IfcStair",
+  "category": "necessary_stair",
+  "layers": [],
+  "geometry_params": {
+    "riser_height_mm": 170,
+    "tread_depth_mm": 290,
+    "width_mm": 1250,
+    "material_primary": "reinforced_concrete",
+    "typical_for": [
+      "MFH",
+      "Notwendiger_Treppenraum"
+    ]
+  },
+  "computed_properties": {
+    "step_ratio": 630,
+    "fire_resistance": "REI 90"
+  },
+  "ifc_psets": {
+    "Pset_StairCommon": {
+      "FireRating": "REI 90"
+    }
+  },
+  "din_references": [
+    "DIN 18065",
+    "MBO §35",
+    "DIN 4102-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18065 (2020)"
+}

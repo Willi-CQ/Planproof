@@ -1,0 +1,54 @@
+{
+  "template_key": "aw_sandwich_pir_120",
+  "name": "AW Industrie: Sandwich-Element PIR 120 mm",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "exterior_wall_industrial",
+  "layers": [
+    {
+      "material_key": "trapezblech_stahl_0_75",
+      "thickness_mm": 1.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "sandwich_pir_kern_120",
+      "thickness_mm": 120.0,
+      "function": "thermal_insulation"
+    },
+    {
+      "material_key": "trapezblech_stahl_0_75",
+      "thickness_mm": 1.0,
+      "function": "exterior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "Industrie",
+      "Lager"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 25,
+    "fire_resistance": "REI 30",
+    "u_value": 0.193,
+    "total_thickness_mm": 122.0,
+    "r_total": 5.17
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": true,
+      "LoadBearing": false,
+      "FireRating": "REI 30",
+      "AcousticRating": "R'w >= 25 dB",
+      "ThermalTransmittance": 0.193
+    }
+  },
+  "din_references": [
+    "DIN 4108-2",
+    "DIN 1053-1"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"2.6\" height=\"96\" fill=\"#7a8a99\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"2.6\" y=\"0\" width=\"314.8\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">120</text><rect x=\"317.4\" y=\"0\" width=\"2.6\" height=\"96\" fill=\"#7a8a99\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

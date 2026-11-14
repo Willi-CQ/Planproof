@@ -1,0 +1,54 @@
+{
+  "template_key": "iw_brandwand_beton240_rei120",
+  "name": "Brandwand Stahlbeton 240 (REI 120, M)",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "interior_wall_firewall",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "stahlbeton_240",
+      "thickness_mm": 240.0,
+      "function": "structural_fire"
+    },
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "Brandwand",
+      "GBR_groesser_15m",
+      "Industrie"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 63,
+    "fire_resistance": "REI 120-M",
+    "u_value": 3.001,
+    "total_thickness_mm": 270.0,
+    "r_total": 0.333
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": false,
+      "LoadBearing": true,
+      "FireRating": "REI 120-M",
+      "AcousticRating": "R'w >= 63 dB",
+      "ThermalTransmittance": 3.001
+    }
+  },
+  "din_references": [
+    "DIN 4102-3"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"17.8\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"17.8\" y=\"0\" width=\"284.4\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">240</text><rect x=\"302.2\" y=\"0\" width=\"17.8\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

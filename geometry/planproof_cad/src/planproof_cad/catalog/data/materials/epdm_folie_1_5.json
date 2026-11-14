@@ -1,0 +1,12 @@
+{
+  "material_key": "epdm_folie_1_5",
+  "name": "EPDM-Dachfolie 1.5 mm",
+  "category": "cladding",
+  "thickness_mm": 2.0,
+  "properties": {
+    "thermal_conductivity": 0.2,
+    "density": 1300,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

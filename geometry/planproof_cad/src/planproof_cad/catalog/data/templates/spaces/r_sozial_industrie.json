@@ -1,0 +1,34 @@
+{
+  "template_key": "r_sozial_industrie",
+  "name": "Sozialraum Industrie (Aufenthalt)",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "break_room",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "staff_room",
+    "nuf_class": "NUF1.4",
+    "min_area_m2": 12,
+    "min_height_mm": 2500,
+    "ventilation": "natural",
+    "typical_for": [
+      "Industrie"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "staff_room",
+      "GrossPlannedArea": 12
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "staff_room"
+    }
+  },
+  "din_references": [
+    "ASR A4.2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

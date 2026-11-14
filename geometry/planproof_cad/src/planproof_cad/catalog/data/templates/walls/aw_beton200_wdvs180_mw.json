@@ -1,0 +1,64 @@
+{
+  "template_key": "aw_beton200_wdvs180_mw",
+  "name": "AW: Stahlbeton 200 + WDVS 180 MW",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "exterior_wall_loadbearing",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "stahlbeton_200",
+      "thickness_mm": 200.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "wdvs_mw_035_160",
+      "thickness_mm": 160.0,
+      "function": "thermal_insulation"
+    },
+    {
+      "material_key": "armierungsputz_5",
+      "thickness_mm": 5.0,
+      "function": "exterior_finish"
+    },
+    {
+      "material_key": "mineralputz_aussen_8",
+      "thickness_mm": 8.0,
+      "function": "exterior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "MFH",
+      "Buero"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 58,
+    "fire_resistance": "REI 90",
+    "u_value": 0.205,
+    "total_thickness_mm": 388.0,
+    "r_total": 4.873
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": true,
+      "LoadBearing": true,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 58 dB",
+      "ThermalTransmittance": 0.205
+    }
+  },
+  "din_references": [
+    "DIN 4108-2",
+    "DIN 1053-1"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"12.4\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"12.4\" y=\"0\" width=\"164.9\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"94.8\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">200</text><rect x=\"177.3\" y=\"0\" width=\"132.0\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"243.3\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">160</text><rect x=\"309.3\" y=\"0\" width=\"4.1\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"313.4\" y=\"0\" width=\"6.6\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

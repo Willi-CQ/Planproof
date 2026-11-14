@@ -1,0 +1,35 @@
+{
+  "template_key": "f_pvc_2fach_120_140",
+  "name": "Fenster Kunststoff 2-fach 120 × 140 (Uw 1.3)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "residential_window",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1200,
+    "default_height_mm": 1400,
+    "frame_material": "pvc",
+    "glazing_type": "2_pane_low_e",
+    "opening_direction": "tilt_turn",
+    "typical_for": [
+      "EFH_Bestand"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.3
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.3,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN 4108-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

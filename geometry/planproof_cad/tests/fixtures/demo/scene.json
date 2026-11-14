@@ -1,0 +1,916 @@
+{
+  "version": "scene_v1",
+  "units": "m",
+  "up_axis": "Y",
+  "components": {
+    "e_2_e5d425": {
+      "id": "e_2_e5d425",
+      "name": "Wall e_2_e5d425",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_2_e5d425",
+      "center": [
+        7.15,
+        1.4,
+        4.15
+      ],
+      "dims": [
+        6.0,
+        2.8,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          4.15
+        ],
+        "segment_b": [
+          10.15,
+          4.15
+        ],
+        "length_m": 6.0,
+        "thickness_m": 0.115,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "interior",
+        "graph_edge_id": "e_2_e5d425"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_4_f1d1bc": {
+      "id": "e_4_f1d1bc",
+      "name": "Wall e_4_f1d1bc",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_4_f1d1bc",
+      "center": [
+        0.1500000000000002,
+        1.4,
+        4.15
+      ],
+      "dims": [
+        8.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.15000000000000036,
+          8.15
+        ],
+        "segment_b": [
+          0.15,
+          0.15
+        ],
+        "length_m": 8.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_4_f1d1bc"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_5_89f8eb": {
+      "id": "e_5_89f8eb",
+      "name": "Wall e_5_89f8eb",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_5_89f8eb",
+      "center": [
+        2.1500000000000004,
+        1.4,
+        0.15
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.15,
+          0.15
+        ],
+        "segment_b": [
+          4.15,
+          0.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_5_89f8eb"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_6_868463": {
+      "id": "e_6_868463",
+      "name": "Wall e_6_868463",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_6_868463",
+      "center": [
+        7.15,
+        1.4,
+        0.15
+      ],
+      "dims": [
+        6.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          0.15
+        ],
+        "segment_b": [
+          10.15,
+          0.15
+        ],
+        "length_m": 6.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_6_868463"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_6_30887a": {
+      "id": "e_6_30887a",
+      "name": "Wall e_6_30887a",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_6_30887a",
+      "center": [
+        7.15,
+        1.4,
+        8.15
+      ],
+      "dims": [
+        6.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          10.15,
+          8.15
+        ],
+        "segment_b": [
+          4.15,
+          8.15
+        ],
+        "length_m": 6.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_6_30887a"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_7_fee9fe": {
+      "id": "e_7_fee9fe",
+      "name": "Wall e_7_fee9fe",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_7_fee9fe",
+      "center": [
+        2.1500000000000004,
+        1.4,
+        8.15
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          8.15
+        ],
+        "segment_b": [
+          0.15000000000000036,
+          8.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_7_fee9fe"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_7_984eed": {
+      "id": "e_7_984eed",
+      "name": "Wall e_7_984eed",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_7_984eed",
+      "center": [
+        10.15,
+        1.4,
+        2.1500000000000004
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          10.15,
+          0.15
+        ],
+        "segment_b": [
+          10.15,
+          4.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_7_984eed"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_8_b4c46c": {
+      "id": "e_8_b4c46c",
+      "name": "Wall e_8_b4c46c",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_8_b4c46c",
+      "center": [
+        10.15,
+        1.4,
+        6.15
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          10.15,
+          4.15
+        ],
+        "segment_b": [
+          10.15,
+          8.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.3,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "e_8_b4c46c"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_8_91ccae": {
+      "id": "e_8_91ccae",
+      "name": "Wall e_8_91ccae",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_8_91ccae",
+      "center": [
+        4.15,
+        1.4,
+        2.1500000000000004
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          0.15
+        ],
+        "segment_b": [
+          4.15,
+          4.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.115,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "interior",
+        "graph_edge_id": "e_8_91ccae"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "e_9_b2b851": {
+      "id": "e_9_b2b851",
+      "name": "Wall e_9_b2b851",
+      "kind": "WALL",
+      "geometry_ref": "wall/e_9_b2b851",
+      "center": [
+        4.15,
+        1.4,
+        6.15
+      ],
+      "dims": [
+        4.0,
+        2.8,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          4.15
+        ],
+        "segment_b": [
+          4.15,
+          8.15
+        ],
+        "length_m": 4.0,
+        "thickness_m": 0.115,
+        "height_m": 2.8,
+        "source": "dwg_double_line",
+        "wall_type": "interior",
+        "graph_edge_id": "e_9_b2b851"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_door_1": {
+      "id": "op_door_1",
+      "name": "Door op_door_1",
+      "kind": "DOOR",
+      "geometry_ref": "door/op_door_1",
+      "center": [
+        7.15,
+        1.05,
+        4.15
+      ],
+      "dims": [
+        0.885,
+        2.1,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          6.7075000000000005,
+          4.15
+        ],
+        "segment_b": [
+          7.5925,
+          4.15
+        ],
+        "length_m": 2.1,
+        "width_m": 0.885,
+        "height_m": 2.1,
+        "sill_height_m": 0.0,
+        "head_height_m": 2.1,
+        "thickness_m": 0.115,
+        "parent_edge_id": "e_2_e5d425",
+        "source": "dwg_block",
+        "cuts_wall": true,
+        "subtype": "door_single",
+        "leaves": 1
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_door_2": {
+      "id": "op_door_2",
+      "name": "Door op_door_2",
+      "kind": "DOOR",
+      "geometry_ref": "door/op_door_2",
+      "center": [
+        2.15,
+        1.05,
+        0.15
+      ],
+      "dims": [
+        1.01,
+        2.1,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          1.645,
+          0.15
+        ],
+        "segment_b": [
+          2.655,
+          0.15
+        ],
+        "length_m": 2.1,
+        "width_m": 1.01,
+        "height_m": 2.1,
+        "sill_height_m": 0.0,
+        "head_height_m": 2.1,
+        "thickness_m": 0.3,
+        "parent_edge_id": "e_5_89f8eb",
+        "source": "dwg_block",
+        "cuts_wall": true,
+        "subtype": "door_single",
+        "leaves": 1
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_window_3": {
+      "id": "op_window_3",
+      "name": "Window op_window_3",
+      "kind": "WINDOW",
+      "geometry_ref": "window/op_window_3",
+      "center": [
+        1.65,
+        1.5,
+        8.15
+      ],
+      "dims": [
+        1.26,
+        1.2000000000000002,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          2.28,
+          8.15
+        ],
+        "segment_b": [
+          1.02,
+          8.15
+        ],
+        "length_m": 1.2,
+        "width_m": 1.26,
+        "height_m": 1.2,
+        "sill_height_m": 0.9,
+        "head_height_m": 2.1,
+        "thickness_m": 0.3,
+        "parent_edge_id": "e_7_fee9fe",
+        "source": "dwg_block",
+        "cuts_wall": true
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_window_4": {
+      "id": "op_window_4",
+      "name": "Window op_window_4",
+      "kind": "WINDOW",
+      "geometry_ref": "window/op_window_4",
+      "center": [
+        10.15,
+        1.5,
+        2.15
+      ],
+      "dims": [
+        1.01,
+        1.2000000000000002,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          10.15,
+          1.645
+        ],
+        "segment_b": [
+          10.15,
+          2.655
+        ],
+        "length_m": 1.2,
+        "width_m": 1.01,
+        "height_m": 1.2,
+        "sill_height_m": 0.9,
+        "head_height_m": 2.1,
+        "thickness_m": 0.3,
+        "parent_edge_id": "e_7_984eed",
+        "source": "dwg_block",
+        "cuts_wall": true
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_window_5": {
+      "id": "op_window_5",
+      "name": "Window op_window_5",
+      "kind": "WINDOW",
+      "geometry_ref": "window/op_window_5",
+      "center": [
+        10.15,
+        1.5,
+        6.15
+      ],
+      "dims": [
+        1.26,
+        1.2000000000000002,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          10.15,
+          5.5200000000000005
+        ],
+        "segment_b": [
+          10.15,
+          6.78
+        ],
+        "length_m": 1.2,
+        "width_m": 1.26,
+        "height_m": 1.2,
+        "sill_height_m": 0.9,
+        "head_height_m": 2.1,
+        "thickness_m": 0.3,
+        "parent_edge_id": "e_8_b4c46c",
+        "source": "dwg_block",
+        "cuts_wall": true
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "op_door_0": {
+      "id": "op_door_0",
+      "name": "Door op_door_0",
+      "kind": "DOOR",
+      "geometry_ref": "door/op_door_0",
+      "center": [
+        4.15,
+        1.05,
+        2.15
+      ],
+      "dims": [
+        1.01,
+        2.1,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          4.15,
+          1.645
+        ],
+        "segment_b": [
+          4.15,
+          2.655
+        ],
+        "length_m": 2.1,
+        "width_m": 1.01,
+        "height_m": 2.1,
+        "sill_height_m": 0.0,
+        "head_height_m": 2.1,
+        "thickness_m": 0.115,
+        "parent_edge_id": "e_8_91ccae",
+        "source": "dwg_block",
+        "cuts_wall": true,
+        "subtype": "door_single",
+        "leaves": 1
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "room_0": {
+      "id": "room_0",
+      "name": "K\u00fcche",
+      "kind": "ROOM",
+      "geometry_ref": null,
+      "center": [
+        7.15,
+        1.4,
+        2.15
+      ],
+      "dims": null,
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "label": "K\u00fcche",
+        "area_m2": 24.0,
+        "polygon": [
+          [
+            4.15,
+            4.15
+          ],
+          [
+            10.15,
+            4.15
+          ],
+          [
+            10.15,
+            0.15
+          ],
+          [
+            4.15,
+            0.15
+          ]
+        ],
+        "room_type": "kitchen"
+      },
+      "evidence": [
+        {
+          "source": "plan_to_bim",
+          "method": "room_detection",
+          "confidence": 0.6,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "room_1": {
+      "id": "room_1",
+      "name": "Bad",
+      "kind": "ROOM",
+      "geometry_ref": null,
+      "center": [
+        7.15,
+        1.4,
+        6.15
+      ],
+      "dims": null,
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "label": "Bad",
+        "area_m2": 24.0,
+        "polygon": [
+          [
+            10.15,
+            4.15
+          ],
+          [
+            4.15,
+            4.15
+          ],
+          [
+            4.15,
+            8.15
+          ],
+          [
+            10.15,
+            8.15
+          ]
+        ],
+        "room_type": "bathroom"
+      },
+      "evidence": [
+        {
+          "source": "plan_to_bim",
+          "method": "room_detection",
+          "confidence": 0.6,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "room_2": {
+      "id": "room_2",
+      "name": "Wohnzimmer",
+      "kind": "ROOM",
+      "geometry_ref": null,
+      "center": [
+        2.15,
+        1.4,
+        6.15
+      ],
+      "dims": null,
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "label": "Wohnzimmer",
+        "area_m2": 32.0,
+        "polygon": [
+          [
+            0.15,
+            0.15
+          ],
+          [
+            0.15,
+            8.15
+          ],
+          [
+            4.15,
+            8.15
+          ],
+          [
+            4.15,
+            4.15
+          ],
+          [
+            4.15,
+            0.15
+          ]
+        ],
+        "room_type": "living"
+      },
+      "evidence": [
+        {
+          "source": "plan_to_bim",
+          "method": "room_detection",
+          "confidence": 0.6,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    }
+  },
+  "relationships": [
+    {
+      "src_id": "e_2_e5d425",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_door_1",
+      "confidence": 0.9,
+      "evidence": null
+    },
+    {
+      "src_id": "e_5_89f8eb",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_door_2",
+      "confidence": 0.9,
+      "evidence": null
+    },
+    {
+      "src_id": "e_7_fee9fe",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_window_3",
+      "confidence": 0.9,
+      "evidence": null
+    },
+    {
+      "src_id": "e_7_984eed",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_window_4",
+      "confidence": 0.9,
+      "evidence": null
+    },
+    {
+      "src_id": "e_8_b4c46c",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_window_5",
+      "confidence": 0.9,
+      "evidence": null
+    },
+    {
+      "src_id": "e_8_91ccae",
+      "rel_type": "HAS_OPENING",
+      "dst_id": "op_door_0",
+      "confidence": 0.9,
+      "evidence": null
+    }
+  ],
+  "meta": {
+    "wall_graph_built": true,
+    "total_segments": 10,
+    "total_rooms": 3,
+    "wall_height_m": 2.8,
+    "segments_by_class": {
+      "wall": 10,
+      "door": 3,
+      "window": 3
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "stahlbeton_300",
+  "name": "Stahlbeton 300 mm",
+  "category": "concrete",
+  "thickness_mm": 300.0,
+  "properties": {
+    "thermal_conductivity": 2.3,
+    "density": 2400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

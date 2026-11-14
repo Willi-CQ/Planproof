@@ -1,0 +1,12 @@
+{
+  "material_key": "gkf_12_5",
+  "name": "Gipskartonplatte GKF feuerfest 12.5 mm",
+  "category": "finish",
+  "thickness_mm": 12.5,
+  "properties": {
+    "thermal_conductivity": 0.21,
+    "density": 800,
+    "fire_class": "A2"
+  },
+  "source": "Planproof"
+}

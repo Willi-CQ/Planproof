@@ -1,0 +1,34 @@
+{
+  "template_key": "t_t30_111_211",
+  "name": "Brandschutztür T30 111 × 211.5",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "fire_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1110,
+    "default_height_mm": 2115,
+    "leaf_type": "steel_t30",
+    "opening_direction": "single_swing",
+    "typical_for": [
+      "MFH",
+      "Buero",
+      "barrierefrei"
+    ]
+  },
+  "computed_properties": {
+    "fire_resistance": "EI 30"
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false,
+      "FireRating": "EI 30"
+    }
+  },
+  "din_references": [
+    "DIN 4102-5"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

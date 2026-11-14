@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "hinweis": "Vorschlagsregeln mit Nummern und eigenen Bauteilbezeichnungen. Enthaelt keine Normtexte, keine Abgrenzungen und keine Tabellen einer Norm.",
+  "rules": [
+    {
+      "id": "wand_aussen",
+      "component": "wand",
+      "location": "aussen",
+      "bearing": null,
+      "kg": "330",
+      "element_class": "Aussenwand",
+      "label": "Außenwand",
+      "label_plural": "Außenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Außenwand, Tragverhalten nicht bekannt: die allgemeine Nummer ohne Unterscheidung tragend oder nichttragend."
+    },
+    {
+      "id": "wand_aussen_tragend",
+      "component": "wand",
+      "location": "aussen",
+      "bearing": true,
+      "kg": "331",
+      "element_class": "Aussenwand tragend",
+      "label": "tragende Außenwand",
+      "label_plural": "tragende Außenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Außenwand, als tragend gekennzeichnet."
+    },
+    {
+      "id": "wand_aussen_nichttragend",
+      "component": "wand",
+      "location": "aussen",
+      "bearing": false,
+      "kg": "332",
+      "element_class": "Aussenwand nichttragend",
+      "label": "nichttragende Außenwand",
+      "label_plural": "nichttragende Außenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Außenwand, als nichttragend gekennzeichnet."
+    },
+    {
+      "id": "wand_innen",
+      "component": "wand",
+      "location": "innen",
+      "bearing": null,
+      "kg": "340",
+      "element_class": "Innenwand",
+      "label": "Innenwand",
+      "label_plural": "Innenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Innenwand, Tragverhalten nicht bekannt: die allgemeine Nummer ohne Unterscheidung tragend oder nichttragend."
+    },
+    {
+      "id": "wand_innen_tragend",
+      "component": "wand",
+      "location": "innen",
+      "bearing": true,
+      "kg": "341",
+      "element_class": "Innenwand tragend",
+      "label": "tragende Innenwand",
+      "label_plural": "tragende Innenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Innenwand, als tragend gekennzeichnet."
+    },
+    {
+      "id": "wand_innen_nichttragend",
+      "component": "wand",
+      "location": "innen",
+      "bearing": false,
+      "kg": "342",
+      "element_class": "Innenwand nichttragend",
+      "label": "nichttragende Innenwand",
+      "label_plural": "nichttragende Innenwände",
+      "basis": "Nettoflaeche",
+      "unit": "m2",
+      "rationale": "Innenwand, als nichttragend gekennzeichnet."
+    },
+    {
+      "id": "tuer_aussen",
+      "component": "tuer",
+      "location": "aussen",
+      "bearing": null,
+      "kg": "334",
+      "element_class": "Aussentuer",
+      "label": "Außentür",
+      "label_plural": "Außentüren",
+      "basis": "Stueck",
+      "unit": "Stk",
+      "rationale": "Tür in einer Außenwand."
+    },
+    {
+      "id": "fenster_aussen",
+      "component": "fenster",
+      "location": "aussen",
+      "bearing": null,
+      "kg": "334",
+      "element_class": "Aussenfenster",
+      "label": "Außenfenster",
+      "label_plural": "Außenfenster",
+      "basis": "Stueck",
+      "unit": "Stk",
+      "rationale": "Fenster in einer Außenwand."
+    },
+    {
+      "id": "tuer_innen",
+      "component": "tuer",
+      "location": "innen",
+      "bearing": null,
+      "kg": "344",
+      "element_class": "Innentuer",
+      "label": "Innentür",
+      "label_plural": "Innentüren",
+      "basis": "Stueck",
+      "unit": "Stk",
+      "rationale": "Tür in einer Innenwand."
+    },
+    {
+      "id": "fenster_innen",
+      "component": "fenster",
+      "location": "innen",
+      "bearing": null,
+      "kg": "344",
+      "element_class": "Innenfenster",
+      "label": "Innenfenster",
+      "label_plural": "Innenfenster",
+      "basis": "Stueck",
+      "unit": "Stk",
+      "rationale": "Fenster in einer Innenwand."
+    }
+  ],
+  "not_covered": [
+    {
+      "element_class": "Stuetze",
+      "label": "Stützen",
+      "reason": "Die Pipeline verarbeitet keine Stützen. Keine Mengen, kein Vorschlag."
+    },
+    {
+      "element_class": "Treppe",
+      "label": "Treppen",
+      "reason": "Die Pipeline verarbeitet keine Treppen. Keine Mengen, kein Vorschlag."
+    },
+    {
+      "element_class": "Decke",
+      "label": "Decken",
+      "reason": "Die Pipeline verarbeitet keine Decken. Keine Mengen, kein Vorschlag."
+    },
+    {
+      "element_class": "Dach",
+      "label": "Dächer",
+      "reason": "Die Pipeline verarbeitet keine Dächer. Keine Mengen, kein Vorschlag."
+    }
+  ],
+  "no_cost_group": [
+    {
+      "element_class": "Raum",
+      "label": "Räume",
+      "reason": "Raumflächen sind Bezugsgrößen und bekommen keine Kostengruppe. Sie gehören fachlich zu DIN 277."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "innendaemmung_holzfaser_045_60",
+  "name": "Innendämmung Holzfaser 045 / 60 mm",
+  "category": "insulation",
+  "thickness_mm": 60.0,
+  "properties": {
+    "thermal_conductivity": 0.045,
+    "density": 200,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

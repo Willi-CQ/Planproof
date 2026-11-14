@@ -1,0 +1,36 @@
+{
+  "template_key": "r_lager",
+  "name": "Lager",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "warehouse",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "storage",
+    "nuf_class": "NUF4.2",
+    "min_area_m2": 50,
+    "min_height_mm": 4000,
+    "ventilation": "natural",
+    "typical_for": [
+      "Industrie",
+      "Lager"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "storage",
+      "GrossPlannedArea": 50
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "storage"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "ArbStättV"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

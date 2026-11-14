@@ -1,0 +1,30 @@
+{
+  "template_key": "t_schiebe_100_210_holz",
+  "name": "Schiebetür Holz 100 × 210 vor Wand",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "interior_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1000,
+    "default_height_mm": 2100,
+    "leaf_type": "wood_sliding",
+    "opening_direction": "single_sliding",
+    "typical_for": [
+      "EFH",
+      "Buero"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false
+    }
+  },
+  "din_references": [
+    "DIN 18101"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

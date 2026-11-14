@@ -1,0 +1,379 @@
+{
+  "_meta": {
+    "sprint": 1,
+    "scope": "CRITICAL Normen — konkrete Zahlenwerte",
+    "normen": ["DIN 4172", "DIN 18100", "DIN 18101", "DIN 1053 / EC6", "DIN 18065", "DIN 277"],
+    "created": "2026-04-14",
+    "status": "VALUES_POPULATED",
+    "sources": "Recherche aus DIN-Normen-Dokumentation, Baunetzwissen, Hersteller-Tabellen, Fachpublikationen"
+  },
+
+  "din_4172": {
+    "title": "Maßordnung im Hochbau",
+    "grundmodul_mm": 125,
+    "beschreibung": "Oktametrisches System: alle Baurichtmaße sind Vielfache von 125mm (1M = 12.5cm). Basis für Grid-Snapping.",
+    "baurichtmass_raster_mm": [125, 250, 375, 500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500, 1625, 1750, 1875, 2000, 2125, 2250, 2375, 2500],
+    "nennmass_regel": {
+      "wandoeffnung_breite": "Baurichtmaß + 10mm = Nennmaß",
+      "wandoeffnung_hoehe": "Baurichtmaß + 5mm = Nennmaß",
+      "beispiel": "Baurichtmaß 875mm → Nennmaß Breite 885mm, Nennmaß Höhe 880mm"
+    },
+    "p2b_anwendung": {
+      "grid_snap_increment_mm": 125,
+      "detected_dimension_snap": "Erkanntes Maß auf nächstes Vielfaches von 125mm runden, wenn Abweichung < tolerance_mm",
+      "tolerance_mm": 30
+    }
+  },
+
+  "din_18100": {
+    "title": "Türen — Wandöffnungen für Türen",
+    "ausgabe": "1983-10",
+    "beschreibung": "Standardmaße für Wandöffnungen (Rohbauöffnungen) als Baurichtmaße nach DIN 4172",
+    "wandoeffnungen_einflg": {
+      "baurichtmass_breiten_mm": [625, 750, 875, 1000, 1125, 1250],
+      "baurichtmass_hoehen_mm": [1875, 2000, 2125],
+      "nennmass_breiten_mm": [635, 760, 885, 1010, 1135, 1260],
+      "nennmass_hoehen_mm": [1885, 2010, 2135],
+      "vorzugsgroessen_baurichtmass_mm": {
+        "breiten": [750, 875, 1000],
+        "hoehen": [2000, 2125]
+      }
+    },
+    "wandoeffnungen_zweiflg": {
+      "baurichtmass_breiten_mm": [1250, 1500, 1750, 2000],
+      "nennmass_breiten_mm": [1260, 1510, 1760, 2010]
+    },
+    "toleranzen": {
+      "breite_grenzabmass_mm": {"plus": 10, "minus": -10},
+      "hoehe_grenzabmass_mm": {"plus": 10, "minus": -5},
+      "hinweis": "Praxis: Holzzargen +10-15mm breiter als DIN 18100 Nennmaß üblich"
+    },
+    "bereich_gesamt_mm": {
+      "min_breite": 625,
+      "max_breite": 2500,
+      "min_hoehe": 1875,
+      "max_hoehe": 2500
+    },
+    "p2b_anwendung": {
+      "detection_lookup": "Erkannte Öffnungsbreite im Plan → nächstes Baurichtmaß aus baurichtmass_breiten_mm zuordnen",
+      "tolerance_for_snap_mm": 25,
+      "altbau_hinweis": "Altbauten haben oft nicht-genormte Öffnungsmaße. Toleranzband auf 50mm erweitern für Baujahr < 1970"
+    }
+  },
+
+  "din_18101": {
+    "title": "Türen für den Wohnungsbau — Türblattgrößen",
+    "ausgabe": "2014-08",
+    "beschreibung": "Standard-Türblattmaße, Zargenfalzmaße, lichtes Durchgangsmaß. Gefälzte und ungefälzte Türblätter.",
+
+    "tuerblaetter_gefaelzt_einflg": {
+      "breiten_mm": [610, 735, 860, 985, 1110, 1235],
+      "hoehen_mm": [1985, 2110],
+      "dicke_mm": {"min": 39, "max": 42},
+      "mapping_zu_wandoeffnung": {
+        "610": {"baurichtmass": 625, "nennmass": 635},
+        "735": {"baurichtmass": 750, "nennmass": 760},
+        "860": {"baurichtmass": 875, "nennmass": 885},
+        "985": {"baurichtmass": 1000, "nennmass": 1010},
+        "1110": {"baurichtmass": 1125, "nennmass": 1135},
+        "1235": {"baurichtmass": 1250, "nennmass": 1260}
+      },
+      "hoehen_mapping": {
+        "1985": {"baurichtmass": 2000, "nennmass": 2010},
+        "2110": {"baurichtmass": 2125, "nennmass": 2130}
+      }
+    },
+
+    "tuerblaetter_ungefaelzt_stumpf_einflg": {
+      "breiten_mm": [584, 709, 834, 959, 1084, 1209],
+      "hoehen_mm": [1972, 2097],
+      "hinweis": "26mm schmaler als gefälzte Türblätter"
+    },
+
+    "tuerblaetter_gefaelzt_zweiflg": {
+      "breiten_mm": [1235, 1485, 1735, 1985],
+      "hoehen_mm": [1985, 2110]
+    },
+
+    "zargen_standard_maulweiten_mm": [105, 120, 135, 150, 165, 180, 185],
+    "zargenbreite_abhaengig_von_wanddicke": true,
+    "zargen_verstellbereich_mm": {"plus": 15, "minus": -5},
+
+    "lichtes_durchgangsmass": {
+      "beschreibung": "Effektive freie Durchgangsbreite nach Zargeneinbau, ca. 40-50mm schmaler als Türblatt bei Holzzargen",
+      "typische_abzuege_holzzarge_mm": 50,
+      "typische_abzuege_stahlzarge_mm": 40
+    },
+
+    "bodenluft_nennmass_mm": 7,
+
+    "raumtyp_zuordnung": {
+      "610": ["Abstellraum", "Keller", "kleine Gästetoilette"],
+      "735": ["Gäste-WC", "Nebenraum", "schmales Zimmer"],
+      "860": ["Wohnraum", "Schlafzimmer", "Küche", "Bad"],
+      "985": ["Barrierefreier Raum", "großer Wohnraum", "Flur"],
+      "1110": ["Doppelflügel-Alternative", "repräsentativer Eingang"]
+    },
+
+    "p2b_anwendung": {
+      "detection_chain": "Erkannte Öffnungsbreite (DIN 18100) → Türblattbreite (DIN 18101) → BIM IfcDoor mit OverallWidth + OverallHeight parametrisieren",
+      "ifc_mapping": {
+        "entity": "IfcDoor",
+        "properties": {
+          "OverallWidth": "Nennmaß Wandöffnung Breite in m",
+          "OverallHeight": "Nennmaß Wandöffnung Höhe in m",
+          "OperationType": "SINGLE_SWING_LEFT | SINGLE_SWING_RIGHT | DOUBLE_SWING"
+        }
+      }
+    }
+  },
+
+  "din_1053_ec6": {
+    "title": "Mauerwerk — Wanddicken (DIN 1053 / Eurocode 6)",
+    "beschreibung": "Standard-Wanddicken abgeleitet aus Steinformaten nach DIN 4172 Maßordnung. DIN 1053 durch EC6 (DIN EN 1996) ersetzt, aber Steinformate und Dicken identisch.",
+
+    "mauerwerk_standarddicken_mm": {
+      "alle_dicken": [115, 150, 175, 240, 300, 365, 425, 490],
+      "haeufigste_wohnbau": [115, 175, 240, 300, 365],
+      "herkunft": "Basierend auf Steinformaten: Steinbreite 115mm (NF/DF) + Fugenstärke ergibt Mauerwerksdicken"
+    },
+
+    "steinformate_din": {
+      "DF":  {"laenge_mm": 240, "breite_mm": 115, "hoehe_mm": 52},
+      "NF":  {"laenge_mm": 240, "breite_mm": 115, "hoehe_mm": 71},
+      "2DF": {"laenge_mm": 240, "breite_mm": 115, "hoehe_mm": 113},
+      "3DF": {"laenge_mm": 240, "breite_mm": 175, "hoehe_mm": 113},
+      "4DF": {"laenge_mm": 240, "breite_mm": 240, "hoehe_mm": 113},
+      "5DF": {"laenge_mm": 300, "breite_mm": 240, "hoehe_mm": 113},
+      "6DF": {"laenge_mm": 365, "breite_mm": 240, "hoehe_mm": 113},
+      "20DF":{"laenge_mm": 490, "breite_mm": 300, "hoehe_mm": 238}
+    },
+
+    "wanddicken_nach_typ": {
+      "nichttragende_innenwand": {
+        "dicken_mm": [115, 150],
+        "materialien": ["Kalksandstein", "Porenbeton", "Leichtbeton", "Gips-Wandbauplatten"],
+        "hinweis": "Auch Trockenbauwände (75-100mm) möglich, nicht nach DIN 1053",
+        "trockenbau_dicken_mm": [75, 100, 125, 150]
+      },
+      "tragende_innenwand": {
+        "dicken_mm": [175, 240, 300],
+        "mindestdicke_vereinfacht_mm": 175,
+        "hinweis": "Nach vereinfachtem Verfahren EC6: mind. 175mm für tragende Wände, 240mm Standard"
+      },
+      "aussenwand_einschalig": {
+        "dicken_mm": [240, 300, 365, 490],
+        "mit_wdvs_typisch_mm": {
+          "tragschale": [175, 240],
+          "daemmung": [100, 120, 140, 160, 180, 200],
+          "putz_aussen": 15,
+          "putz_innen": 15,
+          "gesamtdicke_bereich_mm": [305, 455]
+        }
+      },
+      "aussenwand_zweischalig": {
+        "innenschale_mm": [175, 240],
+        "luftschicht_mm": [40, 60],
+        "daemmung_mm": [60, 80, 100, 120, 140],
+        "aussenschale_mm": [115],
+        "gesamtdicke_bereich_mm": [390, 620]
+      },
+      "kellerwand": {
+        "dicken_mm": [240, 300, 365],
+        "beton_dicken_mm": [200, 240, 300],
+        "mindestdicke_mm": 240
+      },
+      "brandwand": {
+        "kalksandstein_min_mm": 175,
+        "porenbeton_min_mm": 240,
+        "ziegel_min_mm": 240,
+        "hinweis": "Brandwand = REI90-M / F90-AB, erhöhte Stoßanforderung"
+      }
+    },
+
+    "beton_wanddicken_mm": {
+      "nichttragende_wand": [100, 150, 200],
+      "tragende_wand": [150, 200, 250, 300],
+      "kellerwand_stahlbeton": [200, 240, 250, 300],
+      "stuetzen_querschnitte_mm": [200, 250, 300, 350, 400, 500, 600]
+    },
+
+    "altbau_epochen": {
+      "gruenderzeit_1870_1918": {
+        "aussenwand_mm": [380, 510, 640],
+        "innenwand_tragend_mm": [250, 380],
+        "innenwand_nichttragend_mm": [115, 125],
+        "material": "Vollziegel (NF), Kalkmörtel",
+        "decke": "Holzbalkendecke, Kappendecke"
+      },
+      "zwischenkrieg_1919_1948": {
+        "aussenwand_mm": [300, 380],
+        "innenwand_tragend_mm": [240, 300],
+        "innenwand_nichttragend_mm": [115],
+        "material": "Hohlblockstein, Vollziegel, erste Stahlbetondecken"
+      },
+      "nachkrieg_1949_1968": {
+        "aussenwand_mm": [240, 300, 365],
+        "innenwand_tragend_mm": [175, 240],
+        "innenwand_nichttragend_mm": [115],
+        "material": "Trümmersteine, Leichtbeton, Kalksandstein, dünne Wände wegen Materialmangel"
+      },
+      "wirtschaftswunder_1960_1980": {
+        "aussenwand_mm": [240, 300, 365],
+        "innenwand_tragend_mm": [175, 240],
+        "innenwand_nichttragend_mm": [115],
+        "material": "Kalksandstein, Porenbeton, Stahlbeton. Erste WDVS ab ca. 1975"
+      },
+      "modern_1980_heute": {
+        "aussenwand_mm": [175, 240, 300, 365],
+        "innenwand_tragend_mm": [175, 240],
+        "innenwand_nichttragend_mm": [100, 115],
+        "material": "KS, Porenbeton, Stahlbeton + WDVS. Trockenbau-Innenwände häufig"
+      }
+    },
+
+    "p2b_anwendung": {
+      "wanddicken_snap_tabelle_mm": [75, 100, 115, 125, 150, 175, 200, 240, 250, 300, 365, 380, 425, 490, 510, 640],
+      "tolerance_mm": 15,
+      "klassifikation_logik": {
+        "dicke_unter_100": "Trockenbau nichttragend",
+        "dicke_100_bis_125": "Leichte Trennwand nichttragend (Mauerwerk oder Trockenbau)",
+        "dicke_150_bis_175": "Möglicherweise tragend, Prüfung erforderlich",
+        "dicke_200_plus": "Wahrscheinlich tragend oder Außenwand",
+        "dicke_300_plus": "Tragende Außenwand oder Kellerwand"
+      },
+      "ifc_mapping": {
+        "entity": "IfcWall / IfcWallStandardCase",
+        "properties": {
+          "Width": "Wanddicke in m",
+          "IsExternal": "true wenn Außenwand",
+          "LoadBearing": "true wenn wahrscheinlich tragend (≥175mm Mauerwerk)"
+        }
+      }
+    }
+  },
+
+  "din_18065": {
+    "title": "Gebäudetreppen — Begriffe, Messregeln, Hauptmaße",
+    "ausgabe": "2020-08",
+    "beschreibung": "Maße für Treppen in Gebäuden: Steigung, Auftritt, Laufbreite, Durchgangshöhe, Podeste, Geländer.",
+
+    "gebaeude_allgemein": {
+      "steigung_s_mm": {"min": 140, "max": 190},
+      "auftritt_a_mm": {"min": 260, "max": 370},
+      "nutzbare_laufbreite_mm": {"min": 1000},
+      "schrittmassregel_mm": {"formel": "2*s + a", "min": 590, "max": 650},
+      "lichte_durchgangshoehe_mm": {"min": 2000},
+      "zwischenpodest_nach_steigungen": 18,
+      "wendelstufe_innen_auftritt_min_mm": 100
+    },
+
+    "wohngebaeude_max_2we": {
+      "steigung_s_mm": {"min": 140, "max": 200},
+      "auftritt_a_mm": {"min": 230, "max": 370},
+      "nutzbare_laufbreite_mm": {"min": 800},
+      "schrittmassregel_mm": {"formel": "2*s + a", "min": 590, "max": 650},
+      "lichte_durchgangshoehe_mm": {"min": 2000},
+      "zwischenpodest": "nicht vorgeschrieben",
+      "wendelstufe_innen_auftritt_min_mm": 50,
+      "antrittsstufe_toleranz_mm": 15
+    },
+
+    "toleranzen": {
+      "steigung_auftritt_mm": 5,
+      "benachbarte_stufen_mm": 5,
+      "antrittsstufe_wohngebaeude_mm": 15,
+      "hinweis": "Toleranzen dürfen NICHT auf Grenzmaße angerechnet werden"
+    },
+
+    "gelaender": {
+      "hoehe_min_mm": 900,
+      "hoehe_bei_absturzhoehe_ueber_12m_mm": 1100,
+      "fuellstab_abstand_max_mm": 180,
+      "horizontalkraft_min_n_per_m": 500
+    },
+
+    "podest": {
+      "breite_min": "gleich nutzbarer Laufbreite",
+      "tiefe_min_allgemein": "3 Auftritte",
+      "tiefe_min_wohngebaeude": "2.5 Auftritte"
+    },
+
+    "typische_geschosshoehen_mm": [2500, 2600, 2625, 2750, 2800, 3000, 3200],
+    "typische_steigung_mm": [167, 170, 175, 178, 180, 185],
+    "typische_stufenanzahl_pro_geschoss": [14, 15, 16, 17, 18],
+
+    "p2b_anwendung": {
+      "detection_hint": "Treppen im Grundriss erkennbar an parallelen Strichmustern (Stufenlinien). Pfeil zeigt Laufrichtung aufwärts. Stufenanzahl zählen → Geschosshöhe ableiten.",
+      "geschosshoehe_aus_stufen": "Geschosshöhe = Stufenanzahl × Steigung. Typisch: 15 Stufen × 178mm = 2670mm",
+      "grundriss_platzbedarf_abschaetzung": {
+        "gerade_treppe_laenge_mm": "Stufenanzahl × Auftritt + Podesttiefe",
+        "gewendelte_treppe_platzbedarf_m2": "ca. 3.5 - 6.0"
+      },
+      "ifc_mapping": {
+        "entity": "IfcStairFlight",
+        "properties": {
+          "NumberOfRisers": "Stufenanzahl",
+          "RiserHeight": "Steigung in m",
+          "TreadLength": "Auftritt in m"
+        }
+      }
+    }
+  },
+
+  "din_277": {
+    "title": "Grundflächen und Rauminhalte im Hochbau",
+    "ausgabe": "2021-08",
+    "beschreibung": "Berechnung und Kategorisierung von Gebäudeflächen.",
+
+    "flaechenarten": {
+      "BGF": "Bruttogrundfläche — Gesamtfläche inkl. Konstruktion (Außenmaße)",
+      "KF": "Konstruktionsfläche — Wände, Stützen, Schächte",
+      "NRF": "Nettoraumfläche = BGF - KF",
+      "NUF": "Nutzungsfläche (Teil der NRF)",
+      "TF": "Technikfläche (Teil der NRF)",
+      "VF": "Verkehrsfläche (Teil der NRF)"
+    },
+
+    "nutzungsflaechen_kategorien": {
+      "NUF_1": "Wohnen und Aufenthalt (Wohnräume, Schlafräume, Küchen in Wohnungen)",
+      "NUF_2": "Büroarbeit",
+      "NUF_3": "Produktion, Hand- und Maschinenarbeit, Forschung und Entwicklung",
+      "NUF_4": "Lagern, Verteilen, Verkaufen",
+      "NUF_5": "Bildung, Unterricht, Kultur",
+      "NUF_6": "Heilen und Pflegen",
+      "NUF_7": "Sonstige Nutzungen (Sanitärräume, Abstellräume, Garagen etc.)"
+    },
+
+    "verkehrsflaechen": {
+      "VF_1": "Flure, Hallen",
+      "VF_2": "Treppen",
+      "VF_3": "Schächte für Aufzüge, Installationen",
+      "VF_4": "Fahrzeugverkehrsflächen"
+    },
+
+    "berechnungsregeln": {
+      "messregel": "Lichte Maße zwischen fertigen Wandoberflächen",
+      "dachschraegen": {
+        "unter_1m": "nicht angerechnet",
+        "1m_bis_2m": "je nach Anwendung (WoFlV: 50%, DIN 277: voll)",
+        "ueber_2m": "voll angerechnet"
+      },
+      "konstruktionsflaeche": "Wandquerschnitte, Stützen, Schornsteine, Schächte > 1.0m² im Querschnitt"
+    },
+
+    "p2b_anwendung": {
+      "raum_klassifikation": "Erkannte Raum-Polygone nach NUF/TF/VF kategorisieren basierend auf: Raumlabel (OCR), Sanitärobjekte (→NUF_7), Treppe (→VF_2), Flur/Diele (→VF_1)",
+      "flaechen_berechnung": "Automatisch aus erkannten Wandkonturen: Raum-Polygon-Fläche = Nutzfläche, Wand-Polygon-Fläche = Konstruktionsfläche",
+      "ifc_mapping": {
+        "entity": "IfcSpace",
+        "properties": {
+          "LongName": "Raumname aus OCR",
+          "ObjectType": "NUF_1 | NUF_7 | VF_1 etc.",
+          "GrossFloorArea": "Bruttofläche des Raums inkl. Wandanteile",
+          "NetFloorArea": "Nettofläche des Raums (lichte Maße)"
+        }
+      }
+    }
+  }
+}

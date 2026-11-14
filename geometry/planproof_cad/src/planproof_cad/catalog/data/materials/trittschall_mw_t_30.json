@@ -1,0 +1,12 @@
+{
+  "material_key": "trittschall_mw_t_30",
+  "name": "Trittschall MW-T / 30 mm",
+  "category": "insulation",
+  "thickness_mm": 30.0,
+  "properties": {
+    "thermal_conductivity": 0.04,
+    "density": 130,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

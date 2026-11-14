@@ -1,0 +1,60 @@
+{
+  "template_key": "aw_keller_beton240_perimeter120",
+  "name": "Kellerwand Stahlbeton 240 + Perimeter 120 XPS",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "exterior_wall_basement",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "stahlbeton_240",
+      "thickness_mm": 240.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "bitumenbahn_4",
+      "thickness_mm": 4.0,
+      "function": "waterproofing"
+    },
+    {
+      "material_key": "perimeter_xps_035_120",
+      "thickness_mm": 120.0,
+      "function": "thermal_insulation_perimeter"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "Keller",
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 58,
+    "fire_resistance": "REI 120",
+    "u_value": 0.266,
+    "total_thickness_mm": 379.0,
+    "r_total": 3.756
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": true,
+      "LoadBearing": true,
+      "FireRating": "REI 120",
+      "AcousticRating": "R'w >= 58 dB",
+      "ThermalTransmittance": 0.266
+    }
+  },
+  "din_references": [
+    "DIN 18533",
+    "DIN 4108-2"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"12.7\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"12.7\" y=\"0\" width=\"202.6\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"114.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">240</text><rect x=\"215.3\" y=\"0\" width=\"3.4\" height=\"96\" fill=\"#a07050\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"218.7\" y=\"0\" width=\"101.3\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"269.3\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">120</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

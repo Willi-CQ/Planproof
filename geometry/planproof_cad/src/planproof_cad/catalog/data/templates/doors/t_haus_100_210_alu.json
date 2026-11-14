@@ -1,0 +1,34 @@
+{
+  "template_key": "t_haus_100_210_alu",
+  "name": "Haustür 100 × 210 Aluminium U=1.0",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "exterior_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1000,
+    "default_height_mm": 2100,
+    "leaf_type": "aluminum_insulated",
+    "opening_direction": "single_swing",
+    "typical_for": [
+      "EFH"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.0,
+    "sound_reduction_rw": 32
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": true,
+      "AcousticRating": "R'w >= 32 dB",
+      "ThermalTransmittance": 1.0
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

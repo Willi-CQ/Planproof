@@ -1,0 +1,12 @@
+{
+  "material_key": "tuerblatt_t90_stahl",
+  "name": "Brandschutztürblatt T90 Stahl",
+  "category": "metal",
+  "thickness_mm": 80.0,
+  "properties": {
+    "thermal_conductivity": 0.3,
+    "density": 1000,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

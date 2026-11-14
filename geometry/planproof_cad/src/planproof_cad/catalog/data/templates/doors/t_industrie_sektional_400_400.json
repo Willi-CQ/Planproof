@@ -1,0 +1,33 @@
+{
+  "template_key": "t_industrie_sektional_400_400",
+  "name": "Industrie-Sektionaltor 4.00 × 4.00",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "industrial_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 4000,
+    "default_height_mm": 4000,
+    "leaf_type": "sectional_insulated",
+    "opening_direction": "overhead",
+    "typical_for": [
+      "Industrie",
+      "Lager"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.5
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.5
+    }
+  },
+  "din_references": [
+    "DIN 18101"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

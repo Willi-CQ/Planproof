@@ -1,0 +1,6 @@
+# Regeln fuer das Goldset (Skripte und Tests, kein Paketcode); erbt vom Paket
+extend = "../pyproject.toml"
+line-length = 110
+
+[lint]
+extend-ignore = ["E501"]

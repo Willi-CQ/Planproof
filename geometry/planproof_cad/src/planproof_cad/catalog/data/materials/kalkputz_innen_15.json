@@ -1,0 +1,12 @@
+{
+  "material_key": "kalkputz_innen_15",
+  "name": "Kalkputz innen 15 mm",
+  "category": "finish",
+  "thickness_mm": 15.0,
+  "properties": {
+    "thermal_conductivity": 0.7,
+    "density": 1400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

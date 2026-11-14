@@ -1,0 +1,6 @@
+# Die Katalog-Seeds sind Package-Data und muessen ins Repo und ins Wheel.
+# Die Regel "data/" im Wurzel-.gitignore wuerde sie sonst verschlucken.
+!/src/planproof_cad/catalog/data/
+
+# Das Goldset (abgeleitete DXF aus Swiss Dwellings, CC BY 4.0) gehoert ins Repo und in den Export.
+!/goldset/data/

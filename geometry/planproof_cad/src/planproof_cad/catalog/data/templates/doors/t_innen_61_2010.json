@@ -1,0 +1,30 @@
+{
+  "template_key": "t_innen_61_2010",
+  "name": "Innentür 61 × 198.5 (Bad/WC schmal)",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "interior_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 610,
+    "default_height_mm": 1985,
+    "leaf_type": "solid_wood",
+    "opening_direction": "single_swing",
+    "typical_for": [
+      "EFH",
+      "Bad"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false
+    }
+  },
+  "din_references": [
+    "DIN 18101"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

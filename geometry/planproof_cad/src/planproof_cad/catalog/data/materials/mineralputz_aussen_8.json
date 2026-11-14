@@ -1,0 +1,12 @@
+{
+  "material_key": "mineralputz_aussen_8",
+  "name": "Mineralputz außen 8 mm",
+  "category": "finish",
+  "thickness_mm": 8.0,
+  "properties": {
+    "thermal_conductivity": 1.0,
+    "density": 1800,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

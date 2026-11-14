@@ -1,0 +1,256 @@
+{
+  "version": "scene_v1",
+  "units": "m",
+  "up_axis": "Y",
+  "components": {
+    "o_a1": {
+      "id": "o_a1",
+      "name": "Wall o_a1",
+      "kind": "WALL",
+      "geometry_ref": "wall/o_a1",
+      "center": [
+        6.0,
+        1.5,
+        0.0
+      ],
+      "dims": [
+        12.0,
+        3.0,
+        0.365
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.0,
+          0.0
+        ],
+        "segment_b": [
+          12.0,
+          0.0
+        ],
+        "length_m": 12.0,
+        "thickness_m": 0.365,
+        "height_m": 3.0,
+        "source": "dwg_double_line",
+        "wall_type": "exterior",
+        "graph_edge_id": "o_a1",
+        "wall_type_source": "layer",
+        "bearing": true,
+        "bearing_source": "layer"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "o_i1": {
+      "id": "o_i1",
+      "name": "Wall o_i1",
+      "kind": "WALL",
+      "geometry_ref": "wall/o_i1",
+      "center": [
+        3.0,
+        1.5,
+        0.0
+      ],
+      "dims": [
+        6.0,
+        3.0,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.0,
+          0.0
+        ],
+        "segment_b": [
+          6.0,
+          0.0
+        ],
+        "length_m": 6.0,
+        "thickness_m": 0.115,
+        "height_m": 3.0,
+        "source": "dwg_double_line",
+        "wall_type": "interior",
+        "graph_edge_id": "o_i1",
+        "wall_type_source": "layer"
+      },
+      "evidence": [
+        {
+          "source": "dwg_double_line",
+          "method": "wall_graph_edge",
+          "confidence": 1.0,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "o_f1": {
+      "id": "o_f1",
+      "name": "WINDOW o_f1",
+      "kind": "WINDOW",
+      "geometry_ref": "opening/o_f1",
+      "center": [
+        0.0,
+        1.05,
+        0.0
+      ],
+      "dims": [
+        1.2,
+        1.2000000000000002,
+        0.3
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.0,
+          0.0
+        ],
+        "segment_b": [
+          1.2,
+          0.0
+        ],
+        "length_m": 1.2000000000000002,
+        "width_m": 1.2,
+        "height_m": 1.2000000000000002,
+        "sill_height_m": 0.9,
+        "head_height_m": 2.1,
+        "thickness_m": 0.3,
+        "source": "dwg_block",
+        "cuts_wall": true,
+        "parent_edge_id": "o_a1"
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "o_d1": {
+      "id": "o_d1",
+      "name": "DOOR o_d1",
+      "kind": "DOOR",
+      "geometry_ref": "opening/o_d1",
+      "center": [
+        0.0,
+        1.05,
+        0.0
+      ],
+      "dims": [
+        0.9,
+        2.1,
+        0.115
+      ],
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "segment_a": [
+          0.0,
+          0.0
+        ],
+        "segment_b": [
+          0.9,
+          0.0
+        ],
+        "length_m": 2.1,
+        "width_m": 0.9,
+        "height_m": 2.1,
+        "sill_height_m": 0.0,
+        "head_height_m": 2.1,
+        "thickness_m": 0.115,
+        "source": "dwg_block",
+        "cuts_wall": true,
+        "parent_edge_id": "o_i1",
+        "subtype": "door_single"
+      },
+      "evidence": [
+        {
+          "source": "dwg_block",
+          "method": "parametric_graph_attach",
+          "confidence": 0.9,
+          "details": {},
+          "timestamp": null
+        }
+      ]
+    },
+    "o_r1": {
+      "id": "o_r1",
+      "name": "o_r1",
+      "kind": "ROOM",
+      "geometry_ref": null,
+      "center": null,
+      "dims": null,
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "label": "Zimmer 1",
+        "room_type": "unknown",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "area_m2": 26.0,
+        "area_net_m2": 25.0
+      },
+      "evidence": []
+    },
+    "o_r2": {
+      "id": "o_r2",
+      "name": "o_r2",
+      "kind": "ROOM",
+      "geometry_ref": null,
+      "center": null,
+      "dims": null,
+      "bbox_min": null,
+      "bbox_max": null,
+      "attrs": {
+        "label": "Zimmer 2",
+        "room_type": "unknown",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "area_m2": 19.0,
+        "area_net_m2": 18.0
+      },
+      "evidence": []
+    }
+  },
+  "relationships": [],
+  "meta": {
+    "wall_graph_built": true
+  }
+}

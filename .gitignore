@@ -2,11 +2,25 @@
 AGENTS.md
 .brain/
 
-# Dataset binaries are obtained from their original sources and are not committed.
+# Dataset binaries and local registries stay off GitHub.
 /data/raw/
 /data/downloads/
 /data/extracted/
 /data/processed/
+/data/evaluation/
+/data/manifest.csv
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.jsonl
+*.pt
+*.onnx
+*.parquet
+*.npy
+*.h5
+*.hdf5
 
 # Local secrets and machine state
 .env
@@ -16,6 +30,11 @@ AGENTS.md
 Thumbs.db
 .DS_Store
 
-# Python bytecode
+# Local inference/evaluation artifacts and Python environments/caches.
+.artifacts/
+.venv/
 __pycache__/
 *.py[cod]
+*.npz
+.pytest_cache/
+.ruff_cache/

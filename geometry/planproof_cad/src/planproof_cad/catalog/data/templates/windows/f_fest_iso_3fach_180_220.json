@@ -1,0 +1,37 @@
+{
+  "template_key": "f_fest_iso_3fach_180_220",
+  "name": "Festverglasung Iso 3-fach 180 × 220 (Uw 1.0)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "fixed_glazing",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1800,
+    "default_height_mm": 2200,
+    "frame_material": "aluminum",
+    "glazing_type": "3_pane_low_e",
+    "opening_direction": "fixed",
+    "typical_for": [
+      "MFH",
+      "Buero",
+      "Wohnzimmer"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 1.0
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 1.0,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN 4108-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}
