@@ -6,9 +6,22 @@ Live work defaults to one short status (for example, **Calling Nemotron**) and
 numbered source-view buttons. Colored dashed boxes and matching labels identify
 active inspections; they are distinct from green supported and amber uncertain
 object markers. Prompts, timings, raw findings and tool roles remain under **Details**.
-The final answer shows two briefing paragraphs and one important warning; further
-explanation, notes and crop thumbnails are expandable. Existing replay/history
-keeps all recorded steps; no extra inference is added by presentation.
+The final answer shows two briefing paragraphs with inline citations. Further
+explanation, scope and uncertainty notes share one **More information** disclosure;
+there is no separate verification section. Detection previews are always visible
+at the end, including all located count candidates. Completion/abstention status
+remains explicit. Completed activity leaves the chat; the navigation inspector
+still provides the full saved event history and the **Download task report** PDF
+includes a compact activity summary. The portable replay retains its activity
+controls. No extra inference is added by presentation.
+
+The PDF pairs worker starts and returns using stage/inspection identity, retains
+failed and uncertain outcomes, and groups provider connection attempts. Long
+prompts/findings are explicitly shortened; full records remain in the saved task.
+Source-bound citations and links, source identity, and failure/coverage information
+remain included. Two-column evidence previews, compressed images and natural
+pagination replace full-page crops and forced section breaks. Export does not run
+models or change the source drawing.
 
 The design branch exposes the existing agent's actual execution. It adds no
 mandatory tool path, model-generated narration, accuracy score or inference call.

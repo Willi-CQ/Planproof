@@ -229,7 +229,7 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
   expect(imageBox!.height / imageBox!.width).toBeCloseTo(0.6, 2);
   expect((evidenceBox!.x - imageBox!.x) / imageBox!.width).toBeCloseTo(0.1, 2);
   expect(evidenceBox!.width / imageBox!.width).toBeCloseTo(0.3, 2);
-  await page.getByText("Scope of this answer", { exact: true }).click();
+  await page.getByText("More information", { exact: true }).click();
   await expect(
     page.getByText("Whole-page coverage is not established.", { exact: true }),
   ).toBeVisible();

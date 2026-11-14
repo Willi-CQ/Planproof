@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw
 
 import app as module
 from run_tracking import RunStore
-from task_report import task_report
+from task_report import activity_steps, task_report
 
 
 @pytest.fixture
@@ -88,7 +88,7 @@ def test_portable_report_contains_exact_question_answer_linked_crops_and_steps(
     png, record = sample
     data = task_report(record, png, "WRONG QUESTION", "Sample drawing.png")
     with pymupdf.open(stream=data, filetype="pdf") as document:
-        assert len(document) >= 3
+        assert 1 <= len(document) <= 2
         contents = "\n".join(page.get_text() for page in document)
         for expected in (
             record["question"],
@@ -99,6 +99,7 @@ def test_portable_report_contains_exact_question_answer_linked_crops_and_steps(
             "95, 95, 460, 410",
             "Is the boundary visible?",
             "The south wall is partly obscured.",
+            "Activity",
         ):
             assert expected in contents
         assert "WRONG QUESTION" not in contents
@@ -117,7 +118,12 @@ def test_escape_content_preserve_zero_legacy_question_and_subpixel_citation(samp
     png, record = sample
     record.pop("question")
     record["result"]["answer"]["answer"] = 0
-    record["result"]["canonical_citations"][0]["canonical_bbox"] = [100.1, 100.2, 100.4, 100.8]
+    record["result"]["canonical_citations"][0]["canonical_bbox"] = [
+        100.1,
+        100.2,
+        100.4,
+        100.8,
+    ]
     question = '<script>unsafe()</script> <a href="https://example.com">Question</a>'
     data = task_report(record, png, question, "Legacy.png")
     assert "0 m²" in pdf_text(data)
@@ -155,7 +161,66 @@ def test_pagination_and_result_source_binding(sample):
     assert "[1] Room boundary" not in contents
     assert "Last recorded event marker." in contents
     with pymupdf.open(stream=data, filetype="pdf") as document:
-        assert len(document) > 5
+        assert 2 < len(document) <= 8
+
+
+def test_activity_pairs_parallel_calls_and_retains_failure_without_mutation(sample):
+    png, record = sample
+    first = {
+        **record["events"][0],
+        "state": "running",
+        "inspection_id": "a",
+        "advisory": None,
+    }
+    second = {**first, "inspection_id": "b", "question": "Check the east entrance."}
+    returned = {
+        **first,
+        "state": "completed",
+        "advisory": {"status": "uncertain", "findings": ["The door arc is obscured."]},
+    }
+    failed = {
+        **second,
+        "state": "unavailable",
+        "summary": "Service did not return a result.",
+    }
+    record["events"] = [
+        first,
+        second,
+        failed,
+        returned,
+        {
+            "stage": "provider_attempt",
+            "state": "completed",
+            "category": "timeout",
+            "elapsed": 8,
+        },
+    ]
+    before = deepcopy(record)
+    steps = activity_steps(record["events"])
+    assert len(steps) == 2
+    assert [step["inspection_id"] for step in steps] == ["a", "b"]
+    contents = pdf_text(task_report(record, png, "", "Sample.png"))
+    assert contents.count("Is the boundary visible?") == 1
+    assert "uncertain" in contents and "unavailable" in contents
+    assert "The door arc is obscured." in contents
+    assert "Service did not return a result." in contents
+    assert "1 reported issues: timeout" in contents
+    assert record == before
+
+
+def test_activity_shortens_protocol_prompts_and_marks_unfinished_work(sample):
+    png, record = sample
+    record["events"][0].update(
+        state="running",
+        question="LOCAL frame protocol. " * 100
+        + "COUNT_UNIT=door_opening. Detect objects.",
+    )
+    data = task_report(record, png, "", "Sample.png")
+    contents = pdf_text(data)
+    assert "Locate visible door openings in the selected region." in contents
+    assert "LOCAL frame protocol" not in contents
+    assert "interrupted" in contents
+    assert len(data) < 250_000
 
 
 def test_export_route_validates_run_and_frame_and_never_executes(

@@ -188,7 +188,7 @@ export function PlanChatbotPanel({
                     onHighlight={onHighlight}
                   />
                 )}
-                {message.run && <RunActivity run={message.run} drawing={drawing} connection={connection}
+                {message.run && !terminal(message.run) && <RunActivity run={message.run} drawing={drawing} connection={connection}
                   onInspectCandidates={() => onInspectCandidates(message.id)}
                   onFocus={(region) => onFocusWork(message.id, region)} />}
                 {message.run && terminal(message.run) && !message.result && <p className="answer-help">{message.run.message || "This task could not finish. Its recorded steps are available in Task details."}</p>}

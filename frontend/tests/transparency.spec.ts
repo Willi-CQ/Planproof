@@ -585,8 +585,8 @@ test("actual work and requested regions appear on the plan without opening diagn
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
   await expect(page.getByTestId("plan-live-activity")).toHaveCount(0);
   await expect(page.getByTestId("live-inspection-region")).toHaveCount(0);
-  await expect(page.locator(".work-recap")).toHaveCount(1);
-  await expect(page.locator(".work-recap")).not.toHaveAttribute("open", "");
+  await expect(page.locator(".work-recap")).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Download task report PDF", exact: true})).toBeVisible();
   await page.getByRole("button", {name: "Task details", exact: true}).click();
   await expect(page.locator(".event-list")).toContainText("Remaining page unknown.");
 });
@@ -722,16 +722,13 @@ test("tool cards retain active inspections, original timing and uncertainty thro
   await expect(log.locator(".work-log > li")).toHaveCount(8);
   phase = 2;
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
-  const recap = page.locator(".work-recap");
-  await expect(recap.locator(":scope > summary")).toContainText("2 checks need attention");
-  await recap.locator(":scope > summary").click();
-  await expect(recap).toContainText("Unavailable");
-  await expect(recap).toContainText("This step did not establish a result.");
-  await expect(recap).toContainText("Started +0:03");
+  await expect(page.locator(".work-recap")).toHaveCount(0);
+  await page.getByRole("button", {name: "Task details", exact: true}).click();
+  await expect(page.locator(".event-list")).toContainText("unavailable");
+  await expect(page.locator(".event-list")).toContainText("The entrance symbol is ambiguous.");
   await page.reload();
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
-  await page.locator(".work-recap > summary").click();
-  await expect(page.locator(".work-recap")).toContainText("Returned +0:12");
+  await expect(page.locator(".work-recap")).toHaveCount(0);
   expect(submissions).toBe(1);
   expect(errors).toEqual([]);
 });
@@ -741,11 +738,12 @@ test("algorithm card exposes recorded ML and rules only on explicit request", as
   let reads = 0, submissions = 0;
   const algorithm = {...events[0], cached: true, delivered_ids: ["m1", "d1", "m1"]};
   await page.route("**/api/v1/documents/*/runs", r => {submissions++; return r.fulfill({json: {
-    request_id: r.request().postDataJSON().request_id, source, status: "completed", events: [algorithm], last_sequence: 1, result,
+    request_id: r.request().postDataJSON().request_id, source, status: "running", events: [algorithm], last_sequence: 1,
   }});});
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {source, status: "running", events: [algorithm], last_sequence: 1}}));
   await page.route("**/api/v1/runs/*/evidence", r => {reads++; return r.fulfill({json: bundle});});
   await ask(page);
-  await page.locator(".work-recap > summary").click();
+  await page.locator(".activity-details > summary").click();
   const card = page.locator('.work-log > li[data-tool="algorithms"]');
   await expect(card).toContainText("ML detection");
   await expect(card).toContainText("Deterministic rules");
@@ -807,7 +805,40 @@ test("briefing attaches citations to claims and only detection previews follow t
   await expect(page.getByTestId("evidence-box")).toHaveAttribute("x", "400");
   await page.getByRole("button", {name: "View evidence 1, page 1", exact: true}).click();
   await expect(page.getByTestId("evidence-box").first()).toHaveAttribute("x", "100");
+  await expect(page.locator(".detection-card")).toBeVisible();
+  await expect(page.getByText("Some symbols remain ambiguous.", {exact: true})).not.toBeVisible();
+  await page.getByText("More information", {exact: true}).click();
   await expect(page.getByText("Some symbols remain ambiguous.", {exact: true})).toBeVisible();
+});
+
+test("clean answer keeps every preview at the end and combines notes into one disclosure", async ({page}) => {
+  await setup(page);
+  const rich = {...result, answer: {...result.answer, answer: 4, unit: "staircases", briefing: [
+    {section: "answer", text: "Four staircases connect the wings and central common area.", citations: [1, 2, 3, 4]},
+    {section: "basis", text: "Three are outside the wings; one is in the common area.", citations: []},
+    {section: "limitation", text: "The remaining details were not inspected.", citations: []},
+  ], citation_details: ["North wing", "West wing", "East wing", "Common area"].map((label, i) => ({citation: i + 1, kind: "detection", label}))},
+  canonical_citations: Array.from({length: 4}, (_, i) => ({...region, canonical_bbox: [50 + i * 220, 100, 200 + i * 220, 350]}))};
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, status: "completed", source, events, last_sequence: 4, result: rich}}));
+  await ask(page);
+  const answer = page.getByTestId("agent-answer");
+  await expect(answer.locator("details")).toHaveCount(1);
+  await expect(answer.getByText("More information", {exact: true})).toBeVisible();
+  await expect(answer.getByText(/Verification notes|Scope of this answer/)).toHaveCount(0);
+  await expect(page.locator(".work-recap")).toHaveCount(0);
+  await expect(answer.locator(":scope > :last-child")).toHaveClass("detection-evidence");
+  await expect(answer.locator(".detection-card")).toHaveCount(4);
+  for (const card of await answer.locator(".detection-card").all()) await expect(card).toBeVisible();
+  await answer.getByText("More information", {exact: true}).click();
+  await expect(answer.getByText("The remaining details were not inspected.", {exact: true})).toBeVisible();
+  await expect(answer.getByText("Some symbols remain ambiguous.", {exact: true})).toBeVisible();
+  await expect(answer.getByText("Crop only; remaining page not established.", {exact: true})).toBeVisible();
+  await answer.getByText("More information", {exact: true}).click();
+  await page.screenshot({path: "../.artifacts/answer-polish/desktop.png", fullPage: true});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole("button", {name: "Show conversation", exact: true}).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path: "../.artifacts/answer-polish/mobile.png", fullPage: true});
 });
 
 test("raw diagnostics require explicit opt-in and never load automatically", async ({page}) => {
