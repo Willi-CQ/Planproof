@@ -18,20 +18,21 @@ export function RunActivity({ run, drawing, onFocus, connection }: Props) {
     <ol className="work-log" aria-label="Work on this question">
       {shown.map((step, i) => {
         const running = !done && step.state === "running";
+        const pending = step.state === "pending" || step.state === "busy";
         const interrupted = done && step.state === "running";
-        const unavailable = step.state === "unavailable" || interrupted;
+        const unavailable = step.state === "unavailable" || interrupted || pending;
         const regions = sameSource(run.source, drawing.source) ? boundRegions(step, drawing.source) : [];
         return <li key={`${step.stage}-${step.sequence}`} className={running ? "work-current" : unavailable ? "work-unavailable" : ""}>
           <span className="work-icon">{running ? <LoaderCircle className="spinning" size={14} /> : unavailable ? <CircleAlert size={14} /> : <Check size={14} />}</span>
           <div className="work-content">
             <strong>{interrupted ? "Step interrupted" : activityTitle(step)}</strong>
-            {(running || expanded || done || i === shown.length - 1 || step.question || step.checks?.length) && <p>{activityDetail(step)}</p>}
+            {(running || pending || expanded || done || i === shown.length - 1 || step.question || step.checks?.length) && <p>{activityDetail(step)}</p>}
             {step.advisory?.findings?.slice(0, 3).map((finding, j) => <p className="work-finding" key={j}>{finding}</p>)}
             {step.unresolved?.map((issue, j) => <p className="work-caution" key={j}>{issue}</p>)}
             {regions.length > 0 && <div className="work-crops">{regions.slice(0, 3).map((region, j) => <button key={j} onClick={() => onFocus(region)} aria-label={`Inspect work step ${step.sequence} source ${j + 1}`}>
               <CropPreview region={region} drawing={drawing} /><span><Focus size={12} />{step.state === "running" ? "Requested view" : "Source detail"}</span>
             </button>)}</div>}
-            <small>{unavailable ? "No result established" : running ? "In progress" : step.state === "cached" ? "Reused evidence" : "Returned"}{step.seconds !== undefined ? ` · ${step.seconds.toFixed(1)}s` : ""}</small>
+            <small>{pending ? "Not supplied to this answer yet" : unavailable ? "No result established" : running ? "In progress" : step.state === "cached" ? "Reused evidence" : "Returned"}{step.seconds !== undefined ? ` · ${step.seconds.toFixed(1)}s` : ""}</small>
           </div>
         </li>;
       })}

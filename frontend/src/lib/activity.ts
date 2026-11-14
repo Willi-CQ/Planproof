@@ -26,12 +26,16 @@ const titles: Record<string, [string, string]> = {
 };
 export function activityTitle(event?: EvidenceEvent) {
   if (!event) return "Question queued";
+  if (event.stage === "get_algorithms" && (event.state === "pending" || event.state === "busy"))
+    return event.state === "pending" ? "Structural analysis continues in the background" : "Structural analysis is busy";
   const title = titles[event.stage] || ["Working with the drawing", "Step recorded"];
   if (event.state === "unavailable") return `${title[0]} — unavailable`;
   return title[event.state === "running" ? 0 : 1];
 }
 export function activityDetail(event?: EvidenceEvent) {
   if (!event) return "Waiting for the first execution event.";
+  if (event.state === "pending" || event.state === "busy")
+    return "Continuing with the drawing itself. No algorithm evidence has been supplied yet.";
   if (event.question) return event.question;
   if (event.classes?.length) return `Requested clues: ${event.classes.join(", ")}. Candidates will guide the next inspection.`;
   if (event.checks?.length) return event.checks.join(" ");

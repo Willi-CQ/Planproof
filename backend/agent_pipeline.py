@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from planproof_feedback.client import ProviderError
 from planproof_feedback.config import DEFAULT_CONFIG, load_config
 from planproof_feedback.guided import answer_guided
-from planproof_feedback.pipeline import EvidencePipeline
 from planproof_feedback.service import create_service
 
 _lock = Lock()
@@ -26,19 +25,14 @@ class QuestionRequest(BaseModel):
     allow_nemotron: bool = False
 
 
-def get_job(document_id, page):
-    # Only the host supplies paths and owns document/room registration.
+def get_job(document_id, page, *, timeout=None):
+    from algorithm_jobs import get_algorithm_job
+
     with _lock:
-        if document_id not in _jobs:
-            pipeline = EvidencePipeline()
-            staging = pipeline.settings.work_root / "uploads"
-            staging.mkdir(parents=True, exist_ok=True)
-            source = staging / (document_id + ".png")
-            source.write_bytes(page.png)
-            _jobs[document_id] = pipeline.prepare(source)
-            if len(_jobs) > 8:
-                _jobs.pop(next(iter(_jobs)))
-        return _jobs[document_id]
+        if document_id in _jobs:
+            return _jobs[document_id]
+    # Source/config identity survives re-uploads and restarts. No global build lock.
+    return get_algorithm_job(page, timeout=timeout)
 
 
 def specialist_service():
@@ -56,7 +50,7 @@ def specialist_service():
 
 
 def ask(document_id, page, request, *, observer=None):
-    from question_agent import DrawingAgent, GeminiTransport, settings
+    from question_agent import AgentBudget, DrawingAgent, GeminiTransport, settings
 
     if not request.allow_gemini:
         return {"status": "not_authorized", "answer": None, "canonical_citations": []}
@@ -82,10 +76,11 @@ def ask(document_id, page, request, *, observer=None):
             page,
             request,
             transport,
-            lambda: get_job(document_id, page),
+            lambda: get_job(document_id, page, timeout=0.25),
             specialist_service,
             out=out,
             observer=observer,
+            budget=AgentBudget.interactive(),
         ).run()
         return {**result, "request_id": request_id}
     finally:

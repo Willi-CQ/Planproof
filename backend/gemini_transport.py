@@ -184,7 +184,9 @@ def shared_gate(key, model):
 
 
 class ResilientGeminiTransport:
-    def __init__(self, key, model, *, instruction, policy=None, gate=None):
+    def __init__(
+        self, key, model, *, instruction, policy=None, gate=None, low_latency=False
+    ):
         self.model, self._key, self.instruction = model, key, instruction
         self.policy = policy or RetryPolicy()
         self.gate = gate or shared_gate(key, model)
@@ -193,18 +195,20 @@ class ResilientGeminiTransport:
         self.last_attempts = 0
         self.on_attempt = None
         self.phase = "normal"
+        self.low_latency = low_latency
 
     def generation_profile(self):
         # Capability checked against this configured event model. Unknown models
         # retain the existing settings rather than receiving unsupported parameters.
-        bounded_synthesis = self.model.removeprefix(
-            "models/"
-        ) == "gemini-4-carbon" and self.phase in ("recovery", "token_repair")
+        supported = self.model.removeprefix("models/") == "gemini-4-carbon"
+        bounded_synthesis = supported and self.phase in ("recovery", "token_repair")
         return {
             "max_output_tokens": 16384
             if bounded_synthesis and self.phase == "token_repair"
             else 8192,
-            "thinking_level": "LOW" if bounded_synthesis else None,
+            "thinking_level": "LOW"
+            if bounded_synthesis or supported and self.low_latency
+            else None,
         }
 
     async def _generate_async(self, history, tools, seconds):

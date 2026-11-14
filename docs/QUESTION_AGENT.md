@@ -1,5 +1,13 @@
 # Question-aware Gemini agent
 
+## Interactive latency update
+
+The interactive API now uses background, source-addressed algorithm jobs and a faster
+bounded generation profile. See [latency behavior and measured checks](INTERACTIVE_LATENCY.md)
+for the current limits, evidence semantics and two live stair-count comparisons. These
+settings supersede older interactive timing defaults below; tool and citation contracts
+remain in force.
+
 Gemini receives the question and a clean drawing overview first. It may answer
 directly, zoom into the source, ask Nemotron for a focused visual inspection, or
 request ML/geometry evidence. Algorithms are no longer a mandatory first step.

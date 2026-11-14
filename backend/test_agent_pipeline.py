@@ -39,11 +39,9 @@ class AgentPipelineTests(unittest.TestCase):
         )
 
     def test_algorithm_failure_does_not_produce_an_answer(self):
-        with patch("agent_pipeline.EvidencePipeline") as factory:
-            factory.return_value.prepare.side_effect = ValueError("wrong raster")
-            factory.return_value.settings.work_root = (
-                Path(app.root_path or ".") / ".artifacts/test-agent"
-            )
+        with patch(
+            "algorithm_jobs.get_algorithm_job", side_effect=ValueError("wrong raster")
+        ):
             response = self.client.post(
                 f"/api/v1/documents/{self.doc['document_id']}/reason",
                 json={"question": "Doors?"},

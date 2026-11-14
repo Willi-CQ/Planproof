@@ -525,6 +525,19 @@ test("actual work and requested regions appear on the plan without opening diagn
   await expect(page.locator(".event-list")).toContainText("Remaining page unknown.");
 });
 
+test("pending algorithms remain honest while source inspection proceeds", async ({page}) => {
+  await setup(page);
+  const pending = [{...events[0], state: "pending", summary: "Algorithm evidence is not ready."}, {...events[1], state: "running"}];
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {request_id: "pending-fixture", status: "running", source, events: pending, last_sequence: 2}}));
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, status: "running", source, events: pending, last_sequence: 2}}));
+  await ask(page);
+  const log = page.getByTestId("live-work-log");
+  await expect(log).toContainText("Structural analysis continues in the background");
+  await expect(log).toContainText("No algorithm evidence has been supplied yet");
+  await expect(log).toContainText("Opening a closer view");
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
+});
+
 test("briefing attaches citations to claims and only detection previews follow the text", async ({page}) => {
   await setup(page);
   const rich = {...result, answer: {...result.answer, answer: 12, unit: "m2", briefing: [

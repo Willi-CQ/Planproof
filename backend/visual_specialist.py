@@ -40,8 +40,12 @@ class VisualSpecialist:
     def answer(self, question, images, *, timeout_seconds=None):
         return self.inspect(question, images, timeout_seconds=timeout_seconds)
 
-    def review(self, question, images, *, candidate, evidence=None):
-        return self.inspect(question, images, candidate=candidate)
+    def review(
+        self, question, images, *, candidate, evidence=None, timeout_seconds=None
+    ):
+        return self.inspect(
+            question, images, candidate=candidate, timeout_seconds=timeout_seconds
+        )
 
     def inspect(self, question, images, candidate=None, timeout_seconds=None):
         payload = {
