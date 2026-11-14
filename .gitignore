@@ -42,18 +42,10 @@ __pycache__/
 build/
 dist/
 # ML environments, generated labels, diagnostics and model artifacts.
-.venv/
 .cache/
-.artifacts/
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
 /runs/
 /exports/
 /artifacts/
-*.npz
 *.pkl
 *.pth
 *.ckpt

@@ -1,7 +1,15 @@
 # Planproof: deterministic 2D evidence implementation handoff
 
-Status: **local integrated CPU engine implemented; recognition limits measured**.
-Updated 14 November 2026. Start with the [current integration and Evidence Lab](INTEGRATION.md).
+Status: **integrated CPU engine and optional Nemotron feedback implemented**.
+Updated 14 November 2026. Start with the [integration and Evidence Lab](INTEGRATION.md)
+and [room-boundary rules and measured limits](ROOM_BOUNDARIES.md).
+
+[Nemotron feedback](../../feedback/README.md) provides the visual review role
+previously reserved for Jev and a separate agent self-feedback route. It consumes
+registered clean crop/context artifacts. The host invokes inference explicitly;
+deterministic extraction makes no inference calls. Connecting the primary agent
+and room-selection workflow remains the next integration step.
+
 This document is the entry point for a teammate or AI agent with only this branch.
 
 Local-only update: [ten existing labeled validation plans](REFERENCE10.md) are

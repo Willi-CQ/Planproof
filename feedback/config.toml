@@ -1,0 +1,32 @@
+# Paths are relative to this file. Both roles use NVIDIA's event-issued key in ../.env.
+env_file = "../.env"
+audit_dir = "../.artifacts/nemotron/calls"
+report_dir = "../.artifacts/nemotron/comparison"
+
+[routes]
+feedback = "nemotron"
+self_feedback = "nemotron"
+
+[providers.nemotron]
+base_url = "https://containers.datacrunch.io/nemotron-3-5-super-vl-b300/v1"
+model = "nemotron-3.5-super-vl"
+api_key_env = "NVIDIA_NEMOTRON_KEY"
+timeout_seconds = 180
+retries = 2
+max_tokens = 4096
+temperature = 0.0
+
+[images]
+max_edge = 2048
+max_pages = 12
+pdf_dpi = 144
+
+[benchmark]
+seed = "planproof-nemotron-stoa-v1"
+sample_size = 100
+archive_url = "https://fwjydgxpttajiqpfmqtj.supabase.co/storage/v1/object/public/stoa-junction-2026/junction-dataset.zip"
+# Existing private evaluation/reference partition; the final partition is never opened.
+question_file = "../../_planproof_publish/data/evaluation/stoa-client-v1/stoa-client-eval-reference.jsonl"
+inventory_file = "../../_planproof_publish/data/evaluation/stoa-client-v1/archive-files.csv"
+pack_dir = "../.artifacts/nemotron/stoa-random-v1"
+max_download_bytes = 268435456
