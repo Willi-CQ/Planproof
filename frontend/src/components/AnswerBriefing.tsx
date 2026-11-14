@@ -28,6 +28,7 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
   const detections = citations.filter(c => detailFor(c.source_index!)?.kind === "detection");
   const unlinked = citations.filter(c => !referenced.has(c.source_index!));
   const approximate = result.measurement?.approximate === true;
+  const countEvidence = result.count_evidence;
   const limitations = <ul>{result.answer?.uncertainties?.map((u, i) => <li key={i}>{u}</li>)}</ul>;
   const display = resultText(result).replace(/\b(m2|ft2|in2|cm2|mm2)\b/g, unit => unit.slice(0, -1) + "²");
   return <div className={`answer answer-briefing ${resolved ? "" : "answer-unresolved"}`} data-testid="agent-answer">
@@ -42,9 +43,14 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
     {!!result.answer?.uncertainties?.length && (paragraphs.some(p => p.section === "limitation")
       ? <details className="briefing-limits"><summary>Verification notes · {result.answer.uncertainties.length}</summary>{limitations}</details>
       : <aside className="briefing-limits"><strong>What to keep in mind</strong>{limitations}</aside>)}
+    {countEvidence && <aside className="briefing-limits" data-testid="count-inventory">
+      <strong>{countEvidence.complete ? "Located door inventory" : "Provisional door inventory"}</strong>
+      <p>{countEvidence.supported} supported · {countEvidence.uncertain} uncertain</p>
+      <p>Solid green boxes show model-supported candidates. Dashed amber boxes need checking. These are not human-verified detections.</p>
+    </aside>}
     {!!detections.length && <div className="detection-evidence" aria-label="Detected features in the source">
       <h3>Located on your drawing</h3>
-      <div>{detections.map(c => {
+      <div>{detections.slice(0, countEvidence ? 3 : detections.length).map(c => {
         const index = citations.indexOf(c);
         return <button key={c.source_index} onClick={() => onHighlight(messageId, index)} className="detection-card">
           <CropPreview drawing={drawing} region={c} />
@@ -53,6 +59,6 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
       })}</div>
     </div>}
     {result.answer?.coverage && <details className="answer-notes"><summary>Scope of this answer</summary><p>{result.answer.coverage}</p></details>}
-    {!resolved && <p className="answer-help">{result.reliability?.retry_after_seconds ? `Please wait ${result.reliability.retry_after_seconds} seconds before trying again.` : "A clearer detail or a more specific question may help resolve this."}</p>}
+    {!resolved && <p className="answer-help">{result.reliability?.retry_after_seconds ? `Please wait ${result.reliability.retry_after_seconds} seconds before trying again.` : result.completion_reason === "inspection_incomplete" ? "The inspection did not establish a complete answer. This does not mean the drawing lacks the information." : "A clearer detail or a more specific question may help resolve this."}</p>}
   </div>;
 }

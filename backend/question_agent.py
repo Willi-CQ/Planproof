@@ -34,7 +34,9 @@ from specialist_routing import (
     region_boxes,
     require_inspected_citations,
     tiles,
+    tile_question,
 )
+from count_evidence import CountBasis, count_presentation, door_count_unit, inventory
 from answer_presentation import BriefingStatement, CitationDetail, attach_presentation
 from measurements import (
     AreaRequest,
@@ -174,6 +176,7 @@ class FinalAnswer(BaseModel):
     coverage: str = Field(min_length=1, max_length=2000)
     uncertainties: list[str] = Field(max_length=20)
     measurement_id: str | None = Field(default=None, max_length=40)
+    count_basis: CountBasis | None = None
     briefing: list[BriefingStatement] = Field(default_factory=list, max_length=8)
     citation_details: list[CitationDetail] = Field(default_factory=list, max_length=100)
 
@@ -411,6 +414,11 @@ class DrawingAgent:
         self.budget = budget or AgentBudget()
         self.require_specialist = require_specialist and request.mode != "direct"
         self.inspection_policy = inspection_policy or InspectionPolicy()
+        self.count_unit = (
+            door_count_unit(request.question) if self.require_specialist else None
+        )
+        self.count_records = {}
+        self.count_complete = False
         self.inspected_images = set()
         self.inspection_cache = {}
         self.inspection_attempts = {}
@@ -511,8 +519,50 @@ class DrawingAgent:
     def specialist_limit(self):
         return self.inspection_policy.max_calls if self.require_specialist else 3
 
+    @property
+    def tool_budget_used(self):
+        # Argument repair did not perform evidence work. Still bound malformed
+        # attempts by an absolute cap and the existing turn/deadline limits.
+        productive = sum(
+            row.get("result", {}).get("error_code")
+            not in {"ValueError", "ValidationError"}
+            for row in self.tool_log
+        )
+        return 12 if len(self.tool_log) >= 18 else productive
+
+    def count_inventory(self):
+        return inventory(self.count_records, self.images, self.count_unit)
+
+    def count_tool_inventory(self):
+        evidence = self.count_inventory()
+        return {
+            **evidence,
+            "unresolved_requested_regions": [
+                r["canonical_bbox"] for r in self.unresolved_inspections.values()
+            ],
+            "objects": [
+                {
+                    k: o[k]
+                    for k in (
+                        "id",
+                        "image_id",
+                        "bbox",
+                        "canonical_bbox",
+                        "status",
+                        "reason",
+                    )
+                }
+                for o in evidence["objects"]
+            ],
+        }
+
     def record_inspection(self, result):
         if result.get("status") == "ok" and isinstance(result.get("result"), dict):
+            advisory = result["result"]
+            if self.count_unit:
+                ids = {c["image_id"] for c in advisory.get("citations", [])}
+                for image_id in ids & self.images.keys():
+                    self.count_records[image_id] = advisory
             self.inspected_images.update(
                 c["image_id"]
                 for c in result["result"].get("citations", [])
@@ -523,32 +573,55 @@ class DrawingAgent:
         policy = self.inspection_policy
         regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
         planned, seen = [], set()
-        for question, box in regions:
-            for tile in tiles(box, policy):
-                key = json.dumps([question, tile])
+        for question, parent in regions:
+            for box in tiles(parent, policy):
+                task = tile_question(
+                    question,
+                    self.request.question,
+                    box,
+                    parent,
+                    self.page.width,
+                    self.page.height,
+                    self.count_unit,
+                )
+                # Counting scope and role are fixed by the user's question, not a
+                # coordinator's changing wording. Reuse completed tiles reliably.
+                key = json.dumps(
+                    [self.request.question if self.count_unit else question, box]
+                )
                 if key not in seen:
-                    planned.append((key, question, tile))
+                    planned.append((key, task, box))
                     seen.add(key)
-        needed = [
-            p
-            for p in planned
-            if p[0] not in self.inspection_cache
-            and self.inspection_attempts.get(p[0], 0) < 2
-        ]
-        if len(needed) + self.nemotron_calls > self.specialist_limit:
-            raise ValueError(
-                f"This selection needs {len(needed)} new native-detail inspections; "
-                f"{self.specialist_limit - self.nemotron_calls} remain. Select smaller "
-                "relevant rooms/regions first; no inspection was sent or silently omitted."
-            )
-        new_boxes = {tuple(p[2]) for p in needed if tuple(p[2]) not in self.crop_cache}
-        if len(new_boxes) + self.crop_count > self.crop_limit:
-            raise ValueError("Too many new detail crops; prioritize relevant regions")
         deadline = time.monotonic() + (
             timeout_seconds if timeout_seconds is not None else 60
         )
-        prepared = []
-        for key, question, box in needed:
+        prepared, deferred = [], {}
+        remaining = max(0, self.specialist_limit - self.nemotron_calls)
+        for key, question, box in planned:
+            if key in self.inspection_cache:
+                continue
+            reason = None
+            if self.inspection_attempts.get(key, 0) >= 2:
+                reason = "TileRetryExhausted"
+            elif len(prepared) >= remaining:
+                reason = "InspectionCallBudget"
+            elif (
+                tuple(box) not in self.crop_cache and self.crop_count >= self.crop_limit
+            ):
+                reason = "CropBudget"
+            elif time.monotonic() >= deadline:
+                reason = "InspectionDeadline"
+            if reason:
+                row = {
+                    "status": "deferred",
+                    "question": question,
+                    "image_ids": [],
+                    "canonical_bbox": box,
+                    "error_code": reason,
+                }
+                deferred[key] = row
+                self.unresolved_inspections[key] = row
+                continue
             _, images = self.crop(box)
             prepared.append((key, question, images[0]))
         if prepared and self.specialist is None:
@@ -582,12 +655,19 @@ class DrawingAgent:
         self.nemotron_calls += attempted
         current = {}
         for (key, question, image), value in zip(prepared, results):
-            self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
+            if value["status"] != "not_sent":
+                self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
+            advisory = value.get("result") or {}
+            complete = value["status"] == "ok" and (
+                not self.count_unit or advisory.get("scope_complete") is True
+            )
             row = {
                 "status": value["status"],
                 "question": question,
                 "image_ids": [image.image_id],
                 "image": visible_metadata(image),
+                "canonical_bbox": image.metadata["canonical_bbox"],
+                "scope_complete": complete,
                 "resolution": {
                     "source_pixels": image.metadata["source_render_size"],
                     "sent_pixels": image.metadata["sent_size"],
@@ -600,35 +680,72 @@ class DrawingAgent:
             }
             current[key] = row
             self.record_inspection(value)
-            if value["status"] == "ok":
+            if complete:
                 self.inspection_cache[key] = row
                 self.unresolved_inspections.pop(key, None)
             else:
                 self.unresolved_inspections[key] = row
-        rows = []
-        for key, question, _ in planned:
-            if key in current:
-                rows.append(current[key])
-            elif key in self.inspection_cache:
-                rows.append({**self.inspection_cache[key], "cached": True})
-            else:
-                rows.append(
-                    {
-                        "status": "unavailable",
-                        "question": question,
-                        "error_code": "TileRetryExhausted",
-                        "image_ids": [],
-                    }
-                )
+        # Smaller successful re-inspections can resolve an older failed region,
+        # but only if their union covers every pixel of that requested region.
+        if self.count_unit:
+            covered = [r["canonical_bbox"] for r in self.inspection_cache.values()]
+            for key, row in list(self.unresolved_inspections.items()):
+                try:
+                    require_inspected_citations([row], covered)
+                except DelegationRequired:
+                    continue
+                self.unresolved_inspections.pop(key, None)
+            for image_id, record in list(self.count_records.items()):
+                if record.get("scope_complete") is True:
+                    continue
+                try:
+                    require_inspected_citations(
+                        [
+                            {
+                                "canonical_bbox": self.images[image_id].metadata[
+                                    "canonical_bbox"
+                                ]
+                            }
+                        ],
+                        covered,
+                    )
+                except DelegationRequired:
+                    continue
+                # New detailed coverage supersedes an old incomplete aggregate.
+                self.count_records.pop(image_id)
+        rows = [
+            current.get(k)
+            or deferred.get(k)
+            or {**self.inspection_cache[k], "cached": True}
+            for k, _, _ in planned
+        ]
         ok = sum(row["status"] == "ok" for row in rows)
+        complete = sum(row.get("scope_complete", False) for row in rows)
+        if self.count_unit:
+            # The inventory carries every object once. Avoid feeding Gemini four
+            # copies of the same boxes via advisory/citations/aggregate metadata.
+            rows = [
+                {
+                    **row,
+                    "question": self.request.question,
+                    "advisory": {
+                        k: v
+                        for k, v in (row.get("advisory") or {}).items()
+                        if k not in {"objects", "citations"}
+                    },
+                    "canonical_citations": row.get("canonical_citations", [])[:1],
+                }
+                for row in rows
+            ]
         return {
-            "status": "ok" if ok == len(rows) else "partial" if ok else "unavailable",
+            "status": "ok"
+            if complete == len(rows)
+            else "partial"
+            if ok
+            else "unavailable",
             "inspections": rows,
             "image_ids": [
-                image_id
-                for row in rows
-                if row["status"] == "ok"
-                for image_id in row["image_ids"]
+                i for row in rows if row["status"] == "ok" for i in row["image_ids"]
             ],
             "canonical_citations": [
                 c for row in rows for c in row.get("canonical_citations", [])
@@ -636,9 +753,16 @@ class DrawingAgent:
             "coverage": {
                 "requested_tiles": len(rows),
                 "returned_tiles": ok,
-                "unresolved_tiles": len(rows) - ok,
+                "unresolved_tiles": len(rows) - complete,
+                "deferred_tiles": len(deferred),
+                "remaining_calls": max(0, self.specialist_limit - self.nemotron_calls),
             },
-            "scope": "Selected regions only; overlapping tile counts are NOT additive. Failed, unreadable or unselected regions prevent a complete count. Reconcile object locations. All findings remain advisory.",
+            **(
+                {"count_evidence": self.count_tool_inventory()}
+                if self.count_unit
+                else {}
+            ),
+            "scope": "Selected regions only. Deferred/uncertain regions are not empty. Use localized object IDs, not sums of tile counts. Findings remain advisory.",
         }, []
 
     def execute(self, name, args, *, timeout_seconds=None):
@@ -818,6 +942,13 @@ class DrawingAgent:
                         "complete_coverage": False,
                         "instruction": "Algorithm evidence is not ready. Continue inspecting source crops now; no detections have been established. Revisit once later only if needed.",
                     }, []
+            # Room context accompanies door candidates, even when the caller
+            # forgets to explicitly request it. No additional algorithm run.
+            classes = (
+                list(dict.fromkeys([*classes, "room"]))
+                if "door" in classes
+                else classes
+            )
             fresh_classes = set(classes) - self.delivered_classes
             catalog = copy.deepcopy(self.job.catalog)
             aliases = {r["id"]: f"R{i + 1}" for i, r in enumerate(catalog["rooms"])}
@@ -953,22 +1084,50 @@ class DrawingAgent:
         if self.specialist is None:
             self.specialist = self.specialist_factory()
         images = [self.images[x] for x in ids]
+        count_question = (
+            "\n".join(
+                f"Image {image.image_id}: "
+                + tile_question(
+                    value,
+                    self.request.question,
+                    image.metadata["canonical_bbox"],
+                    image.metadata["canonical_bbox"],
+                    self.page.width,
+                    self.page.height,
+                    self.count_unit,
+                )
+                for image in images
+            )
+            if self.count_unit
+            else None
+        )
         if name == "review_answer":
             self.review_calls += 1
-            result = self.specialist.review(
-                self.request.question,
-                images,
-                candidate=value,
-                evidence={
-                    "scope": "Selected images only; check duplicates and omitted regions."
-                },
-                **(
-                    {"timeout_seconds": timeout_seconds}
-                    if timeout_seconds is not None
-                    else {}
-                ),
-            )
+            if count_question:
+                # A count review independently localizes symbols; never feed it
+                # a leading repeated-layout multiplication to rubber-stamp.
+                result = self.specialist.answer(
+                    count_question, images, timeout_seconds=timeout_seconds
+                )
+            else:
+                result = self.specialist.review(
+                    self.request.question,
+                    images,
+                    candidate=value,
+                    evidence={
+                        "scope": "Selected images only; check duplicates and omitted regions."
+                    },
+                    **(
+                        {"timeout_seconds": timeout_seconds}
+                        if timeout_seconds is not None
+                        else {}
+                    ),
+                )
         else:
+            if self.count_unit:
+                # Legacy tool remains supported but cannot reintroduce leading
+                # counts or original-page restrictions into a local inspection.
+                value = count_question
             result = (
                 self.specialist.answer(value, images, timeout_seconds=timeout_seconds)
                 if timeout_seconds is not None
@@ -980,6 +1139,7 @@ class DrawingAgent:
             "advisory": result.get("result"),
             "canonical_citations": result.get("canonical_citations", []),
             "usage": result.get("completion", {}).get("usage", {}),
+            **({"count_evidence": self.count_inventory()} if self.count_unit else {}),
             "image_ids": ids,
             "scope": "Selected images only. Advisory, not independent verification or whole-page coverage.",
         }, []
@@ -1053,7 +1213,55 @@ class DrawingAgent:
                     f"{len(self.unresolved_inspections)} requested detail inspections remain unresolved; this result does not establish complete coverage of those regions.",
                     *result["uncertainties"],
                 ][:20]
-        return attach_presentation(result, original_citations, raw_presentation)
+        result = attach_presentation(result, original_citations, raw_presentation)
+        if self.count_unit:
+            evidence = self.count_inventory()
+            basis = result.get("count_basis") or {}
+            supported = {
+                o["id"] for o in evidence["objects"] if o["status"] == "supported"
+            }
+            chosen = basis.get("object_ids")
+            if chosen is None:
+                chosen = list(supported)
+            self.count_complete = (
+                result["status"] == "answered"
+                and basis.get("scope") == "complete"
+                and basis.get("unit") == self.count_unit
+                and len(chosen) == len(set(chosen))
+                and set(chosen) == supported
+                and result["answer"] == len(chosen)
+                and not evidence["uncertain"]
+                and bool(self.count_records)
+                and all(
+                    r.get("scope_complete") is True for r in self.count_records.values()
+                )
+                and not self.unresolved_inspections
+            )
+            if not self.count_complete:
+                result.update(status="abstain", answer=None, unit=None)
+            else:
+                result["unit"] = (
+                    "door openings"
+                    if self.count_unit == "door_opening"
+                    else "door leaves"
+                )
+            # Replace arbitrary aggregate prose with the actual object inventory.
+            result = count_presentation(result, evidence, complete=self.count_complete)
+            object_citations = [o["citation"] for o in evidence["objects"]][:100]
+            if object_citations:
+                result["citations"] = object_citations
+                result["citation_details"] = [
+                    {
+                        "citation": i + 1,
+                        "kind": "detection",
+                        "label": f"{o['id']} · {o['status']}",
+                    }
+                    for i, o in enumerate(evidence["objects"][:100])
+                ]
+                result["briefing"][0]["citations"] = list(
+                    range(1, min(3, len(object_citations)) + 1)
+                )
+        return result
 
     def checkpoint(self):
         attempts = getattr(self.transport, "events", [])
@@ -1117,7 +1325,7 @@ class DrawingAgent:
             if (
                 deadline - time.monotonic() < 115
                 or self.nemotron_calls >= 3
-                or len(self.tool_log) >= 12
+                or self.tool_budget_used >= 12
             ):
                 self.token_repair_notes.append(
                     "delegation_budget_reserved_for_finalization"
@@ -1174,6 +1382,9 @@ class DrawingAgent:
                                     visible_metadata(i) for i in self.images.values()
                                 ],
                                 "delegation_notes": self.token_repair_notes,
+                                "count_evidence": self.count_tool_inventory()
+                                if self.count_unit
+                                else None,
                                 "instruction": "Recovery after a provider interruption, not proof of missing drawing information. No new crops, algorithms or specialist calls are available. In non-direct mode the host may still offer calculate_area and measure_polygon: use those local tools on the supplied images to complete a supported measurement before submitting. A missing width label does not prevent a calibrated estimate from a readable boundary and two distinct dimensions in the same view. Do not claim an exact area from an approximate drawing. At most two local calculation attempts, within the original shared budget, are allowed. Never invent inputs to avoid abstaining. If evidence or budget is insufficient, abstain and distinguish unavailable source information from incomplete processing. A partial draft or reflection is not a verified answer.",
                             },
                             ensure_ascii=False,
@@ -1280,7 +1491,7 @@ class DrawingAgent:
                     for t in available
                     if t.name == "submit_answer" or t.name in LOCAL_MEASUREMENT_TOOLS
                 ]
-            elif recovery or turn == 7 or len(self.tool_log) >= 12:
+            elif recovery or turn == 7 or self.tool_budget_used >= 12:
                 available = [available[0]]
                 history.append(
                     types.Content(
@@ -1449,7 +1660,7 @@ class DrawingAgent:
                             not local_recovery_allowed
                             or function.name not in LOCAL_MEASUREMENT_TOOLS
                             or self.recovery_measurement_calls >= 2
-                            or len(self.tool_log) >= 12
+                            or self.tool_budget_used >= 12
                             or time.monotonic() >= deadline
                         ):
                             raise ValueError(
@@ -1459,7 +1670,7 @@ class DrawingAgent:
                         self.recovery_measurement_calls += 1
                         local_recovery_attempted = True
                     elif (
-                        len(self.tool_log) >= 12
+                        self.tool_budget_used >= 12
                         or turn == 7
                         or time.monotonic() >= deadline - self.budget.final_seconds
                     ):
@@ -1581,6 +1792,12 @@ class DrawingAgent:
                 "A provider interruption occurred. This abstention may reflect incomplete processing rather than missing information on the drawing.",
                 *answer["uncertainties"],
             ][:20]
+        if (
+            self.count_unit
+            and not self.count_complete
+            and not answer["explanation"].startswith("Inspection is incomplete.")
+        ):
+            answer = count_presentation(answer, self.count_inventory())
         result = {
             "status": "ok" if stop == "answered" else "unavailable",
             "answer": answer,
@@ -1616,6 +1833,24 @@ class DrawingAgent:
             "source_raster_sha256": self.page.raster_sha256,
             "citation_verification": "Image identity and bounds validated; semantic support is model proposed.",
             "measurement": self.measurements.get(answer.get("measurement_id")),
+            "count_evidence": (
+                {**self.count_inventory(), "complete": self.count_complete}
+                if self.count_unit
+                else None
+            ),
+            "completion_reason": (
+                "inspection_incomplete"
+                if answer["status"] == "abstain"
+                and (
+                    self.count_unit
+                    or self.unresolved_inspections
+                    or self.recovery_used
+                    or stop != "answered"
+                )
+                else "source_insufficient"
+                if answer["status"] == "abstain"
+                else "answered"
+            ),
             "reliability": {
                 "recovery_used": self.recovery_used,
                 "recovery_measurement_calls": self.recovery_measurement_calls,

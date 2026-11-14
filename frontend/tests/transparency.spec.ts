@@ -150,6 +150,58 @@ async function ask(page: Page) {
     .click();
 }
 
+test("incomplete door inventory keeps supported and uncertain candidates visible after refresh", async ({ page }) => {
+  await setup(page);
+  let submissions = 0;
+  const counted = {
+    ...result,
+    completion_reason: "inspection_incomplete",
+    answer: { ...result.answer, status: "abstain", answer: null,
+      explanation: "Located one supported door opening and one uncertain candidate. This is a partial inventory." },
+    canonical_citations: [],
+    count_evidence: { unit: "door_opening", supported: 1, uncertain: 1, complete: false,
+      objects: [
+        { ...region, id: "crop-1-D1", canonical_bbox: [100, 100, 140, 140], status: "supported", reason: "Visible leaf and arc" },
+        { ...region, id: "crop-2-D1", canonical_bbox: [250, 100, 285, 145], status: "uncertain", reason: "Partly cut off" },
+        { ...region, id: "outside", canonical_bbox: [900, 100, 1200, 200], status: "uncertain", reason: "Invalid frame fixture" },
+      ],
+    },
+  };
+  await page.route("**/api/v1/documents/*/runs", r => {
+    submissions++;
+    return r.fulfill({ json: { request_id: r.request().postDataJSON().request_id,
+      status: "completed", source, events: [], last_sequence: 0, result: counted } });
+  });
+  await ask(page);
+  await expect(page.getByTestId("answer-value")).toHaveText("Inspection incomplete");
+  await expect(page.getByTestId("count-inventory")).toContainText("Provisional door inventory");
+  await expect(page.getByTestId("count-candidate")).toHaveCount(2);
+  await expect(page.locator('[data-testid="count-candidate"][data-status="uncertain"]')).toHaveAttribute("stroke-dasharray", "5 3");
+  await expect(page.locator('[data-testid="count-candidate"][data-status="supported"]')).toHaveAttribute("stroke", "#42634a");
+  await page.getByRole("button", { name: "Show door candidates", exact: true }).click();
+  await expect(page.getByTestId("count-candidate")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show door candidates", exact: true }).click();
+  await expect(page.getByTestId("count-candidate")).toHaveCount(2);
+  await page.reload();
+  await expect(page.getByTestId("count-candidate")).toHaveCount(2);
+  await expect(page.getByTestId("answer-value")).toHaveText("Inspection incomplete");
+  expect(submissions).toBe(1);
+});
+
+test("door inventory from another source cannot draw boxes on this page", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({ json: {
+    request_id: r.request().postDataJSON().request_id, status: "completed", source,
+    events: [], last_sequence: 0,
+    result: { ...result, source: { ...source, raster_sha256: "different-source" },
+      count_evidence: { unit: "door_opening", supported: 1, uncertain: 0, complete: false,
+        objects: [{ ...region, id: "D1", status: "supported", reason: "Different drawing" }] } },
+  } }));
+  await ask(page);
+  await expect(page.getByTestId("agent-answer")).toBeVisible();
+  await expect(page.getByTestId("count-candidate")).toHaveCount(0);
+});
+
 test("latest task downloads a PDF without rerunning or confusing older citations and drafts", async ({page}) => {
   await setup(page);
   await expect(page.getByRole("button", {name: "Task details", exact: true})).toBeDisabled();

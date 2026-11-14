@@ -29,6 +29,14 @@ export interface AgentResult {
   source?: { width: number; height: number; page_index: number; raster_sha256?: string };
   measurement?: { approximate: boolean; boundary_basis?: string; formula?: string };
   canonical_citations?: Citation[];
+  completion_reason?: "inspection_incomplete" | "source_insufficient" | "answered";
+  count_evidence?: {
+    unit: "door_opening" | "door_leaf";
+    supported: number;
+    uncertain: number;
+    complete: boolean;
+    objects: (Citation & { id: string; status: "supported" | "uncertain"; reason: string })[];
+  } | null;
   algorithm_used?: boolean;
   nemotron_calls?: number;
   reflection_calls?: number;
@@ -137,8 +145,16 @@ export function resultText(result: AgentResult): string {
   if (result.status === "not_authorized")
     return "Planproof couldn’t start this question.";
   if (result.answer?.status === "abstain")
-    return "Not enough evidence to answer";
+    return result.completion_reason === "inspection_incomplete" || result.reliability?.recovery_used
+      ? "Inspection incomplete" : "Not enough evidence to answer";
   return "We couldn’t complete this question";
+}
+export function visibleCountObjects(result: AgentResult, drawing: Drawing) {
+  const objects = result.count_evidence?.objects || [];
+  const valid = new Set(visibleCitations({ ...result, canonical_citations: objects }, drawing)
+    .map(c => `${c.image_id}:${c.canonical_bbox.join(",")}`));
+  return objects.filter(o => valid.has(`${o.image_id}:${o.canonical_bbox.join(",")}`)
+    && (o.status === "supported" || o.status === "uncertain"));
 }
 export function visibleCitations(
   result: AgentResult,

@@ -228,15 +228,20 @@ def test_room_context_and_invalid_batches_are_validated_before_provider_access()
     value.specialist_factory.assert_not_called()
 
 
-def test_expanded_tile_cost_is_preflighted_without_partial_unreported_submission():
+def test_expanded_tile_cost_dispatches_available_slots_and_reports_every_deferred_tile():
     value = orchestrator()
     value.inspection_policy = replace(
         InspectionPolicy(), tile_edge=40, overlap=8, max_calls=2
     )
-    with pytest.raises(ValueError, match="new native-detail inspections"):
-        value.execute("inspect_regions", {"regions": [target()]})
-    assert value.nemotron_calls == 0 and value.crop_count == 0
-    value.specialist_factory.assert_not_called()
+    result, _ = value.execute("inspect_regions", {"regions": [target()]})
+    assert value.nemotron_calls == 2 and value.crop_count == 2
+    assert result["status"] == "partial"
+    assert result["coverage"]["requested_tiles"] == 9
+    assert result["coverage"]["returned_tiles"] == 2
+    assert result["coverage"]["deferred_tiles"] == 7
+    assert result["coverage"]["remaining_calls"] == 0
+    assert len(value.unresolved_inspections) == 7
+    assert all(row.get("canonical_bbox") for row in result["inspections"])
 
 
 def test_deadline_does_not_wait_for_late_results_or_start_expired_work():

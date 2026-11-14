@@ -61,7 +61,9 @@ evidence and metadata without reattaching every delegated image.
   measurement inputs, must be covered by the union of those regions. A failed call or
   an unrelated inspection cannot authorize an answer elsewhere. Citation containment
   checks spatial scope, **not semantic correctness or whole-page completeness**.
-- No tile counts are summed by the host. Overlapping views can contain the same object.
+- No tile counts are summed by the host. Door counting now uses a localized object
+  inventory and conservative geometric deduplication; see [Localized counting](LOCALIZED_COUNTING.md).
+  Overlapping views can contain the same object.
   Gemini must reconcile canonical locations, include boundary objects once and retain
   ambiguity. For apartment entrances, a door symbol alone does not establish its role.
 - Failed tiles do not discard successful neighbors. A repeated batch reuses successful
@@ -89,9 +91,10 @@ These defaults are an initial engineering profile, **not a measured optimum**:
 | Per specialist request | 30 s maximum socket timeout | Clipped to remaining inspection time |
 | Interactive admission budget / finalization reserve | 120 s / 35 s | Reuse evidence and leave time for synthesis |
 
-A batch that would exceed the remaining call/crop allowance is rejected **before** any
-partial dispatch and reports the estimated number of requests. Gemini must prioritize
-smaller relevant regions; the host does not silently skip tiles. Queued work is checked
+A batch that would exceed the remaining call/crop allowance dispatches feasible tiles
+in the requested priority order and explicitly reports every deferred tile with its
+bounds and reason. Gemini can prioritize smaller relevant regions; the host does not
+silently skip tiles or reject feasible work. Queued work is checked
 against the deadline before sending; at the batch deadline pending work is cancelled,
 late results are discarded and already completed evidence remains usable. Running HTTP
 calls have a socket timeout, not guaranteed immediate cancellation at the remote service.

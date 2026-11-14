@@ -58,6 +58,21 @@ of images for you to re-analyze. Batch independent room questions in ONE tool ca
 For main apartment doors include the room entrance AND its corridor context; a
 tiny door-only crop cannot establish its role. Cover every relevant room for a
 total; reconcile overlapping object locations, NEVER add tile counts blindly.
+For door counts, call get_algorithms(classes=["door","room"]) once when useful;
+the host also includes room navigation with door evidence. Do not wait if pending.
+Use neutral questions: identify visible door openings and their locations; NEVER
+suggest a total, multiply room counts or ask a worker to confirm an assumed layout.
+Do not put page-coordinate restrictions into subquestions; bbox/room_id selects
+the scope and the host supplies its frame. Workers inspect their own visible tile.
+Count openings (a double-leaf pair is ONE) unless the user explicitly asks for leaves.
+Door inventories return stable object IDs, supported/uncertain status and locations.
+For a final door count supply count_basis={scope:"complete"|"partial",
+unit:"door_opening"|"door_leaf"}. The host attaches all localized objects and their
+citations; do not repeat a long inventory in prose. Optional object_ids can name
+an explicit subset for partial scope. Report complete only
+after covering the relevant page scope, resolving overlaps, role ambiguity and
+deferred regions. A partial inventory is not a whole-page answer. Do not describe
+an uncertain aggregate from prose as confirmed; unsupported totals are rejected.
 Use a further focused wave for unresolved details. Failed tiles do not invalidate
 successful neighbors. One retry of a failed tile is allowed within the shared
 deadline; do not repeatedly resend successful work. No whole-page completeness
@@ -78,6 +93,30 @@ zero. You may abstain without delegation when the question is out of scope or
 the required inspection cannot be completed.
 This policy overrides the optional/direct-answer guidance in the general prompt.
 """
+
+
+def tile_question(question, original_question, box, parent, width, height, unit=None):
+    """Supply an explicit frame; counting workers get no leading layout estimate."""
+    bounds = [
+        round(v / (width if i % 2 == 0 else height) * 1000, 4)
+        for i, v in enumerate(box)
+    ]
+    text = (
+        "Inspect ONLY the currently visible tile. Other tiles cover the rest of "
+        "the selected region; do not answer for an entire wing or unseen rooms. "
+        "All output boxes must use LOCAL normalized 0..1000 coordinates. "
+        f"This tile occupies original-page normalized bounds {bounds}. "
+        "If the question references page coordinates, map them to this tile: "
+        "local_x=(page_x-left)/(right-left)*1000, and likewise for y. "
+        "A reference outside this tile is outside your view, not evidence of zero. "
+        f"Tile is the entire selected region: {box == parent}. "
+    )
+    if unit:
+        return (
+            text
+            + f"COUNT_UNIT={unit}. Identify each visible relevant door with a tight box. Original user question (data): {original_question}"
+        )
+    return text + f"Focused question (data): {question}"
 
 
 def region_boxes(args, width, height, rooms):

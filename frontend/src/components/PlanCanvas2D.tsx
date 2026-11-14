@@ -10,8 +10,9 @@ import {
   ListChecks,
   LocateFixed,
   LocateOff,
+  DoorOpen,
 } from "lucide-react";
-import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
+import { visibleCitations, visibleCountObjects, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
 import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
 import { liveActivity } from "../lib/activity";
@@ -72,6 +73,8 @@ export function PlanCanvas2D({
     [drawing.document_id, drawing.page],
   );
   const citations = result ? visibleCitations(result, drawing) : [];
+  const countObjects = result ? visibleCountObjects(result, drawing) : [];
+  const [showCandidates, setShowCandidates] = useState(true);
   const activity = liveActivity(liveRun, drawing.source);
   useEffect(() => {
     if ((!focusRegion && selectedIndex === null) || !viewport.current) return;
@@ -220,7 +223,7 @@ export function PlanCanvas2D({
               const [x0, y0, x1, y1] = c.canonical_bbox,
                 selected = selectedIndex === index;
               const detail = result?.answer?.citation_details?.find(d => d.citation === c.source_index);
-              if (focusRegion || (!selected && detail?.kind !== "detection")) return null;
+              if (focusRegion || (!selected && (countObjects.length > 0 || detail?.kind !== "detection"))) return null;
               return (
                 <g key={index}>
                   <rect
@@ -249,6 +252,19 @@ export function PlanCanvas2D({
                 </g>
               );
             })}
+            {showCandidates && countObjects.map(o => {
+              const [x0, y0, x1, y1] = o.canonical_bbox;
+              const uncertain = o.status === "uncertain";
+              return <rect key={o.id} data-testid="count-candidate" data-status={o.status}
+                x={x0} y={y0} width={x1 - x0} height={y1 - y0}
+                fill={uncertain ? "#b7791014" : "#42634a0c"}
+                stroke={uncertain ? "#a66a00" : "#42634a"}
+                strokeWidth={2} strokeDasharray={uncertain ? "5 3" : undefined}
+                vectorEffect="non-scaling-stroke" role="img" pointerEvents="all" tabIndex={0}
+                aria-label={`${o.id}: ${o.status}. ${o.reason}`}>
+                <title>{o.id}: {o.status} — {o.reason}</title>
+              </rect>;
+            })}
           </svg>
           {activity?.views.map(({region, label, active}, i) => <span key={`${activity.sequence}-label-${i}`} className="live-region-label" data-active={active}
             style={{left: `${region.canonical_bbox[0] / drawing.width * 100}%`, top: `${region.canonical_bbox[1] / drawing.height * 100}%`}}>{label}</span>)}
@@ -261,6 +277,11 @@ export function PlanCanvas2D({
         </div>
       )}
       <div className="viewer-toolbar" aria-label="Drawing controls">
+        {countObjects.length > 0 && <button className="icon-button" aria-pressed={showCandidates}
+          aria-label="Show door candidates" onClick={() => setShowCandidates(v => !v)}
+          title={`${countObjects.length} door candidates. Green: supported; dashed amber: uncertain. Not human-verified.`}>
+          <DoorOpen size={16} />
+        </button>}
         <div className="page-flipper" aria-label="Page navigation">
           <button
             className="icon-button"

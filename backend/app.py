@@ -310,6 +310,9 @@ def question_agent_status():
 
 def set_answer_page(result, page_index):
     groups = [result.get("canonical_citations", [])]
+    count_evidence = result.get("count_evidence")
+    if isinstance(count_evidence, dict):
+        groups.append(count_evidence.get("objects", []))
     measurement = result.get("measurement")
     if isinstance(measurement, dict):
         measurement["page_index"] = page_index
