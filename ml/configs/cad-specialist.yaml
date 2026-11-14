@@ -1,0 +1,25 @@
+name: supervised-cad-object-specialist
+seed: 42
+target_transform_revision: 2
+image_size: 1024
+effective_batch: 4
+micro_batch: 2
+data_workers: 4
+encoder_weights: null
+encoder_lr: 0.00002
+head_lr: 0.0002
+weight_decay: 0.01
+box_loss: giou
+box_loss_weight: 0.5
+box_size_loss_weight: 0.25
+class_balanced_heads: true
+# CAD stairs can occupy most of a crop; keep complete global objects visible.
+crop_probability: 0.0
+validation_every: 500
+validation_limit_per_source: 64
+checkpoint_every: 100
+phases:
+  - name: cad-only-object-adaptation
+    steps: 3000
+    lr_scale: 1.0
+    sources: {floorplancad: 1.0}
