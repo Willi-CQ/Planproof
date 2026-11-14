@@ -1,0 +1,41 @@
+{
+  "input_report_sha256": "7935113f9ef8e24807d79b2c58b8d3520e1b56a269fb6904ff1334ff42adccb2",
+  "findings": [
+    {
+      "title": "1. Wall interpretation breaks on outlines and scans",
+      "observed": "Deterministic wall IoU: 22.7% on four CubiCasa plans versus 84.0% on four ResPlan renders. P01 recovers no rooms and all 41 window proposals are false positives; annotation strokes and wall outlines confuse the rules.",
+      "next": "Improve wall-band construction and exclusion of annotation strokes; check both drawing styles for regressions.",
+      "case_id": "P01-cubicasa5k",
+      "classes": ["wall", "window"]
+    },
+    {
+      "title": "2. Openings need rules for different drawing conventions",
+      "observed": "Deterministic doors: 2 matched, 49 extra, 106 missed. Windows: 12 matched, 171 extra, 98 missed. P05 has good walls but misses all 10 doors; swing-only recognition is a poor fit for these rendered symbols.",
+      "next": "Separate gap, leaf/swing and glazing evidence. Require wall attachment and local continuity before calling parallel lines a window.",
+      "case_id": "P05-resplan",
+      "classes": ["door", "window"]
+    },
+    {
+      "title": "3. Zero stair proposals means zero recall here",
+      "observed": "Deterministic stairs: 0 matched, 0 extra, 8 missed. P09 contains a visible flight but no accepted stair group. Some earlier grouping rejection gates are not logged, so the exact cause is not proven.",
+      "next": "Instrument each rejection gate and inspect fragmented tread/rail grouping before relaxing thresholds. Review whether labeled stairs are visible in the ResPlan renders.",
+      "case_id": "P09-floorplancad",
+      "classes": ["stairs"]
+    },
+    {
+      "title": "4. Two methods can agree on a shared mistake",
+      "observed": "This P05 room pair overlaps at 77.4% IoU, but both candidates are false positives against the supplied room labels. The labels have not been newly manually verified. Agreement is not correctness.",
+      "next": "Use agreement to focus inspection; keep the clean crop and evaluator results visible. Neither source should automatically veto the other.",
+      "case_id": "P05-resplan",
+      "classes": ["room"],
+      "source_ids": ["p0:classical:5c10a40d668a899f", "p0:ml-main:df7627a5458eb8f4"]
+    },
+    {
+      "title": "5. ML also over-detects; specialist success is uneven",
+      "observed": "Main-model window recall is 87.3%, but precision is 44.4%. CAD gets all four P09 doors and its stair, yet on P10 doors it has 3 matches, 16 extras and 10 misses. CAD has no wall/room output.",
+      "next": "Keep precision and recall visible, evaluate duplicate/fragmented proposals separately, and compare the specialist on the same two plans rather than mixing it into main-model totals.",
+      "case_id": "P10-floorplancad",
+      "classes": ["door", "window", "stairs"]
+    }
+  ]
+}

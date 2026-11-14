@@ -62,10 +62,26 @@ The builder verifies drawing and input artifact hashes. The page is offline and
 uses local source images; no dataset is included in the tracked template.
 
 - Pipeline stages show source, extracted ink, wall vectors, ML comparison and
-  localized agent evidence. Blue is ML; amber geometry; green spatial/class
-  agreement; red conflict; purple explicitly ML-assisted checks.
-- Switch among ten cases, main/CAD models, classes and independent layers.
-  Raw cues and evaluation labels are separate optional layers.
+  localized agent evidence. Class colors are the default: brown walls, blue
+  rooms, orange doors, teal windows and purple stairs. Solid outlines are
+  deterministic, dashed outlines ML. Method colors remain selectable.
+- Toggle each of five classes separately for ML and deterministic evidence.
+  Presets isolate either method, both, agreements or differences. Raw cues,
+  ML-dependent checks and evaluator labels remain separate optional layers.
+- Scores compare each method against supplied labels, either per drawing or on
+  exactly the same annotated cases for the selected model. Walls use mean mask
+  IoU; rooms/objects use pooled F1 at IoU0.5, with precision, recall and TP/FP/FN.
+  Room evaluation uses masks; openings/stairs use boxes. Overlay filters never
+  change scores. CAD comparison uses its two supported plans; unsupported or
+  unannotated classes remain N/A. Empty-empty classes do not get invented100% F1.
+- The agreement table reports class-specific pairs, mean polygon IoU and each
+  method's matched raw observations. Clicking a class opens its paired outlines.
+  Agreement is not accuracy; conflicts and unmatched records can overlap.
+- Two agent reviews supply a concise in-app issue list with source-case buttons,
+  including a real P05 room agreement where both sources are evaluator false
+  positives. Findings are bound to the failure-report SHA, so another report
+  cannot silently inherit them. Detailed observations and next experiments:
+  [RESULTS_REVIEW.md](RESULTS_REVIEW.md).
 - Select an object/comparison to highlight both sources and inspect a clean
   crop, method, named score, warnings, quantities and dependencies.
 - Zoom, pan and fit. Counts stay separate by source. Provenance exposes the
@@ -108,11 +124,12 @@ reliable standalone object recognition or better combined answers. Agreement
 guides visual verification; disagreement does not establish which source is
 correct. Exact physical counts and metric scale remain unresolved.
 
-**43CPU tests pass**, including source adapter, OpenCV fallback shape,
-unavailable OCR and unsupported model-class regressions. **Six browser checks
-pass** across all ten cases, agreement crops, toggles, stage navigation, CAD N/A
-and narrow-screen layout, with no JavaScript runtime errors. Screenshots are
-saved beside the dashboard.
+**48CPU tests pass**, including source adapter, OpenCV fallback shape,
+unavailable OCR, unsupported model classes, matched score cohorts, pooled F1 and
+undefined metrics. **Eleven browser checks pass** across all ten cases, class
+toggles/colors and presets, scores checked against the report, agreement crops,
+the shared-error review example, CAD N/A and narrow-screen layout, with no
+JavaScript runtime errors. Screenshots are saved beside the dashboard.
 
 All160frozen input payloads and124engine artifact hashes pass;64ML observations
 retain explicit source ring normalization. Frozen ML scores are unchanged. A
