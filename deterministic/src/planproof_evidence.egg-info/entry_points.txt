@@ -1,0 +1,2 @@
+[console_scripts]
+planproof-evidence = planproof_evidence.cli:main

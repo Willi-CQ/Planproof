@@ -1,0 +1,2 @@
+[console_scripts]
+planproof-cad = planproof_cad.cli:main
