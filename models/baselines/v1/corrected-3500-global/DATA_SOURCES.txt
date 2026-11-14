@@ -1,0 +1,19 @@
+Training source attribution and provenance
+
+CubiCasa5K: https://github.com/CubiCasa/CubiCasa5k
+Original archive: https://zenodo.org/records/2613548/files/cubicasa5k.zip
+5469495706 bytes, publisher MD5 0ce0b203d1e3c125b51087b219bd23b9.
+5000 originals; clean project split 4193 train / 404 validation / 403 test.
+See publisher repository for dataset terms and attribution. No source images are redistributed here.
+
+ResPlan authors: https://github.com/m-agour/ResPlan
+Original archive SHA256 f718de8865e51bbe93b49b584798e3c536ed6b4b8a5d32f01b56812f389aeb46.
+16317 non-augmented originals; clean project split 13014 / 1655 / 1648.
+Publisher LICENSE is retained as ResPlan-LICENSE.txt.
+
+The selected weights used CubiCasa baseline, ResPlan transfer and CubiCasa/ResPlan replay refinement.
+FloorPlanCAD trained separate experiments, not this selected lineage. HouseExpo was inspected, not trained.
+ImageNet ResNet-34 encoder initialization through segmentation_models_pytorch.
+Dependency versions are pinned in the Planproof ML source handoff.
+No Stoa challenge package or question set was used for training, threshold tuning, or model selection.
+Original upstream datasets may share drawings with the Stoa application corpus; source separation does not prove unseen final QA.

@@ -1,0 +1,63 @@
+{
+  "release": "cad-objects-3000-global",
+  "intended_classes": [
+    "door",
+    "window",
+    "stairs"
+  ],
+  "training_step": 3000,
+  "inference_checkpoint_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+  "cad_validation": {
+    "samples": 128,
+    "wall_iou": null,
+    "wall_boundary_f1_tolerance_0002": null,
+    "raw_wall_iou": null,
+    "raw_room_iou": null,
+    "room_instance_f1_iou50": null,
+    "room_tp_fp_fn": [
+      0,
+      0,
+      0
+    ],
+    "objects": {
+      "door": {
+        "ap50": 0.7108079609321074,
+        "ap50_95": 0.42697152199419525,
+        "ground_truth_instances": 285,
+        "annotated_pages": 128
+      },
+      "window": {
+        "ap50": 0.4479211118405231,
+        "ap50_95": 0.2999253470983362,
+        "ground_truth_instances": 85,
+        "annotated_pages": 128
+      },
+      "stairs": {
+        "ap50": 0.24362436243624358,
+        "ap50_95": 0.04567056705670566,
+        "ground_truth_instances": 22,
+        "annotated_pages": 128
+      }
+    },
+    "object_map50": 0.46745114506962465,
+    "object_map50_95": 0.2575224787164124,
+    "room_type_macro_f1_matched": null,
+    "room_type_matched_count": 0,
+    "room_type_unknown_count": 0
+  },
+  "selection": {
+    "policy_defined_before_candidate_results": true,
+    "rule": "Object mAP50 improvement >.005, no door/window/stairs AP50 regression >.02; identical CAD validation cohort/protocol and fixed thresholds",
+    "baseline_step": 1500,
+    "candidate_step": 3000,
+    "selected_step": 3000,
+    "baseline_map50": 0.4032403319785263,
+    "candidate_map50": 0.46745114506962465,
+    "per_class_delta": {
+      "door": 0.07153412949326454,
+      "window": 0.04707107947079264,
+      "stairs": 0.07402723030923777
+    },
+    "select_candidate": true
+  }
+}

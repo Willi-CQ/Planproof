@@ -1,0 +1,111 @@
+{
+  "architecture": "unet-resnet34-multihead",
+  "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+  "outputs": [
+    "centers",
+    "boxes"
+  ],
+  "mask_classes": [
+    "wall",
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "instance_classes": [
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "room_types": [
+    "kitchen",
+    "living",
+    "dining",
+    "bedroom",
+    "bathroom",
+    "hallway",
+    "storage",
+    "garage",
+    "balcony",
+    "other"
+  ],
+  "image_normalization": "imagenet_rgb",
+  "box_encoding": "per-class normalized width,height + tanh half-pixel offsets",
+  "intended_classes": [
+    "door",
+    "window",
+    "stairs"
+  ],
+  "checkpoint_sha256": "c6ff3578ee671d54a3c6966fc4864dfb6a4f89d2ecc190989de84f8d29e5d48c",
+  "inference_checkpoint": "detector.pt",
+  "inference_checkpoint_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+  "training_source_commit": "6202491",
+  "inference_tiled": false,
+  "calibration_file": "calibration.json",
+  "calibration_sha256": "5efe2184e02bc72e8437115d6313e117339a06a136530fa42d842593ceebf16e",
+  "model_sha256": "8f616db81405474f04baf55e14831a67fdcd27c449d61eaa5809f493787f845d",
+  "wall_sha256": null,
+  "manifest_fingerprint": "1ab14693cfed8e273e461496b9dc57d04dd7d78cd9539656375c8dc6ddec5f20",
+  "training_step": 3000,
+  "canvas_size": 1024,
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "onnx_parity_max_abs_error": {
+    "centers": 2.9087066650390625e-05,
+    "boxes": 1.609325408935547e-05
+  },
+  "input": {
+    "name": "image",
+    "dtype": "float32",
+    "spatial_multiple": 32,
+    "recommended_size": [
+      1024,
+      1024
+    ],
+    "resize": "aspect-preserving letterbox; retain the Frame transform",
+    "channels": "RGB",
+    "range_before_normalization": [
+      0,
+      1
+    ],
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "output_geometry": "ONNX tensors use input-canvas coordinates; the postprocessor restores original pixel edges",
+  "output_activations": {
+    "centers": "sigmoid",
+    "boxes": "sigmoid width/height; tanh offsets times 0.5"
+  },
+  "object_center_channels": "channel0 reserved for room center; use channels1-3 for door/window/stairs",
+  "wall_output": null,
+  "release_role": "Optional CAD object specialist",
+  "unsupported_outputs": [
+    "wall",
+    "room",
+    "room_type"
+  ],
+  "validation_confirmation_file": "validation.json",
+  "calibration_method": "Fixed threshold profile validated on the matching full mixed-source manifest; no parameter search"
+}

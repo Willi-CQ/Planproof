@@ -48,3 +48,7 @@ __pycache__/
 *.ckpt
 *.safetensors
 *.bin
+
+# Explicitly approved trained baseline only. Raw datasets remain ignored.
+!/models/baselines/v1/**/*.pt
+!/models/baselines/v1/**/*.onnx

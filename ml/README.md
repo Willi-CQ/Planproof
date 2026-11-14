@@ -5,6 +5,11 @@ For measured overnight results and the integration command, start with
 **1024-pixel global view**; pass `--global-view` with its calibration file. The
 long curriculum below remains an experiment design, not a record of completed runs.
 
+The approved frozen weights, original training checkpoints and restore verifier
+are versioned through Git LFS on this baseline branch. Start with
+[models/baselines/v1](../models/baselines/v1/README.md) for product inference or
+future training. Training datasets and private notes remain excluded.
+
 For the current deadline, use [HACKATHON.md](HACKATHON.md): short first runs,
 automatic session time caps, live status checks and a reserved retry window.
 
@@ -132,7 +137,8 @@ Preparation stores paired PNG/NPZ samples and a JSONL manifest under the private
 data root. Targets include masks, per-instance ids, coverage masks, room types,
 object boxes, weak category boxes and explicitly ignored pixels. The manifest
 records source/family/original group, publisher/project split, input/target hashes,
-annotation provenance and geometry fingerprints. No training artifact belongs in Git.
+annotation provenance and geometry fingerprints. Generated data stays outside Git;
+only the explicitly approved frozen model baseline is versioned through Git LFS.
 
 Run all source preparations before training; imports update the combined manifest.
 Exact decoded-image and normalized-geometry duplicates are grouped across sources.
@@ -239,4 +245,5 @@ and makes no real-data accuracy claim. Supply an ignored --out directory to reta
 
 Export includes the full detector, wall-only logits and metadata with schema,
 normalization, thresholds, hashes, training step and dataset fingerprint.
-Keep weights and exports in the private artifact store, not GitHub.
+Keep generated weights/exports in the ignored artifact store. Publish only an
+explicitly approved, verified baseline under `models/baselines/` using Git LFS.

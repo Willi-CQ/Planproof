@@ -99,6 +99,8 @@ the same tolerance. An earlier full-head CAD export failed in unsupported
 segmentation outputs and was rejected. Its published output contract is now
 limited to door/window/stairs; actual CLI checks confirm that scope.
 
-Root README remains empty. No dataset, weight, credential, private brain or
-instruction file is tracked. Source commits are local; no GitHub push occurred.
+Root README remains empty. Datasets, credentials, private brain and instructions
+remain excluded. This publication branch versions the explicitly approved model
+baseline through Git LFS under `models/baselines/v1/`. The original overnight
+training commits were local; publication is the subsequent baseline snapshot.
 Real multi-GPU DDP and end-to-end Stoa/Gemini question answering remain unverified.

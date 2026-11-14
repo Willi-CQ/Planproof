@@ -1,0 +1,39 @@
+{
+  "split": "val",
+  "common_sources": [
+    "cubicasa5k",
+    "resplan"
+  ],
+  "baseline_score": 0.6832800947101867,
+  "candidate_score": 0.6995762701945031,
+  "improvement": 0.01629617548431639,
+  "components": {
+    "wall_iou": {
+      "sources": [
+        "cubicasa5k",
+        "resplan"
+      ],
+      "baseline": 0.7127761931989971,
+      "candidate": 0.7152432946323111
+    },
+    "object_map50": {
+      "sources": [
+        "cubicasa5k",
+        "resplan"
+      ],
+      "baseline": 0.5971043802503364,
+      "candidate": 0.6293179540233187
+    },
+    "room_instance_f1_iou50": {
+      "sources": [
+        "cubicasa5k",
+        "resplan"
+      ],
+      "baseline": 0.730127677851623,
+      "candidate": 0.7489452204486102
+    }
+  },
+  "regressions_over_002": [],
+  "select_candidate": true,
+  "rule": "Improvement >0.005; no common-source component drops by >0.02. Test remains held out."
+}

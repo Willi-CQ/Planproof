@@ -8,7 +8,9 @@ baseline commands below are preparation examples, not the completed run history.
 
 The training implementation is prepared on branch **ml-training-preparation**.
 The deterministic code remains on its separate branch. The root README stays empty.
-No training archives, annotations, model files or private brain notes belong in GitHub.
+Training archives, annotations and private brain notes stay off GitHub. This
+baseline branch explicitly versions approved frozen model files through Git LFS
+under `models/baselines/v1/`; other generated artifacts remain ignored.
 
 ## Readiness boundary
 

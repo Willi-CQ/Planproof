@@ -1,0 +1,19 @@
+{
+  "document_id": "floorplancad:0068597b1455773970671fe8",
+  "image_sha256": "a12183b89b0983c6590484a63b08f168a124a15029e0ff2fe00f13506600db4f",
+  "original_size": [
+    1000,
+    1000
+  ],
+  "canvas_size": 1024,
+  "max_absolute_error": {
+    "centers": 9.870529174804688e-05,
+    "boxes": 0.0001361370086669922
+  },
+  "all_outputs_match": true,
+  "rtol": 0.001,
+  "atol": 0.0001,
+  "torch_forward_seconds": 2.5212130559993966,
+  "onnx_forward_seconds": 1.4802999259991338,
+  "timing_context": "GPU-host CPU, two threads; one forward; excludes preprocessing/postprocessing/I/O"
+}
