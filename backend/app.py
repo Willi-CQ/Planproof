@@ -308,13 +308,23 @@ def question_agent_status():
         return {"configured": False, "model": None, "connection_verified": False}
 
 
+def set_answer_page(result, page_index):
+    groups = [result.get("canonical_citations", [])]
+    measurement = result.get("measurement")
+    if isinstance(measurement, dict):
+        measurement["page_index"] = page_index
+        groups.append(measurement.get("canonical_citations", []))
+    for citations in groups:
+        for citation in citations:
+            citation["page_index"] = page_index
+
+
 @app.post("/api/v1/documents/{document_id}/ask")
 def ask_drawing(document_id: str, request: AgentRequest):
     """Gemini chooses direct vision, localized specialist review, or algorithms."""
     number, page = get_page(document_id)
     result = ask(document_id, page, request)
-    for citation in result.get("canonical_citations", []):
-        citation["page_index"] = number - 1
+    set_answer_page(result, number - 1)
     return {**result, "source": frame_for(document_id, number, page),
             "image_url": f"/api/documents/{document_id}/image"}
 
@@ -464,8 +474,7 @@ def start_run(document_id: str, body: RunRequest):
 
     def execute(observer):
         result = ask(document_id, page, body.request, observer=observer)
-        for citation in result.get("canonical_citations", []):
-            citation["page_index"] = number - 1
+        set_answer_page(result, number - 1)
         return {**result, "source": source, "image_url": f"/api/documents/{document_id}/image"}
 
     try:

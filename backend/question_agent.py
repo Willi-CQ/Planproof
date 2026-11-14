@@ -460,6 +460,12 @@ class DrawingAgent:
                 )
                 if k in result
             }
+            if name in ("calculate_area", "measure_polygon"):
+                details["summary"] = (
+                    f"{'Approximate' if result['approximate'] else 'Calculated'} area: "
+                    f"{result['value']:g} {result['unit']}. {result['boundary_basis']}. "
+                    f"Calculation: {result['formula']}. Source readings and boundary remain model-proposed."
+                )
             self.observe(
                 name,
                 "unavailable" if result.get("status") == "unavailable" else "completed",

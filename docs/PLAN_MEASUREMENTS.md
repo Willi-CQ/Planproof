@@ -56,6 +56,13 @@ continue to render the numeric answer, explanation, uncertainties and source
 boxes. The host enforces an approximation warning for raster measurements even
 if the model omits it. Calculations survive the compact token-recovery path.
 
+With the observation-enabled backend, both the legacy `/ask` endpoint and the
+resumable `/runs` endpoint return measurements. Completed measurement events
+include the result, calculation and cited source locations in their summary.
+Selected PDF page numbers are propagated to measurement citations as well as
+the final answer. Polling/replaying a completed run performs no new calculation
+or provider call.
+
 Raster estimates are reported in whole requested area units; dimension/printed
 calculations retain up to two decimals. Precision is not a correctness guarantee.
 Conceptual/approximate source dimensions must also be reported as approximate.
