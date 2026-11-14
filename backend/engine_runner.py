@@ -12,6 +12,7 @@ from threading import Lock
 
 from ml_adapter import adapt_ml
 from verification import AnalyzerResult, PageFrame, validate_source
+from planproof_feedback.pipeline import worker_env
 
 
 logger = logging.getLogger(__name__)
@@ -55,11 +56,7 @@ def run_engine(name: str, image: Path, frame: PageFrame, work: Path) -> Analyzer
                 str(Path(__file__).with_name("deterministic_worker.py").resolve()),
                 str(image), str(result_path),
             ]
-        env = os.environ.copy()
-        for secret in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
-            env.pop(secret, None)
-        env.pop("PYTHONPATH", None)
-        env.pop("PYTHONHOME", None)
+        env = worker_env("ml" if name == "ml" else "deterministic")
         env.setdefault("OMP_NUM_THREADS", "4")
         env.setdefault("MKL_NUM_THREADS", "4")
         subprocess.run(command, env=env, check=True, timeout=120,

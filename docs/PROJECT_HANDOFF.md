@@ -33,12 +33,12 @@ Run each package's existing tests in its documented environment. Dependency
 versions differ between packages, so separate environments remain supported.
 `python ml/scripts/verify_baseline.py` verifies all frozen model payloads.
 
-This consolidation does not create the primary Gemini agent or attach a live
-Nemotron review loop to room selection. The feedback adapter currently consumes
-the ordinary `get_region` context schema. The newer `get_room_context` schema
-adds room boundaries and nested original evidence; its adapter and host tool
-registration are part of the next connection task. Preserve clean source crops,
-coordinate transforms, dependency IDs and explicit uncertainty in that work.
+The question-aware Gemini coordinator is now implemented in this integration
+branch. It chooses direct vision, clean crops, Nemotron inspection/review and
+optional ML/geometry tools. See [QUESTION_AGENT.md](QUESTION_AGENT.md) for the
+architecture, local launch, API, execution budgets and three-mode comparison.
+The feedback adapter also accepts the newer room-context schema. Live QA scores
+for this coordinator must be measured separately from earlier Nemotron pilots.
 
 Room rules retain imported ML geometry by default, with deterministic boundaries
 as alternatives. Door rules remain weak and must not suppress stronger ML

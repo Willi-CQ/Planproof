@@ -6,6 +6,17 @@ report_dir = "../.artifacts/nemotron/comparison"
 [routes]
 feedback = "nemotron"
 self_feedback = "nemotron"
+routing = "nemotron-routing"
+
+[providers.nemotron-routing]
+base_url = "https://containers.datacrunch.io/nemotron-3-5-super-vl-b300/v1"
+model = "nemotron-3.5-super-vl"
+api_key_env = "NVIDIA_NEMOTRON_KEY"
+timeout_seconds = 90
+retries = 1
+max_tokens = 1024
+temperature = 0.0
+enable_thinking = false
 
 [providers.nemotron]
 base_url = "https://containers.datacrunch.io/nemotron-3-5-super-vl-b300/v1"

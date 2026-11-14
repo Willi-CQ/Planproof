@@ -9,3 +9,6 @@
 .evidence-marker { position: absolute; border: 2px solid #a45424; background: #f7c48450; pointer-events: none; }
 #evidenceList { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12px; margin-top: 10px; }
 #evidenceList button[aria-pressed="true"] { font-weight: 700; color: var(--green-dark); }
+.reasoning-panel{margin:16px 0;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}.reasoning-panel h3{margin:0 0 8px}.reasoning-panel p{font-size:12px;color:var(--muted);line-height:1.5}.reasoning-panel label{display:block;margin:12px 0 5px}.reasoning-panel textarea{display:block;width:100%;resize:vertical;padding:10px;border:1px solid #ccd8cf;border-radius:7px;box-sizing:border-box}.reason-permission{font-size:12px}.reasoning-panel button{margin-top:12px}.reasoning-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:11px}.reasoning-panel details{margin-top:12px}#reasonAnswer{white-space:pre-wrap;line-height:1.6}
+.reasoning-panel select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #bbb; border-radius: 6px; background: white; }
+#reasonTrace { white-space: pre-line; font-size: 13px; line-height: 1.6; margin-top: 12px; }

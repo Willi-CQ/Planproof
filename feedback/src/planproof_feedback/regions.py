@@ -38,9 +38,38 @@ def load_region(region_file: Path, image_config: dict):
     }
     context = None
     if region.get("context_path"):
-        raw = json.loads(
-            safe_path(region_file.parent, region["context_path"]).read_text(encoding="utf-8")
-        )
+        context_path = safe_path(region_file.parent, region["context_path"])
+        if region.get("context_sha256") and sha256(context_path) != region["context_sha256"]:
+            raise ValueError("Region context hash mismatch")
+        raw = json.loads(context_path.read_text(encoding="utf-8"))
+        if raw.get("schema_version") == "planproof-room-context-v1":
+            original = raw.get("source_evidence_context", {})
+            if original.get("schema_version") != "planproof-agent-context-v1":
+                raise ValueError("Room context requires original localized evidence")
+            room = raw["room"]
+            context = {
+                "schema_version": raw["schema_version"],
+                "mode": "ml_assisted",
+                "room": {
+                    k: room[k]
+                    for k in (
+                        "id",
+                        "bbox",
+                        "status",
+                        "ml_seed_ids",
+                        "boundary_support",
+                        "neighbor_ids",
+                        "primary_geometry",
+                    )
+                },
+                "openings": raw["openings"],
+                "separators": raw["separators"],
+                "policy": raw["policy"],
+                "observations": original.get("observations", []),
+                "unresolved_boundary_count": len(room["unresolved_sections"]),
+            }
+            metadata["room_id"] = raw["room_id"]
+            return [replace(image, metadata=metadata)], context
         if raw.get("schema_version") != "planproof-agent-context-v1":
             raise ValueError("Unexpected region evidence context schema")
         # Only the inference contract, never arbitrary sidecar keys or evaluator labels.

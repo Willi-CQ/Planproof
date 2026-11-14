@@ -23,6 +23,8 @@ from engine_runner import enabled_engines, run_engines
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
 from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
+from agent_pipeline import PIPELINE_ERRORS, QuestionRequest, reason, ask
+from question_agent import AgentRequest, settings as question_agent_settings
 
 
 app = FastAPI(title="PlanProof MVP")
@@ -110,7 +112,9 @@ def register_page(pdf_bytes: bytes, page_number: int) -> DocumentPage:
             if document.needs_pass or not 1 <= page_number <= len(document):
                 raise HTTPException(422, "Select an existing page in an unencrypted PDF.")
             page = document[page_number - 1]
-            scale = min(3, 1600 / max(page.rect.width, page.rect.height))
+            # Keep detail for later clean crops; only model overviews are downsampled.
+            scale = min(4, 3200 / max(page.rect.width, page.rect.height),
+                        (MAX_IMAGE_PIXELS / (page.rect.width * page.rect.height)) ** .5)
             image = page.get_pixmap(matrix=pymupdf.Matrix(scale, scale), colorspace=pymupdf.csRGB, alpha=False)
             # Match whole references. FD-120 and FD-12-B do not confirm FD-12.
             labels = {
@@ -287,6 +291,40 @@ def frame_for(document_id: str, number: int, page: Page) -> PageFrame:
 def get_page_frame(document_id: str) -> PageFrame:
     number, page = get_page(document_id)
     return frame_for(document_id, number, page)
+
+
+@app.get("/api/v1/agent")
+def question_agent_status():
+    try:
+        _, model = question_agent_settings()
+        return {"configured": True, "model": model, "connection_verified": False}
+    except (ValueError, OSError):
+        return {"configured": False, "model": None, "connection_verified": False}
+
+
+@app.post("/api/v1/documents/{document_id}/ask")
+def ask_drawing(document_id: str, request: AgentRequest):
+    """Gemini chooses direct vision, localized specialist review, or algorithms."""
+    number, page = get_page(document_id)
+    result = ask(document_id, page, request)
+    for citation in result.get("canonical_citations", []):
+        citation["page_index"] = number - 1
+    return {**result, "source": frame_for(document_id, number, page),
+            "image_url": f"/api/documents/{document_id}/image"}
+
+
+@app.post("/api/v1/documents/{document_id}/reason")
+def reason_about_drawing(document_id: str, request: QuestionRequest):
+    """Run real algorithms, then Nemotron's bounded room selection and reasoning."""
+    number, page = get_page(document_id)
+    try:
+        result = reason(document_id, page, request)
+    except PIPELINE_ERRORS as exc:
+        raise HTTPException(503, "Algorithm pipeline unavailable; check server worker configuration.") from exc
+    for citation in result.get("canonical_citations", []):
+        citation["page_index"] = number - 1
+    return {**result, "source": frame_for(document_id, number, page),
+            "image_url": f"/api/documents/{document_id}/image"}
 
 
 def run_door_count(
