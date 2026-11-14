@@ -119,6 +119,11 @@ def parser():
     q.add_argument("--checkpoint", type=Path, required=True)
     q.add_argument("--out", type=Path, required=True)
     q.add_argument("--calibration", type=Path)
+    q.add_argument(
+        "--objects-only",
+        action="store_true",
+        help="Export centers/boxes and declare door/window/stairs-only inference",
+    )
     q = sub.add_parser("smoke", help="Train/resume/evaluate/export on generated diagnostic fixtures")
     q.add_argument(
         "--out", type=Path, help="Optional ignored artifact directory; otherwise temporary and cleaned up"
@@ -271,6 +276,9 @@ def execute(args):
             from .inference import detect, overlay
             from PIL import Image
 
+            intended = data.get("intended_classes")
+            if intended and args.save_probabilities:
+                raise ValueError("Dense probability maps are unsupported by object-only releases")
             image = load_image(args.image)
             result, maps = detect(
                 model,
@@ -284,6 +292,9 @@ def execute(args):
                 model_version=f"step-{data['step']}-{checkpoint_hash[:12]}",
                 return_maps=True,
             )
+            if intended:
+                result["instances"] = [item for item in result["instances"] if item["class"] in intended]
+                result["intended_classes"] = intended
             args.out.mkdir(parents=True, exist_ok=True)
             write_json(args.out / "detections.json", result)
             Image.fromarray(overlay(image, result)).save(args.out / "overlay.png")
@@ -294,7 +305,14 @@ def execute(args):
             return {"detections": str(args.out / "detections.json"), "instances": len(result["instances"])}
         from .export import export
 
-        return export(args.checkpoint, args.out, size, thresholds, calibration)
+        return export(
+            args.checkpoint,
+            args.out,
+            size,
+            thresholds,
+            calibration,
+            objects_only=getattr(args, "objects_only", False),
+        )
     raise ValueError("Unknown command")
 
 
