@@ -186,7 +186,8 @@ test("inspector links replay, layers, comparisons and Follow without extra submi
   await page.getByLabel("Follow live regions").check();
   await page.getByTestId("plan-viewport").dispatchEvent("wheel");
   await expect(page.getByLabel("Follow live regions")).not.toBeChecked();
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await page.getByRole("button", { name: "Show raw algorithm output", exact: true }).click();
   await page.getByLabel("ML detections", { exact: true }).check();
   await page.getByLabel("Deterministic evidence", { exact: true }).check();
   await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute(
@@ -244,7 +245,8 @@ test("inspector links replay, layers, comparisons and Follow without extra submi
     .getByRole("button", { name: "How this answer was found", exact: true })
     .click();
   await page.route("**/api/v1/runs/*/evidence", (r) => r.abort());
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await page.getByRole("button", { name: "Show raw algorithm output", exact: true }).click();
   await expect(page.getByLabel("ML detections", { exact: true })).toBeVisible();
   expect(submissions).toBe(1);
 });
@@ -293,7 +295,8 @@ test("live polling reconnects after refresh to the same run and keeps sequence u
   await page.route("**/api/v1/runs/*/evidence", (r) =>
     r.fulfill({ json: bundle }),
   );
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await page.getByRole("button", { name: "Show raw algorithm output", exact: true }).click();
   await page.getByLabel("ML detections", { exact: true }).check();
   const previousPolls = polls;
   await expect.poll(() => polls).toBeGreaterThan(previousPolls);
@@ -303,7 +306,7 @@ test("live polling reconnects after refresh to the same run and keeps sequence u
   await page.getByRole("button", { name: "Steps", exact: true }).click();
   disconnected = true;
   await expect(
-    page.getByText("Reconnecting to activity", { exact: true }),
+    page.getByLabel("Evidence inspector").getByText("Reconnecting to activity", { exact: true }),
   ).toBeVisible({ timeout: 6000 });
   disconnected = false;
   await page.reload();
@@ -346,7 +349,8 @@ test("direct answer and wrong-source evidence never pretend algorithms ran", asy
   await page
     .getByRole("button", { name: "How this answer was found", exact: true })
     .click();
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await page.getByRole("button", { name: "Show raw algorithm output", exact: true }).click();
   await expect(
     page.getByText("Algorithms not used for this answer."),
   ).toBeVisible();
@@ -405,4 +409,76 @@ test("mobile inspector navigates to crops and back with keyboard and no overflow
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+
+test("actual work and requested regions appear on the plan without opening diagnostics", async ({page}) => {
+  await setup(page);
+  let done = false, evidenceReads = 0;
+  const activeEvents = [events[1], {...events[2], state: "running", advisory: undefined, question: "Are these symbols bathtubs or sinks?"}];
+  let id = "";
+  await page.route("**/api/v1/documents/*/runs", r => {
+    id = r.request().postDataJSON().request_id;
+    return r.fulfill({json: {request_id: id, status: "running", source, events: activeEvents, last_sequence: 3}});
+  });
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {request_id: id, status: done ? "completed" : "running", source, events: done ? events : activeEvents, last_sequence: done ? 4 : 3, result: done ? result : null}}));
+  await page.route("**/api/v1/runs/*/evidence", r => { evidenceReads++; return r.fulfill({json: bundle}); });
+  await ask(page);
+  await expect(page.getByTestId("plan-live-activity")).toContainText("Are these symbols bathtubs or sinks?");
+  await expect(page.getByTestId("live-work-log")).toContainText("Checking this detail with Nemotron");
+  await expect(page.getByTestId("live-inspection-region")).toHaveAttribute("x", "100");
+  await expect(page.getByTestId("live-inspection-region")).toHaveAttribute("width", "300");
+  await expect(page.getByLabel("Evidence inspector")).toHaveCount(0);
+  expect(evidenceReads).toBe(0);
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
+  await page.getByRole("button", {name: "Follow view", exact: true}).click();
+  await expect(page.getByRole("button", {name: "Following", exact: true})).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("plan-viewport").dispatchEvent("wheel");
+  await expect(page.getByRole("button", {name: "Follow view", exact: true})).toHaveAttribute("aria-pressed", "false");
+  done = true;
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+  await expect(page.getByTestId("plan-live-activity")).toHaveCount(0);
+  await expect(page.getByTestId("live-inspection-region")).toHaveCount(0);
+  await page.locator(".work-recap > summary").click();
+  await expect(page.locator(".work-recap")).toContainText("Remaining page unknown.");
+});
+
+test("briefing attaches citations to claims and only detection previews follow the text", async ({page}) => {
+  await setup(page);
+  const rich = {...result, answer: {...result.answer, answer: 12, unit: "m2", briefing: [
+    {section: "answer", text: "The gym is approximately 12 square metres.", citations: [1]},
+    {section: "basis", text: "The boundary follows the inside wall faces.", citations: [2]}
+  ], citation_details: [
+    {citation: 1, kind: "measurement", label: "Printed room area"},
+    {citation: 2, kind: "detection", label: "Gym boundary"}
+  ]}, measurement: {approximate: true}, canonical_citations: [region, {...region, canonical_bbox: [400, 100, 600, 300]}]};
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, status: "completed", source, events, last_sequence: 4, result: rich}}));
+  await ask(page);
+  await expect(page.getByTestId("answer-value")).toHaveText("≈ 12 m²");
+  const paragraphs = page.locator(".briefing-prose p");
+  await expect(paragraphs.nth(0).getByRole("button")).toHaveText("1");
+  await expect(paragraphs.nth(1).getByRole("button")).toHaveText("2");
+  await expect(page.locator(".detection-card")).toHaveCount(1);
+  await expect(page.locator(".detection-card")).toContainText("Gym boundary");
+  await expect(page.getByTestId("evidence-box")).toHaveCount(1);
+  await expect(page.getByTestId("evidence-box")).toHaveAttribute("x", "400");
+  await page.getByRole("button", {name: "View evidence 1, page 1", exact: true}).click();
+  await expect(page.getByTestId("evidence-box").first()).toHaveAttribute("x", "100");
+  await expect(page.locator(".briefing-limits")).toContainText("Some symbols remain ambiguous.");
+});
+
+test("raw diagnostics require explicit opt-in and never load automatically", async ({page}) => {
+  await setup(page);
+  let reads = 0;
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json:{request_id:r.request().postDataJSON().request_id,status:"completed",source,events,last_sequence:4,result}}));
+  await page.route("**/api/v1/runs/*/evidence", r => { reads++; return r.fulfill({json:bundle}); });
+  await ask(page);
+  await page.getByRole("button", {name:"How this answer was found",exact:true}).click();
+  await page.getByRole("button", {name:"Diagnostics",exact:true}).click();
+  await expect(page.getByText("Raw algorithm proposals",{exact:true})).toBeVisible();
+  await expect(page.getByLabel("ML detections",{exact:true})).toHaveCount(0);
+  expect(reads).toBe(0);
+  await page.getByRole("button", {name:"Show raw algorithm output",exact:true}).click();
+  await expect(page.getByLabel("ML detections",{exact:true})).toBeVisible();
+  expect(reads).toBe(1);
 });

@@ -18,8 +18,9 @@ prompt. The reference is an Apple-like native utility: quiet, precise, direct.
   Deep green (#001D00), observed on [Stoa](https://stoabuild.com/) on 2026-11-14,
   accents actions and evidence. Supporting sage shades are our own derived palette.
   Larger chat text and generous spacing keep the conversation easy to read.
-- Hierarchy: a single primary action per state. Tool counters, source dimensions,
-  model names and connection diagnostics are absent from the normal flow.
+- Hierarchy: the actual work log is the primary running state. Source regions and
+  concise tool actions are visible automatically, without a separate inspection click.
+  No model selector, invented progress percentage or unreported pipeline stage.
 - Behavior: drop/upload, keyboard send, native-pixel highlights, zoom and pan.
   Suggested questions only fill the composer; they never trigger a model call.
 - The assistant reaches the top desktop edge; New drawing sits in its header.
@@ -28,7 +29,7 @@ prompt. The reference is an Apple-like native utility: quiet, precise, direct.
 - Your drawings is a compact modal picker. Keep original files and the current
   page's conversation/draft in IndexedDB; restore without resubmitting questions.
   Local storage failure is visible, and users can remove saved drawings.
-- Relevant uncertainty stays under About this answer. Questions remain independent;
+- Material limitations stay in the briefing; detailed verification notes may expand. Questions remain independent;
   displayed conversation history does not change the agent's request contract.
 - Safety: no fake answers, animations implying unreported tool execution,
   invented confidence scores or altered drawing pixels.
@@ -37,12 +38,20 @@ Verify source alignment, desktop/mobile layouts, failure recovery and keyboard
 access. Honor reduced motion. Screenshots and private drawing checks stay under
 the ignored `.artifacts/` directory.
 
-## Optional evidence inspector
+## Live work, briefing and secondary diagnostics
 
-The main conversation remains minimal. View activity / How this answer was found
-opens Steps and Layers in place of the chat body. Recorded events and their crops
-link to the canonical drawing; automatic Follow starts off. Blue ML, amber
-independent evidence and purple dashed ML-assisted boundaries have text labels.
-Final citations stay green. Never imply agreement proves correctness, a crop proves
-full coverage, or a failed detector establishes zero. Live and recorded states are
-explicit; inspection and replay do not issue inference requests.
+The drawing carries a restrained live activity card and requested-region outlines.
+The conversation shows actual tool actions, focused specialist questions, source
+thumbnails and explicit self-checks as they arrive. This is an execution record,
+not private model reasoning. Follow view starts off and pauses on manual navigation.
+User scrolling is respected; a completed answer opens at the start of its briefing.
+
+Answers lead with the canonical result and readable evidence-based text. Inline
+numbered references follow each cited statement; source classification controls
+whether a compact detection preview appears below the text. Text citations are
+highlighted only when selected. Preserve approximation and material uncertainty.
+
+The full inspector remains optional. Its main tab is Steps. Diagnostics requires
+explicit opt-in before showing or loading raw ML/rule layers. Never promote raw
+candidates, agreement or rule support to verified findings or accuracy percentages.
+Replay and presentation never issue model or algorithm requests.

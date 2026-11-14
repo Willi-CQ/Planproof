@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from gemini_transport import ResilientGeminiTransport, failure_info, response_candidate
 from token_recovery import compact_observations, select_detail_images
+from answer_presentation import BriefingStatement, CitationDetail, attach_presentation
 from measurements import (
     AreaRequest,
     PolygonRequest,
@@ -97,6 +98,19 @@ Finish with submit_answer: status answered|abstain, answer numeric|string|null, 
 explanation, citations [{image_id,bbox:[x0,y0,x1,y1]}], coverage (what was inspected and missing),
 uncertainties [strings]. An answered result needs evidence citations; abstain has answer=null.
 Write the final explanation, coverage and uncertainties in English; preserve quoted source labels.
+PRESENTATION: Write a concise briefing a site engineer would want to read. Lead with the answer,
+then its evidence or calculation basis, then any material limitation. Use plain English, short
+sentences and concrete source labels. No internal tool names, repetitive hedging or inventories
+unrelated to the question. Preserve the legacy explanation as a complete 2-4 sentence summary.
+Also provide briefing: up to 8 short statements {section: answer|basis|limitation, text, citations}.
+Each statement contains one evidence-supported claim; citations are 1-based indices into YOUR
+submitted citations array, placed directly after that claim by the UI. Cite every factual answer
+or basis statement. Limitations may have no citation. Never invent a source association.
+Provide citation_details [{citation, kind: text|detection|measurement, label}]: classify printed
+labels/notes as text, visible objects/room boundaries as detection, and dimension/calculation
+inputs as measurement. Labels should describe the source concisely (e.g. Gym boundary).
+These are presentation fields, not additional verification. Do not change the answer to fit them.
+Keep this briefing short, especially during final-answer recovery.
 Do not expose internal reasoning. Give a brief evidence-based explanation. When budget runs out,
 answer only what the evidence supports or abstain. Do not claim tools you did not execute.
 """
@@ -127,6 +141,8 @@ class FinalAnswer(BaseModel):
     coverage: str = Field(min_length=1, max_length=2000)
     uncertainties: list[str] = Field(max_length=20)
     measurement_id: str | None = Field(default=None, max_length=40)
+    briefing: list[BriefingStatement] = Field(default_factory=list, max_length=8)
+    citation_details: list[CitationDetail] = Field(default_factory=list, max_length=100)
 
 
 def settings():
@@ -428,6 +444,33 @@ class DrawingAgent:
             if isinstance(args, dict)
             else {}
         )
+        # Requested crop locations can be shown before the crop is returned. This is
+        # an inspection target, never a detection or model attention map.
+        if name == "crop_region" and isinstance(args, dict):
+            box = args.get("bbox")
+            if (
+                isinstance(box, list)
+                and len(box) == 4
+                and all(
+                    isinstance(v, (int, float))
+                    and not isinstance(v, bool)
+                    and math.isfinite(v)
+                    for v in box
+                )
+                and 0 <= box[0] < box[2] <= 1000
+                and 0 <= box[1] < box[3] <= 1000
+            ):
+                selected = [
+                    {
+                        "image_id": "requested-region",
+                        "canonical_bbox": [
+                            box[0] * self.page.width / 1000,
+                            box[1] * self.page.height / 1000,
+                            box[2] * self.page.width / 1000,
+                            box[3] * self.page.height / 1000,
+                        ],
+                    }
+                ]
         self.observe(name, "running", images=selected, **safe_args)
         start = time.monotonic()
         try:
@@ -701,7 +744,14 @@ class DrawingAgent:
         }, []
 
     def finish(self, result):
-        result = FinalAnswer.model_validate(result).model_dump()
+        raw_presentation = {
+            key: result.get(key) for key in ("briefing", "citation_details")
+        }
+        # Optional prose formatting must not turn a valid answer into a failed run.
+        result = FinalAnswer.model_validate(
+            {**result, "briefing": [], "citation_details": []}
+        ).model_dump()
+        original_citations = list(result["citations"])
         measurement_id = result.get("measurement_id")
         if result["status"] == "answered":
             is_area = normalize_unit(result["unit"] or "") in {
@@ -749,7 +799,7 @@ class DrawingAgent:
         elif measurement_id:
             raise ValueError("Abstention must not assert a measurement")
         validate_output(result, "answer", list(self.images.values()))
-        return result
+        return attach_presentation(result, original_citations, raw_presentation)
 
     def checkpoint(self):
         attempts = getattr(self.transport, "events", [])

@@ -3,20 +3,14 @@ import {
   ArrowUp,
   Plus,
   ArrowUpRight,
-  ChevronDown,
   RotateCcw,
   CornerDownLeft,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
-import {
-  isAnswered,
-  resultText,
-  visibleCitations,
-  type AgentResult,
-  type Drawing,
-} from "../lib/api";
-
-import type { AgentRun } from "../lib/runs";
+import type { AgentResult, Drawing } from "../lib/api";
+import type { AgentRun, Region } from "../lib/runs";
+import { RunActivity } from "./RunActivity";
+import { AnswerBriefing } from "./AnswerBriefing";
 export interface Message {
   run?: AgentRun;
   id: string;
@@ -29,6 +23,7 @@ interface Props {
   onDraftChange: (draft: string) => void;
   onNewDrawing: () => void;
   onInspect: (messageId: string) => void;
+  onFocusWork: (messageId: string, region: Region) => void;
   connection?: string;
   messages: Message[];
   drawing: Drawing;
@@ -39,80 +34,12 @@ interface Props {
   selectedEvidence: { message: string; index: number } | null;
   onHighlight: (message: string, index: number) => void;
 }
-function Answer({
-  result,
-  drawing,
-  messageId,
-  selectedEvidence,
-  onHighlight,
-}: { result: AgentResult; drawing: Drawing; messageId: string } & Pick<
-  Props,
-  "selectedEvidence" | "onHighlight"
->) {
-  const citations = visibleCitations(result, drawing);
-  const resolved = isAnswered(result);
-  const hasNotes = !!(
-    result.answer?.coverage || result.answer?.uncertainties?.length
-  );
-  return (
-    <div
-      className={`answer ${resolved ? "" : "answer-unresolved"}`}
-      data-testid="agent-answer"
-    >
-      <p className="answer-value" data-testid="answer-value">
-        {resultText(result)}
-      </p>
-      {result.answer?.explanation && (
-        <p className="answer-explanation">{result.answer.explanation}</p>
-      )}
-      {citations.length > 0 && (
-        <div className="citations">
-          {citations.map((c, i) => (
-            <button
-              key={i}
-              className="citation"
-              aria-label={`View evidence ${i + 1}, page ${c.page_index + 1}`}
-              onClick={() => onHighlight(messageId, i)}
-              aria-pressed={
-                selectedEvidence?.message === messageId &&
-                selectedEvidence.index === i
-              }
-            >
-              <span className="citation-number">{i + 1}</span>View on drawing
-              <ArrowUpRight size={13} />
-            </button>
-          ))}
-        </div>
-      )}
-      {hasNotes && (
-        <details className="answer-notes">
-          <summary>
-            About this answer
-            <ChevronDown size={13} />
-          </summary>
-          <p>{result.answer?.coverage}</p>
-          <ul>
-            {result.answer?.uncertainties?.map((u, i) => (
-              <li key={i}>{u}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-      {!resolved && (
-        <p className="answer-help">
-          {result.reliability?.retry_after_seconds
-            ? `Please wait ${result.reliability.retry_after_seconds} seconds before trying again.`
-            : "Try a more specific question, or send it again."}
-        </p>
-      )}
-    </div>
-  );
-}
 export function PlanChatbotPanel({
   draft,
   onDraftChange: setDraft,
   onNewDrawing,
   onInspect,
+  onFocusWork,
   connection,
   messages,
   drawing,
@@ -125,9 +52,22 @@ export function PlanChatbotPanel({
 }: Props) {
   const scroll = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const followWork = useRef(true);
+  const lastMessage = useRef<string | null>(null);
+  const lastAnswer = useRef<string | null>(null);
   useEffect(() => {
-    scroll.current?.scrollTo({
-      top: scroll.current.scrollHeight,
+    const pane = scroll.current;
+    if (!pane) return;
+    const latest = [...messages].reverse().find(m => m.role === "assistant");
+    const newMessage = latest?.id !== lastMessage.current;
+    const completed = latest?.result && latest.id !== lastAnswer.current;
+    lastMessage.current = latest?.id || null;
+    if (!latest) lastAnswer.current = null;
+    const article = completed ? pane.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(latest.id)}"]`) : null;
+    if (completed) lastAnswer.current = latest.id;
+    if (!completed && !newMessage && (!busy || !followWork.current)) return;
+    pane.scrollTo({
+      top: article ? pane.scrollTop + article.getBoundingClientRect().top - pane.getBoundingClientRect().top - 16 : pane.scrollHeight,
       behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "instant"
         : "smooth",
@@ -183,6 +123,10 @@ export function PlanChatbotPanel({
       </header>
       <div
         ref={scroll}
+        onScroll={() => {
+          const pane = scroll.current!;
+          followWork.current = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 80;
+        }}
         className="conversation"
         aria-live="polite"
         data-testid="plan-chat-messages"
@@ -217,6 +161,7 @@ export function PlanChatbotPanel({
         {messages.map((message) => (
           <article
             key={message.id}
+            data-message-id={message.id}
             className={`message message-${message.role}`}
           >
             {message.role === "user" ? (
@@ -228,7 +173,7 @@ export function PlanChatbotPanel({
                   <span>Planproof</span>
                 </div>
                 {message.result && (
-                  <Answer
+                  <AnswerBriefing
                     result={message.result}
                     drawing={drawing}
                     messageId={message.id}
@@ -236,6 +181,8 @@ export function PlanChatbotPanel({
                     onHighlight={onHighlight}
                   />
                 )}
+                {message.run && <RunActivity run={message.run} drawing={drawing} connection={connection}
+                  onFocus={(region) => onFocusWork(message.id, region)} />}
                 {(message.result || message.run) && (
                   <button
                     className="inspect-button"
@@ -251,7 +198,7 @@ export function PlanChatbotPanel({
             )}
           </article>
         ))}
-        {busy && (
+        {busy && !messages.some(m => m.run && !m.result) && (
           <div role="status" className="thinking">
             <span className="thinking-dots">
               <i />

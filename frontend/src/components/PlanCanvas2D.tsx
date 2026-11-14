@@ -10,8 +10,15 @@ import {
 } from "lucide-react";
 import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
-import type { EvidenceShape, Region } from "../lib/runs";
+import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
+import { liveActivity } from "../lib/activity";
+import { PlanActivity } from "./RunActivity";
 interface Props {
+  liveRun?: AgentRun;
+  liveConnection?: string;
+  followLive?: boolean;
+  onFollowLive?: (value: boolean) => void;
+  onFocusLive?: (region: Region) => void;
   shapes?: EvidenceShape[];
   comparisonSplit?: number | null;
   focusRegion?: Region | null;
@@ -30,6 +37,7 @@ interface Props {
 }
 export function PlanCanvas2D({
   drawing,
+  liveRun, liveConnection, followLive = false, onFollowLive, onFocusLive,
   shapes = [],
   comparisonSplit,
   focusRegion,
@@ -60,6 +68,7 @@ export function PlanCanvas2D({
     [drawing.document_id, drawing.page],
   );
   const citations = result ? visibleCitations(result, drawing) : [];
+  const activity = liveActivity(liveRun, drawing.source);
   useEffect(() => {
     if ((!focusRegion && selectedIndex === null) || !viewport.current) return;
     const box =
@@ -178,6 +187,13 @@ export function PlanCanvas2D({
             aria-label="Source evidence locations"
             data-testid="evidence-overlay"
           >
+            {activity?.regions.slice(0, 3).map((region, i) => (
+              <rect key={`${activity.sequence}-${i}`} data-testid="live-inspection-region" className={activity.currentRegion ? "live-region current" : "live-region"}
+                x={region.canonical_bbox[0]} y={region.canonical_bbox[1]}
+                width={region.canonical_bbox[2] - region.canonical_bbox[0]}
+                height={region.canonical_bbox[3] - region.canonical_bbox[1]}
+                vectorEffect="non-scaling-stroke"><title>{activity.currentRegion ? "Requested inspection region" : "Last source region"}</title></rect>
+            ))}
             {focusRegion && (
               <rect
                 data-testid="activity-region"
@@ -199,6 +215,8 @@ export function PlanCanvas2D({
             {citations.map((c, index) => {
               const [x0, y0, x1, y1] = c.canonical_bbox,
                 selected = selectedIndex === index;
+              const detail = result?.answer?.citation_details?.find(d => d.citation === c.source_index);
+              if (focusRegion || (!selected && detail?.kind !== "detection")) return null;
               return (
                 <g key={index}>
                   <rect
@@ -230,6 +248,8 @@ export function PlanCanvas2D({
           </svg>
         </div>
       </div>
+      {liveRun && onFocusLive && onFollowLive && <PlanActivity run={liveRun} drawing={drawing} connection={liveConnection}
+        onFocus={onFocusLive} follow={followLive} onFollow={onFollowLive} />}
       {comparisonSplit !== null && comparisonSplit !== undefined && (
         <div className="comparison-legend">
           <span>ML predictions</span>
@@ -346,12 +366,12 @@ export function PlanCanvas2D({
           Opening page…
         </div>
       )}
-      {citations.length > 0 && (
+      {!activity && citations.length > 0 && (
         <div className="evidence-count">
           <span />
           {citations.length === 1
-            ? "1 source highlight"
-            : `${citations.length} source highlights`}
+            ? "1 linked source"
+            : `${citations.length} linked sources`}
         </div>
       )}
     </section>

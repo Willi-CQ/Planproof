@@ -65,6 +65,7 @@ export interface EvidenceBundle {
   scope?: string;
 }
 export interface AgentRun {
+  created?: number;
   request_id: string;
   status: "queued" | "running" | "completed" | "failed" | "interrupted";
   source: SourceFrame;
@@ -156,4 +157,6 @@ export const stageNames: Record<string, string> = {
   reflect: "Gemini · self-check",
   provider_attempt: "Connection / recovery",
   answer: "Final answer",
+  calculate_area: "Source-based area calculation",
+  measure_polygon: "Calibrated boundary measurement",
 };

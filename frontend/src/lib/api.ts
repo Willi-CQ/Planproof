@@ -9,6 +9,7 @@ export interface Drawing {
   height: number;
 }
 export interface Citation {
+  source_index?: number;
   canonical_bbox: number[];
   page_index: number;
   image_id?: string;
@@ -22,8 +23,11 @@ export interface AgentResult {
     explanation: string;
     coverage: string;
     uncertainties: string[];
+    briefing?: { section: "answer" | "basis" | "limitation"; text: string; citations: number[] }[];
+    citation_details?: { citation: number; kind: "text" | "detection" | "measurement"; label: string }[];
   } | null;
-  source?: { width: number; height: number; page_index: number };
+  source?: { width: number; height: number; page_index: number; raster_sha256?: string };
+  measurement?: { approximate: boolean; boundary_basis?: string; formula?: string };
   canonical_citations?: Citation[];
   algorithm_used?: boolean;
   nemotron_calls?: number;
@@ -143,10 +147,11 @@ export function visibleCitations(
   if (
     !result.source ||
     result.source.width !== drawing.width ||
-    result.source.height !== drawing.height
+    result.source.height !== drawing.height ||
+    (result.source.raster_sha256 && drawing.source && result.source.raster_sha256 !== drawing.source.raster_sha256)
   )
     return [];
-  return (result.canonical_citations || []).filter((c) => {
+  return (result.canonical_citations || []).map((c, i) => ({...c, source_index: c.source_index ?? i + 1})).filter((c) => {
     const b = c.canonical_bbox;
     return (
       c.page_index === drawing.page - 1 &&

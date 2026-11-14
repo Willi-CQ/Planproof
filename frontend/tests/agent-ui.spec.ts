@@ -229,7 +229,7 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
   expect(imageBox!.height / imageBox!.width).toBeCloseTo(0.6, 2);
   expect((evidenceBox!.x - imageBox!.x) / imageBox!.width).toBeCloseTo(0.1, 2);
   expect(evidenceBox!.width / imageBox!.width).toBeCloseTo(0.3, 2);
-  await page.getByText("About this answer", { exact: true }).click();
+  await page.getByText("Scope of this answer", { exact: true }).click();
   await expect(
     page.getByText("Whole-page coverage is not established.", { exact: true }),
   ).toBeVisible();
@@ -302,6 +302,7 @@ test("network failure never restores stale evidence for the new question", async
   await upload(page);
   await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
+  await page.getByRole("button", { name: "View evidence 1, page 1", exact: true }).click();
   await expect(page.getByTestId("evidence-box")).toHaveCount(1);
   await routeAnswer(page, (r) =>
     r.fulfill({

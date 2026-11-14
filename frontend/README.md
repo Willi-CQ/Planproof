@@ -1,15 +1,16 @@
 # Premium product demo — design branch
 
-This version lives on `design/premium-agent`, isolated from the main MVP at
-`bf64999`. It builds on Johan's React frontend integration with a minimal,
+This version lives on the local `design/live-briefing` branch, based on the
+combined measurement/design integration `234191c`, isolated from the main MVP. It builds on Johan's React frontend integration with a minimal,
 Apple-inspired workspace using Meng To's design-first skill. See [DESIGN.md](DESIGN.md).
 Users upload a drawing and talk to Planproof; no model selection is required.
 There are no scripted answers or alternate `/api/chat` server.
 
-The agent baseline is `2bf56b05bd65cbcebe8eec7188742f0aeb0224c0`, also saved locally
-as `backup/agent-before-frontend-20261114`. The transparency update adds backend observation hooks and resumable runs. It does not change
-agent prompts, tool decisions, permission enforcement, provider recovery, budgets or model weights.
-ML, geometry and deterministic algorithms remain unchanged.
+The combined baseline preserves the existing adaptive agent, area-measurement tools,
+resumable runs and recovery. This update adds presentation instructions and optional
+structured briefing fields to the final answer. Tool routing, permissions, budgets,
+models and detection/geometry engines are unchanged. It also reports requested crop
+coordinates before crop execution, solely for displaying inspection activity.
 
 ## Run
 
@@ -86,27 +87,29 @@ failures are visible and do not prevent asking questions. Removing a saved drawi
 removes its local original and conversation, not backend uploads or source files.
 Home closes the active workspace without deleting saved drawings.
 
-## Visual transparency
+## Visible work and readable answers
 
-Each answer offers **How this answer was found**; a running question offers
-**View activity**. The optional inspector replaces the conversation panel while
-keeping the drawing visible. Steps show actual tool events, source crops, focused
-Nemotron findings and explicit self-checks. Follow is off by default and pauses
-on manual pan/zoom. Replay never executes tools.
+A running answer automatically shows the actual work log in the conversation and
+an activity card on the drawing. Requested source regions appear as dashed outlines;
+these mark an inspection target, not a detection or an attention map. The card labels
+a retained region as the last source region when the current step has no crop.
+Follow view is optional and manual pan/zoom pauses it. Mobile shows source thumbnails
+inside the work log. No percentages, guessed intermediate answers or mandatory pipeline.
 
-Layers expose recorded ML, deterministic and ML-assisted boundary candidates,
-class filters and object-level spatial comparisons. Hybrid evidence is not
-independent confirmation. Agreement is not an accuracy score. Opening layers
-only reads already-produced evidence; it never triggers algorithms.
+Completed answers begin at the top of a readable briefing. Sentence-level citations
+open their exact sources; only explicitly classified detection sources receive compact
+preview cards at the end and default boxes on the plan. Text/dimension sources highlight
+when selected. Approximate measurements remain visibly approximate. Older answers use
+their saved explanation and references without inventing sentence associations.
 
-Use **Compare ML / rules** for a movable divider over the same source. Select a
-candidate for its original crop, recorded rule explanation and measured support.
-The separate ML-assisted boundary layer identifies dependent refinements clearly.
+Work behind this answer expands the saved steps. How this answer was found opens the
+full inspector. Raw layers are behind Diagnostics and a second explicit Show raw
+algorithm output control. They are exploratory proposals, not verified findings.
+Neither inspecting sources nor replaying steps triggers inference.
 
-The browser stores run events and downloaded bundles with each conversation.
-Source raster identity, page and dimensions must match before rendering overlays.
-Old conversations without run metadata still show their existing answer/citations.
-See [the run contract and operational guide](../docs/VISUAL_TRANSPARENCY.md).
+Run history and original files remain in the browser library and private backend
+store. Source identity and bounds still gate all overlays. See
+[the run/presentation contract](../docs/VISUAL_TRANSPARENCY.md).
 
 ## Verify
 
@@ -122,7 +125,7 @@ coordinates, explicit send, duplicate prevention, failures and mobile layout.
 They do not establish model accuracy. On Windows an installed browser may be
 selected with `PLANPROOF_BROWSER` pointing to `msedge.exe`.
 
-Validation: 25 browser checks cover the UI, including page navigation failure
+Validation: 28 browser checks cover the UI, including page navigation failure
 recovery and narrow-screen controls. TypeScript and production build passed. One real
 end-to-end test used a generated, explicitly synthetic sheet: the unchanged agent
 returned the printed 24 m² room area and a source citation. This proves the UI/API

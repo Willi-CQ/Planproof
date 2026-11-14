@@ -120,6 +120,7 @@ export function EvidenceInspector({
   const [filter, setFilter] = useState("all");
   const [objectId, setObjectId] = useState<string | null>(null);
   const [compare, setCompare] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(false);
   const [split, setSplit] = useState(50);
   const [limit, setLimit] = useState(50);
   const bound = sameSource(run?.source, frame);
@@ -131,7 +132,7 @@ export function EvidenceInspector({
     (s) => layers.includes(s.layer) && (filter === "all" || s.class === filter),
   );
   useEffect(() => {
-    onCompare(tab === "layers" && bound && compare ? split : null);
+    onCompare(tab === "layers" && diagnostics && bound && compare ? split : null);
   }, [tab, bound, compare, split]);
   const chosen = shapes.find((s) => s.id === objectId);
   const delivered = new Set(
@@ -139,8 +140,8 @@ export function EvidenceInspector({
   );
   const events = run?.events || [];
   useEffect(() => {
-    onShapes(tab === "layers" ? shapes : []);
-  }, [tab, bundle, layers, filter]);
+    onShapes(tab === "layers" && diagnostics ? shapes : []);
+  }, [tab, bundle, layers, filter, diagnostics]);
   useEffect(() => {
     if (!follow || !bound) return;
     const event = [...events]
@@ -157,7 +158,7 @@ export function EvidenceInspector({
   }, [run?.last_sequence, follow, bound]);
   useEffect(() => {
     if (
-      tab === "layers" &&
+      tab === "layers" && diagnostics &&
       (!run?.evidence || run.evidence.status === "not_run") &&
       events.some(
         (e) => e.stage === "get_algorithms" && e.state === "completed",
@@ -195,11 +196,11 @@ export function EvidenceInspector({
           aria-pressed={tab === "layers"}
           onClick={() => {
             setTab("layers");
-            if (!run?.evidence) onLoadLayers();
+
           }}
         >
           <Layers size={15} />
-          Layers
+          Diagnostics
         </button>
       </div>
       <div className="inspector-body">
@@ -356,6 +357,13 @@ export function EvidenceInspector({
             ) : (
               <>
                 {loading && <p role="status">Loading recorded evidence…</p>}
+                {!diagnostics && <div className="diagnostic-gate">
+                  <h3>Raw algorithm proposals</h3>
+                  <p>These are exploratory candidates, including mistakes. They are not the final findings or proof behind the answer.</p>
+                  <p>The work log and cited source details show how the agent used the available evidence.</p>
+                  <button className="subtle-button" onClick={() => { setDiagnostics(true); onLoadLayers(); }}>Show raw algorithm output</button>
+                </div>}
+                {diagnostics && <>
                 {layerError && (
                   <p role="alert">
                     {layerError}{" "}
@@ -626,6 +634,7 @@ export function EvidenceInspector({
                     )}
                   </>
                 )}
+                </>}
               </>
             )}
           </>

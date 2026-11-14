@@ -25,6 +25,7 @@ import { PlanCanvas2D } from "./components/PlanCanvas2D";
 import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
 import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
 
+import { liveActivity } from "./lib/activity";
 import { EvidenceInspector } from "./components/EvidenceInspector";
 import {
   startRun,
@@ -64,6 +65,7 @@ export default function App() {
   const [focusRegion, setFocusRegion] = useState<Region | null>(null);
   const [shapes, setShapes] = useState<EvidenceShape[]>([]);
   const [follow, setFollow] = useState(false);
+  const [followLive, setFollowLive] = useState(false);
   const [comparisonSplit, setComparisonSplit] = useState<number | null>(null);
   const [connection, setConnection] = useState("");
   const [layersLoading, setLayersLoading] = useState(false);
@@ -75,6 +77,15 @@ export default function App() {
     },
     [],
   );
+  const activeMessage = [...messages].reverse().find(m => m.run && !terminal(m.run));
+  const activeRun = activeMessage?.run;
+  const activeView = liveActivity(activeRun, drawing?.source);
+  useEffect(() => {
+    if (followLive && activeView?.regions.length) {
+      setSelectedEvidence(null);
+      setFocusRegion(activeView.regions[0]);
+    }
+  }, [activeRun?.request_id, activeView?.sequence, followLive]);
   const closeInspector = () => {
     setComparisonSplit(null);
     setInspectionId(null);
@@ -397,6 +408,13 @@ export default function App() {
       setLayersLoading(false);
     }
   }
+  function focusWork(messageId: string, region: Region) {
+    const message = messages.find(m => m.id === messageId);
+    if (!sameSource(message?.run?.source, drawing?.source) || region.page_index !== drawing!.page - 1) return;
+    setFocusRegion(region);
+    setSelectedEvidence(null);
+    setMobileTab("drawing");
+  }
   function focus(region: Region) {
     if (
       !sameSource(inspected?.run?.source, drawing?.source) ||
@@ -623,11 +641,17 @@ export default function App() {
               <PlanCanvas2D
                 drawing={drawing}
                 name={file?.name}
+                liveRun={activeRun}
+                liveConnection={connection}
+                followLive={followLive}
+                onFollowLive={setFollowLive}
+                onFocusLive={(region) => activeMessage && focusWork(activeMessage.id, region)}
                 shapes={shapes}
                 comparisonSplit={comparisonSplit}
                 focusRegion={focusRegion}
                 onManualView={() => {
                   setFollow(false);
+                  setFollowLive(false);
                   setFocusRegion(null);
                 }}
                 result={
@@ -676,6 +700,7 @@ export default function App() {
                 onDraftChange={setDraft}
                 onNewDrawing={() => input.current?.click()}
                 connection={connection}
+                onFocusWork={focusWork}
                 onInspect={(id) => {
                   closeInspector();
                   setInspectionId(id);

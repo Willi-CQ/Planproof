@@ -24,7 +24,8 @@ It never automatically resubmits a question after a connection failure.
 ## Execution and persistence
 
 `DrawingAgent` accepts an optional fail-isolated observer. Existing tool arguments,
-outputs, provider histories, prompts, budgets and routing remain unchanged.
+outputs, provider histories, budgets and routing remain unchanged. The live-briefing
+update adds only final-presentation instructions and optional fields described below.
 Hooks record Gemini turns, actual tool starts/results, cached calls, explicit
 self-checks and transport attempts. Geometry projection reads the existing job;
 the compact model-facing catalog is unchanged. Delivered evidence IDs are mapped
@@ -97,3 +98,44 @@ the printed OFFICE A area of 24 square metres with a citation and five recorded
 events in 9.766 seconds. A separate visual review used 396 already-computed shapes
 and 222 comparisons from a 10200-by-6600 drawing; that review made no inference
 calls and is not a new agent answer or an accuracy benchmark.
+
+## Live briefing update
+
+The default running view now combines an in-conversation work log with a plan activity
+card. Matching start/result events form one step. Pending steps have no fabricated
+outcome; interrupted steps stay interrupted. Source regions appear without opening
+the inspector. Only recorded/requested coordinates are shown; there is no inference
+of model attention. When the latest step has no image, the card calls the retained
+crop the last source region. Follow is optional, and manual navigation pauses it.
+
+Raw layers now require Diagnostics -> Show raw algorithm output. They are never
+automatically loaded or treated as the user's final findings. A returned detector
+candidate can be mistaken; this change does not alter detector quality.
+
+`submit_answer` accepts two optional presentation fields:
+
+- `briefing`: up to 8 statements with `section` (answer/basis/limitation), `text`,
+  and `citations` (1-based indices into the model's submitted final citation list).
+- `citation_details`: `{citation, kind, label}` for each classified source; kind
+  is text, detection or measurement. These are model-proposed source roles.
+
+The host retains the validated canonical answer/citations. Invalid optional
+presentation items are discarded, never promoted to evidence or used to reject a
+valid core answer. Source indices are remapped after host-owned measurement citations
+are prepended. Unknown references and uncited answer/basis statements are omitted.
+The original explanation remains a complete fallback. No second model rewrites the
+answer, and neither prose structure nor citation validation certifies correctness.
+
+The browser preserves source numbering when filtering invalid/off-page citations.
+New statements have inline source buttons; legacy explanations keep their original
+paragraph and list its sources without guessing which sentence each one supports.
+Only sources classified as detection have compact cards below the text and default
+plan boxes. Other sources highlight on selection. Approximate area values carry an
+approximation marker. Material limitations remain visible; detailed notes expand.
+
+Validation on the combined measurement/design baseline: 300 Python checks and 28
+browser checks pass. One actual synthetic OFFICE A run returned the printed24m2 in
+58s, with15events, a crop and calculate_area, three cited briefing statements and
+four source-role labels. No detector or Nemotron call was needed. This verifies
+integration and citation remapping, not improved accuracy or latency on real plans.
+Private desktop/mobile screenshots replay this saved run with no new inference.
