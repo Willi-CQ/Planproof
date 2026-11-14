@@ -25,6 +25,37 @@ try{
   await rpc('Runtime.enable');await rpc('Page.enable');await rpc('Network.enable');
   await rpc('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
   await rpc('Page.navigate',{url:pathToFileURL(path.resolve(process.argv[2])).href});
+  await until(()=>evaluate("document.readyState==='complete' && Boolean(document.getElementById('review-data'))"));
+  if(await evaluate("Boolean(document.getElementById('hard-review'))")){
+    await until(()=>evaluate("document.getElementById('hr-image').naturalWidth>0"));
+    assert.equal(await evaluate("document.querySelectorAll('#hr-case option').length"),4);
+    assert.equal(await evaluate("document.querySelector('body>main').hidden"),true);
+    assert.equal(await evaluate("document.getElementById('hr-result').hidden"),true);
+    assert.equal(await evaluate("document.getElementById('hr-image').naturalWidth"),14000);
+    checks.push('Four original hard drawings in separate tab; full 14000px source retained; answers initially hidden');
+    await evaluate("document.getElementById('hr-human').value='';document.getElementById('hr-save').click()");
+    assert.match(await evaluate("document.getElementById('hr-saved').textContent"),/Enter a nonnegative/);
+    await evaluate("document.getElementById('hr-human').value='0';document.getElementById('hr-notes').value='Isolated browser test';document.getElementById('hr-save').click()");
+    assert.match(await evaluate("document.getElementById('hr-saved').textContent"),/Your saved answer: 0/);
+    assert.equal(await evaluate("document.getElementById('hr-result').hidden"),true);
+    checks.push('Human count validated and saved locally without revealing answer or calling inference');
+    const completed=await evaluate("JSON.parse(document.getElementById('hard-review-data').textContent).cases.find(c=>c.result)?.number");
+    if(completed){
+      await evaluate(`document.getElementById('hr-case').value='${completed}';document.getElementById('hr-case').dispatchEvent(new Event('change'));document.getElementById('hr-reveal').click()`);
+      const shown=await evaluate(`(()=>{const c=JSON.parse(document.getElementById('hard-review-data').textContent).cases.find(c=>c.number===${completed});return [document.querySelector('#hr-result .answer').textContent,c.result.answer.status==='answered'?String(c.result.answer.answer):'No final answer'];})()`);
+      assert.equal(shown[0],shown[1]);
+      await evaluate("document.querySelector('#hr-result button').click()");
+      assert.match(await evaluate("document.getElementById('hr-overlay').getAttribute('viewBox')"),/^0 0 \d+ \d+$/);
+      checks.push('Revealed current result matches persisted pipeline output with original-frame citations');
+    }
+    await evaluate("document.getElementById('hard-review').scrollIntoView()");
+    const hardShot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'hard-native.png'),Buffer.from(hardShot.data,'base64'));
+    await rpc('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    assert.equal(await evaluate('document.documentElement.scrollWidth>window.innerWidth+2'),false);
+    checks.push('Hard-drawing review fits mobile viewport');
+    await rpc('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
+    await evaluate("document.getElementById('show-frozen').click()");
+  }
   await until(()=>evaluate("document.querySelectorAll('#rows tr').length===50 && document.getElementById('drawing').naturalWidth>0"));
   assert.equal(await evaluate('data.cases.length'),50);
   assert.deepEqual(await evaluate("Object.fromEntries(['correct','wrong','failed'].map(s=>[s,data.cases.filter(c=>c.attempts.auto.outcome===s).length]))"),{correct:33,wrong:2,failed:15});

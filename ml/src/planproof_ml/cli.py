@@ -279,7 +279,9 @@ def execute(args):
             intended = data.get("intended_classes")
             if intended and args.save_probabilities:
                 raise ValueError("Dense probability maps are unsupported by object-only releases")
-            image = load_image(args.image)
+            # Inference keeps native source coordinates; detect() already bounds
+            # its working raster and maps predictions back to the original.
+            image = load_image(args.image, max_pixels=150_000_000)
             result, maps = detect(
                 model,
                 image,

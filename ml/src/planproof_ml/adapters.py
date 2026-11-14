@@ -40,6 +40,8 @@ def load_image(path, max_pixels=64_000_000, max_size=None):
             raise ValueError(f"Image exceeds {max_pixels} pixels: {path}")
         if max_size is not None:
             im.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        if im.mode not in ("RGBA", "LA") and "transparency" not in im.info:
+            return np.asarray(im.convert("RGB")).copy()
         # White compositing preserves transparent line drawings.
         rgba = im.convert("RGBA")
         background = Image.new("RGBA", rgba.size, "white")

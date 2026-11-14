@@ -27,7 +27,10 @@ def run(args):
         "case_numbers": chosen,
         "inventory_sha256": hashlib.sha256(args.inventory.read_bytes()).hexdigest(),
         "labels_used_for_inference": False,
-        "limitation": "Selected previously observed cases; sequential development smoke check, not a causal benchmark.",
+        "limitation": inventory.get(
+            "limitation",
+            "Selected previously observed cases; sequential development smoke check, not a causal benchmark.",
+        ),
     }
     (args.out / "binding.json").write_text(
         json.dumps(binding, indent=2), encoding="utf-8"

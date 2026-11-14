@@ -69,7 +69,10 @@ does not enable unrestricted cross-origin access.
 1. `GET /api/v1/agent` reports Gemini configuration presence and model ID.
    `connection_verified: false` means it is **not** a live connectivity test.
 2. `POST /api/documents` with multipart fields `file` and `page` (1-based).
-   PDF, PNG and JPEG are accepted; maximum upload 10 MiB and image 16 million pixels.
+   PDF, PNG and JPEG are accepted; maximum upload 10 MiB. PNG/JPEG sources retain
+   native resolution up to 150 million pixels; PDF rendering keeps its separate
+   16-million-pixel budget. Model overviews are smaller, with detail crops taken
+   from the preserved source raster.
    PNG/JPEG have only page 1. Only the selected PDF page is supplied to the agent.
 3. Use the returned `document_id`, `image_url`, `width` and `height`. Render
    `image_url`, which is the canonical source used for coordinates.

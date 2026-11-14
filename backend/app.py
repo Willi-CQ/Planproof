@@ -25,6 +25,7 @@ from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 from agent_pipeline import PIPELINE_ERRORS, QuestionRequest, reason, ask
 from question_agent import AgentRequest, settings as question_agent_settings
+from planproof_feedback.images import MAX_SOURCE_PIXELS
 
 
 app = FastAPI(title="PlanProof MVP")
@@ -136,14 +137,19 @@ def register_image(payload: bytes, page_number: int) -> DocumentPage:
         raise HTTPException(422, "PNG and JPEG files have one page.")
     try:
         with Image.open(BytesIO(payload), formats=("PNG", "JPEG")) as original:
-            if original.width * original.height > MAX_IMAGE_PIXELS:
-                raise HTTPException(413, "Image exceeds 16 million pixels.")
+            if original.width * original.height > MAX_SOURCE_PIXELS:
+                raise HTTPException(413, "Image exceeds 150 million pixels.")
             if getattr(original, "n_frames", 1) != 1:
                 raise HTTPException(422, "Upload a single-frame image.")
             oriented = ImageOps.exif_transpose(original) if original.format == "JPEG" else original
-            background = Image.new("RGBA", oriented.size, "white")
-            background.alpha_composite(oriented.convert("RGBA"))
-            rgb = background.convert("RGB")
+            if oriented.mode in ("RGBA", "LA") or "transparency" in oriented.info:
+                background = Image.new("RGBA", oriented.size, "white")
+                background.alpha_composite(oriented.convert("RGBA"))
+                rgb = background.convert("RGB")
+                del background
+            else:
+                # Avoid several full-size RGBA buffers for large opaque plans.
+                rgb = oriented.convert("RGB")
             canonical = BytesIO()
             rgb.save(canonical, format="PNG")
             page = Page(
@@ -151,7 +157,7 @@ def register_image(payload: bytes, page_number: int) -> DocumentPage:
                 sha256(payload).hexdigest(), sha256(rgb.tobytes()).hexdigest(),
             )
     except Image.DecompressionBombError as exc:
-        raise HTTPException(413, "Image exceeds 16 million pixels.") from exc
+        raise HTTPException(413, "Image exceeds the supported pixel budget.") from exc
     except (OSError, ValueError) as exc:
         raise HTTPException(422, "The uploaded image could not be read.") from exc
     return store_page(page, page_number)

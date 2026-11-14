@@ -9,6 +9,10 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
+# Preserve large uploaded drawing rasters for native-coordinate detail crops.
+# Model overview sizing remains independent of this finite source decode limit.
+MAX_SOURCE_PIXELS = 150_000_000
+
 
 class UnsupportedInput(ValueError):
     pass

@@ -301,7 +301,7 @@ class DrawingAgent:
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
         self.original = Image.open(io.BytesIO(page.png)).convert("RGB")
         self.add_image(
-            self.original.copy(), "overview", [0, 0, page.width, page.height]
+            self.original, "overview", [0, 0, page.width, page.height]
         )
         if isinstance(self.transport, ResilientGeminiTransport):
             self.transport.on_attempt = self.checkpoint

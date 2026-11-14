@@ -19,7 +19,7 @@ from pathlib import Path
 from PIL import Image
 
 from .artifacts import write_json
-from .images import sha256
+from .images import MAX_SOURCE_PIXELS, sha256
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -170,7 +170,7 @@ class EvidencePipeline:
         directory.mkdir(parents=True)
         image_path = Path(image_path)
         with Image.open(image_path) as source:
-            if source.width * source.height > 16_000_000:
+            if source.width * source.height > MAX_SOURCE_PIXELS:
                 raise ValueError("Page exceeds pixel budget")
             rgb = source.convert("RGB")
             rgb.save(directory / "page.png")

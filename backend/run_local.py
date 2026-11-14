@@ -35,6 +35,9 @@ def main():
     # Keep inference credentials in the literal env file. The feedback transport
     # reads only its configured key; algorithm subprocesses receive no secrets.
     sys.path.insert(0, str(ROOT / "backend"))
+    # Use the checkout being launched, even when its interpreter comes from a
+    # sibling worktree with an editable installation of an older feedback package.
+    sys.path.insert(0, str(ROOT / "feedback" / "src"))
     uvicorn.run("app:app", host="127.0.0.1", port=args.port)
 
 
