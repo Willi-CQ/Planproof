@@ -12,3 +12,4 @@
 .card-heading h2{font-size:20px;color:var(--ink)}
 .sidebar{background:#fff;border-right-color:var(--line)}
 .topbar{background:rgba(255,255,255,.86);border-bottom-color:var(--line)}
+[hidden]{display:none!important}
