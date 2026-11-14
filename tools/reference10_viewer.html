@@ -4,7 +4,7 @@
 body{font:15px system-ui;margin:24px;color:#172235;background:#f5f7fa}h1{font-size:24px}button,select{padding:8px;margin:4px}section{background:white;padding:16px;border-radius:8px;margin:14px 0}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:8px;border-bottom:1px solid #ddd}.images{display:grid;grid-template-columns:1fr 1fr;gap:12px}.images img{width:100%;height:560px;object-fit:contain;background:white;cursor:zoom-in}.muted{color:#526174}a{color:#1451a0}.warning{background:#fff2cd;padding:12px}.selected{font-weight:bold}pre{white-space:pre-wrap}@media(max-width:850px){.images{grid-template-columns:1fr}}
 </style>
 <h1>Ten labeled plans — development and failure analysis</h1>
-<p class="warning">Existing validation drawings; stair-enriched diagnostic selection. Repeated optimization makes this a development set, not an unbiased final test. Deterministic results remain NOT RUN until predictions are supplied.</p>
+<p class="warning">Existing validation drawings; stair-enriched diagnostic selection. Repeated optimization makes this a development set, not an unbiased final test. Missing method outputs are NOT RUN, not zero detections.</p>
 <button id="prev">Previous</button><select id="case"></select><button id="next">Next</button>
 <section><h2 id="title"></h2><p id="meta" class="muted"></p><p id="reason"></p>
 <div class="images"><div><h3>Original source</h3><a id="rawlink" target="_blank"><img id="raw" alt="Unmodified floorplan"></a></div><div><h3><select id="layer"><option value="truth">Existing labels</option><option value="main">Frozen main ML</option><option value="main-errors">Main ML — misses and false positives</option><option value="cad">Frozen CAD ML</option><option value="cad-errors">CAD ML — misses and false positives</option><option value="deterministic">Deterministic — when supplied</option><option value="deterministic-errors">Deterministic — error overlay</option></select></h3><a id="overlaylink" target="_blank"><img id="overlay" alt="Selected annotation or prediction overlay"></a><p id="layerstatus"></p></div></div>
@@ -16,6 +16,7 @@ body{font:15px system-ui;margin:24px;color:#172235;background:#f5f7fa}h1{font-si
 const data=__REFERENCE_DATA__;
 const selector=document.getElementById('case'), layer=document.getElementById('layer');
 if(data.report.summary.deterministic?.status==='scored'){
+layer.querySelector('option[value="deterministic"]').textContent='Deterministic candidate rules';
 const o=document.createElement('option');o.value='vectors';o.textContent='Wall vectors and unrepaired gaps';layer.appendChild(o);
 }
 data.cases.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.case_id;selector.appendChild(o)});

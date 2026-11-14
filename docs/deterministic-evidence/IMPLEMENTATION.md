@@ -119,6 +119,13 @@ The verifier checks every frozen input checksum, full evidence provenance,
 implementation hashes, all generated artifact hashes and unchanged frozen ML
 scores. See `GEOMETRY_VERIFICATION.json` in the derived local pack after running:
 
+The completed local run verified **160 unchanged frozen payloads**,10 evidence
+documents,124 generated artifact hashes and64 explicitly normalized ML
+observations. Frozen ML scores are unchanged. Cold analysis of all ten plans,
+including bound-ML geometry checks and artifact writing, took **107.36 seconds**
+on this laptop; the slowest page took31.53seconds. This is a local diagnostic
+timing, not a standardized throughput benchmark; peak RAM was not measured.
+
 ```powershell
 .venv/Scripts/python tools/verify_geometry_run.py --pack .artifacts/reference10-track2-v6 --frozen .artifacts/reference10-v1
 ```
