@@ -1,5 +1,13 @@
 # MVP startup and frontend handoff
 
+## Current product interface
+
+The newest teammate React interface is integrated in `frontend/`. After starting
+the backend below, run `npm ci`, `npm run build`, and `npm start` in that directory.
+Open **http://127.0.0.1:5173** for the product demo. Its same-origin proxy calls the
+unchanged agent on port 8002. See [frontend setup and contract](../frontend/README.md).
+The `/planwise/` UI described below remains available as the legacy interface.
+
 The primary path is **question + drawing → Gemini-selected tools → grounded
 answer or explicit abstention**. ML/geometry, original-pixel crops, Nemotron
 inspection and reflection are optional tools. This is a working local 2D MVP;
@@ -55,8 +63,8 @@ private evaluation files are required to start the MVP. Upload your own plan.
 - `backend/agent_pipeline.py`, `visual_specialist.py`: real algorithms and Nemotron.
 - [QUESTION_AGENT.md](QUESTION_AGENT.md): routing, budgets and evidence contracts.
 
-The newer teammate design on `iamd-johan-dev` is separate UI work. Connect it to
-the general `/ask` endpoint below. The legacy label check, disputed-door demo and
+The React design from the newer `front` branch is connected to the general
+`/ask` endpoint below. The legacy label check, disputed-door demo and
 fixed algorithms-first `/reason` path are separate flows; they are not the general
 question agent. Keep algorithm implementations on the server while changing UI.
 
