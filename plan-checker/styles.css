@@ -13,3 +13,4 @@
 .sidebar{background:#fff;border-right-color:var(--line)}
 .topbar{background:rgba(255,255,255,.86);border-bottom-color:var(--line)}
 [hidden]{display:none!important}
+.file-row[hidden],.dropzone[hidden],.json-panel[hidden]{display:none!important}
