@@ -1,5 +1,5 @@
 // API responses here are explicit fixtures, never model-accuracy evidence.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
 import {
   isAnswered,
   resultText,
@@ -60,6 +60,50 @@ async function savedRecords(page: Page) {
     });
   });
 }
+// Adapt original contract fixtures to the additive run transport; no real inference.
+async function routeAnswer(page: Page, handler: (route: Route) => unknown) {
+  await page.route("**/api/v1/documents/*/runs", async (route) => {
+    const body = route.request().postDataJSON();
+    const adapted = new Proxy(route, {
+      get(target, prop) {
+        if (prop === "request")
+          return () =>
+            new Proxy(target.request(), {
+              get(req, key) {
+                if (key === "postDataJSON") return () => body.request;
+                const value = Reflect.get(req, key);
+                return typeof value === "function" ? value.bind(req) : value;
+              },
+            });
+        if (prop === "fulfill")
+          return (options: any) =>
+            target.fulfill(
+              options.status && options.status >= 400
+                ? options
+                : {
+                    ...options,
+                    json: {
+                      request_id: body.request_id,
+                      status: "completed",
+                      source: {
+                        raster_sha256: "fixture",
+                        page_index: 0,
+                        width: 1000,
+                        height: 600,
+                      },
+                      events: [],
+                      last_sequence: 0,
+                      result: options.json,
+                    },
+                  },
+            );
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    await handler(adapted);
+  });
+}
 async function setup(page: Page) {
   await page.route("https://**/*", (r) => r.abort());
   await page.route("**/api/v1/agent", (r) =>
@@ -76,6 +120,16 @@ async function setup(page: Page) {
     r.fulfill({
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600"><rect width="1000" height="600" fill="white"/></svg>',
+    }),
+  );
+  await page.route("**/api/v1/documents/*/frame", (r) =>
+    r.fulfill({
+      json: {
+        raster_sha256: "fixture",
+        page_index: 0,
+        width: 1000,
+        height: 600,
+      },
     }),
   );
   await page.goto("/");
@@ -126,7 +180,7 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route("**/api/v1/documents/*/ask", async (route) => {
+  await routeAnswer(page, async (route) => {
     bodies.push(route.request().postDataJSON());
     await gate;
     await route.fulfill({ json: result });
@@ -186,7 +240,7 @@ test("abstention and outages are not displayed as zero, with no automatic retrie
   await setup(page);
   await upload(page);
   let calls = 0;
-  await page.route("**/api/v1/documents/*/ask", (r) => {
+  await routeAnswer(page, (r) => {
     calls++;
     return r.fulfill({
       json: {
@@ -211,7 +265,7 @@ test("a recovered answer stays usable without exposing model machinery", async (
 }) => {
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
+  await routeAnswer(page, (r) =>
     r.fulfill({
       json: { ...result, reliability: { token_repair_succeeded: true } },
     }),
@@ -227,7 +281,7 @@ test("expired document clears source and requires explicit re-upload", async ({
 }) => {
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
+  await routeAnswer(page, (r) =>
     r.fulfill({ status: 404, json: { detail: "missing" } }),
   );
   await ask(page);
@@ -242,12 +296,15 @@ test("network failure never restores stale evidence for the new question", async
 }) => {
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect(page.getByTestId("evidence-box")).toHaveCount(1);
-  await page.route("**/api/v1/documents/*/ask", (r) => r.abort("failed"));
+  await routeAnswer(page, (r) =>
+    r.fulfill({
+      status: 503,
+      json: { detail: "Run unavailable; question may still be processing" },
+    }),
+  );
   await ask(page);
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText(
@@ -263,9 +320,7 @@ test("page upload uses selected PDF page and clears previous answer", async ({
 }) => {
   await setup(page);
   await upload(page, "plan.pdf", "application/pdf");
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect(page.getByTestId("agent-answer")).toHaveCount(1);
   let body = "";
@@ -300,9 +355,7 @@ test("bottom page flipper preserves the current drawing and answer when a page f
   );
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect(page.getByTestId("agent-answer")).toHaveCount(1);
   let release: () => void = () => {};
@@ -338,7 +391,7 @@ test("untrusted answer text is inert and mobile stays within viewport", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
+  await routeAnswer(page, (r) =>
     r.fulfill({
       json: {
         ...result,
@@ -412,7 +465,7 @@ test("suggestions prepare a question without sending, Enter sends and Shift+Ente
   await setup(page);
   await upload(page);
   let calls = 0;
-  await page.route("**/api/v1/documents/*/ask", (r) => {
+  await routeAnswer(page, (r) => {
     calls++;
     return r.fulfill({ json: result });
   });
@@ -439,9 +492,7 @@ test("mobile evidence opens the drawing and returns to the conversation", async 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await page
     .getByRole("button", { name: "View evidence 1, page 1", exact: true })
@@ -472,7 +523,7 @@ test("drag and drop uploads exactly once without a hidden inference call", async
     uploads++;
     return r.fulfill({ json: drawing });
   });
-  await page.route("**/api/v1/documents/*/ask", (r) => {
+  await routeAnswer(page, (r) => {
     asks++;
     return r.fulfill({ json: result });
   });
@@ -528,7 +579,7 @@ test("refresh restores original, answer, draft and evidence without another infe
   await setup(page);
   await upload(page);
   let asks = 0;
-  await page.route("**/api/v1/documents/*/ask", (r) => {
+  await routeAnswer(page, (r) => {
     asks++;
     return r.fulfill({ json: result });
   });
@@ -580,9 +631,7 @@ test("saved drawings can be switched and removed independently", async ({
 }) => {
   await setup(page);
   await upload(page, "first.png");
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect
     .poll(async () => (await savedRecords(page))[0]?.messages.length)
@@ -631,9 +680,7 @@ test("server outage on restore retains the saved conversation for a later reopen
 }) => {
   await setup(page);
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect
     .poll(async () => (await savedRecords(page))[0]?.messages.length)
@@ -660,7 +707,7 @@ test("refresh during an unfinished question never resubmits it", async ({
   await setup(page);
   await upload(page);
   let calls = 0;
-  await page.route("**/api/v1/documents/*/ask", async (r) => {
+  await routeAnswer(page, async (r) => {
     calls++;
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await r.abort().catch(() => {});
@@ -689,7 +736,7 @@ test("the selected PDF page is restored and rendering changes keep history witho
   );
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
-  await page.route("**/api/v1/documents/*/ask", (r) =>
+  await routeAnswer(page, (r) =>
     r.fulfill({
       json: {
         ...result,
@@ -729,9 +776,7 @@ test("unavailable browser storage reports the problem but still allows questions
   await setup(page);
   await expect(page.getByRole("alert")).toContainText("couldn't save");
   await upload(page);
-  await page.route("**/api/v1/documents/*/ask", (r) =>
-    r.fulfill({ json: result }),
-  );
+  await routeAnswer(page, (r) => r.fulfill({ json: result }));
   await ask(page);
   await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
 });

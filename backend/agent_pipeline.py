@@ -55,7 +55,7 @@ def specialist_service():
     return VisualSpecialist(create_service(config))
 
 
-def ask(document_id, page, request):
+def ask(document_id, page, request, *, observer=None):
     from question_agent import DrawingAgent, GeminiTransport, settings
 
     if not request.allow_gemini:
@@ -85,6 +85,7 @@ def ask(document_id, page, request):
             lambda: get_job(document_id, page),
             specialist_service,
             out=out,
+            observer=observer,
         ).run()
         return {**result, "request_id": request_id}
     finally:

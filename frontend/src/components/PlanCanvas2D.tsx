@@ -9,7 +9,13 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
+import { AlgorithmOverlay } from "./AlgorithmOverlay";
+import type { EvidenceShape, Region } from "../lib/runs";
 interface Props {
+  shapes?: EvidenceShape[];
+  comparisonSplit?: number | null;
+  focusRegion?: Region | null;
+  onManualView?: () => void;
   drawing: Drawing;
   name?: string;
   result?: AgentResult;
@@ -24,6 +30,10 @@ interface Props {
 }
 export function PlanCanvas2D({
   drawing,
+  shapes = [],
+  comparisonSplit,
+  focusRegion,
+  onManualView,
   name,
   result,
   selectedIndex,
@@ -51,8 +61,12 @@ export function PlanCanvas2D({
   );
   const citations = result ? visibleCitations(result, drawing) : [];
   useEffect(() => {
-    if (selectedIndex === null || !viewport.current) return;
-    const box = citations[selectedIndex]?.canonical_bbox;
+    if ((!focusRegion && selectedIndex === null) || !viewport.current) return;
+    const box =
+      focusRegion?.canonical_bbox ||
+      (selectedIndex !== null
+        ? citations[selectedIndex]?.canonical_bbox
+        : null);
     const container = viewport.current;
     if (!box || container.clientWidth === 0) return;
     const style = getComputedStyle(container);
@@ -67,10 +81,19 @@ export function PlanCanvas2D({
       (container.clientHeight * 0.55) / heightAtFit,
     );
     onZoomChange(Math.max(100, Math.min(400, Math.round(magnification * 100))));
-  }, [selectedIndex, result, drawing, onZoomChange]);
+  }, [selectedIndex, result, drawing, focusRegion, onZoomChange]);
   useEffect(() => {
-    if (selectedIndex === null || !viewport.current || !sheet.current) return;
-    const box = citations[selectedIndex]?.canonical_bbox;
+    if (
+      (!focusRegion && selectedIndex === null) ||
+      !viewport.current ||
+      !sheet.current
+    )
+      return;
+    const box =
+      focusRegion?.canonical_bbox ||
+      (selectedIndex !== null
+        ? citations[selectedIndex]?.canonical_bbox
+        : null);
     if (!box) return;
     const container = viewport.current,
       source = sheet.current;
@@ -87,14 +110,16 @@ export function PlanCanvas2D({
         ? "instant"
         : "smooth",
     });
-  }, [selectedIndex, result, drawing, zoom]);
+  }, [selectedIndex, result, drawing, zoom, focusRegion]);
   return (
     <section className="drawing-viewer" aria-label="Drawing viewer">
       <div
         ref={viewport}
         className={`plan-viewport ${panning ? "is-panning" : ""}`}
         data-testid="plan-viewport"
+        onWheel={() => onManualView?.()}
         onPointerDown={(e) => {
+          onManualView?.();
           if (
             e.pointerType !== "mouse" ||
             e.button !== 0 ||
@@ -141,12 +166,36 @@ export function PlanCanvas2D({
             data-testid="source-image"
             draggable={false}
           />
+          <AlgorithmOverlay
+            shapes={shapes}
+            split={comparisonSplit}
+            width={drawing.width}
+            height={drawing.height}
+          />
           <svg
             className="evidence-overlay"
             viewBox={`0 0 ${drawing.width} ${drawing.height}`}
             aria-label="Source evidence locations"
             data-testid="evidence-overlay"
           >
+            {focusRegion && (
+              <rect
+                data-testid="activity-region"
+                x={focusRegion.canonical_bbox[0]}
+                y={focusRegion.canonical_bbox[1]}
+                width={
+                  focusRegion.canonical_bbox[2] - focusRegion.canonical_bbox[0]
+                }
+                height={
+                  focusRegion.canonical_bbox[3] - focusRegion.canonical_bbox[1]
+                }
+                stroke="#001d00"
+                fill="#001d000a"
+                strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
+                strokeDasharray="7 5"
+              />
+            )}
             {citations.map((c, index) => {
               const [x0, y0, x1, y1] = c.canonical_bbox,
                 selected = selectedIndex === index;
@@ -181,6 +230,12 @@ export function PlanCanvas2D({
           </svg>
         </div>
       </div>
+      {comparisonSplit !== null && comparisonSplit !== undefined && (
+        <div className="comparison-legend">
+          <span>ML predictions</span>
+          <span>Pixel + geometry rules</span>
+        </div>
+      )}
       <div className="viewer-toolbar" aria-label="Drawing controls">
         <div className="page-flipper" aria-label="Page navigation">
           <button
@@ -240,7 +295,10 @@ export function PlanCanvas2D({
           aria-label="Zoom out"
           title="Zoom out"
           disabled={zoom <= 50}
-          onClick={() => onZoomChange(Math.max(50, zoom - 25))}
+          onClick={() => {
+            onManualView?.();
+            onZoomChange(Math.max(50, zoom - 25));
+          }}
         >
           <Minus size={16} />
         </button>
@@ -252,7 +310,10 @@ export function PlanCanvas2D({
           aria-label="Zoom in"
           title="Zoom in"
           disabled={zoom >= 800}
-          onClick={() => onZoomChange(Math.min(800, zoom + 25))}
+          onClick={() => {
+            onManualView?.();
+            onZoomChange(Math.min(800, zoom + 25));
+          }}
         >
           <Plus size={16} />
         </button>
@@ -261,7 +322,10 @@ export function PlanCanvas2D({
           className="icon-button"
           aria-label="Fit drawing"
           title="Fit drawing"
-          onClick={() => onZoomChange(100)}
+          onClick={() => {
+            onManualView?.();
+            onZoomChange(100);
+          }}
         >
           <Maximize size={15} />
         </button>

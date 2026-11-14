@@ -16,7 +16,9 @@ import {
   type Drawing,
 } from "../lib/api";
 
+import type { AgentRun } from "../lib/runs";
 export interface Message {
+  run?: AgentRun;
   id: string;
   role: "user" | "assistant";
   content: string;
@@ -26,6 +28,8 @@ interface Props {
   draft: string;
   onDraftChange: (draft: string) => void;
   onNewDrawing: () => void;
+  onInspect: (messageId: string) => void;
+  connection?: string;
   messages: Message[];
   drawing: Drawing;
   busy: boolean;
@@ -108,6 +112,8 @@ export function PlanChatbotPanel({
   draft,
   onDraftChange: setDraft,
   onNewDrawing,
+  onInspect,
+  connection,
   messages,
   drawing,
   busy,
@@ -230,6 +236,17 @@ export function PlanChatbotPanel({
                     onHighlight={onHighlight}
                   />
                 )}
+                {(message.result || message.run) && (
+                  <button
+                    className="inspect-button"
+                    onClick={() => onInspect(message.id)}
+                  >
+                    {message.result
+                      ? "How this answer was found"
+                      : "View activity"}
+                    <ArrowUpRight size={13} />
+                  </button>
+                )}
               </>
             )}
           </article>
@@ -242,7 +259,7 @@ export function PlanChatbotPanel({
               <i />
             </span>
             <span>
-              Taking a closer look
+              {connection || "Taking a closer look"}
               <span className="thinking-note">
                 Detailed drawings can take a few minutes.
               </span>

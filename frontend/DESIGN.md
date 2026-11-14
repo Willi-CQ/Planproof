@@ -1,8 +1,8 @@
 # Quiet drawing workspace
 
 Branch: `design/premium-agent`, based on the working MVP at `bf64999`.
-Main and its running UI remain separate. The backend, agent prompts, routing,
-models, budgets, recovery and algorithms are unchanged.
+Main and its running UI remain separate. Backend observation hooks expose actual
+execution without changing agent prompts, routing, models, budgets, recovery or algorithms.
 
 Design workflow: Meng To's [Design-First UI Prompting skill](https://github.com/MengTo/Skills/blob/main/agent-skills/ui/design-first-ui-prompting/SKILL.md),
 read on 2026-11-14. Applied as an implementation spec, not an image-generation
@@ -36,3 +36,13 @@ prompt. The reference is an Apple-like native utility: quiet, precise, direct.
 Verify source alignment, desktop/mobile layouts, failure recovery and keyboard
 access. Honor reduced motion. Screenshots and private drawing checks stay under
 the ignored `.artifacts/` directory.
+
+## Optional evidence inspector
+
+The main conversation remains minimal. View activity / How this answer was found
+opens Steps and Layers in place of the chat body. Recorded events and their crops
+link to the canonical drawing; automatic Follow starts off. Blue ML, amber
+independent evidence and purple dashed ML-assisted boundaries have text labels.
+Final citations stay green. Never imply agreement proves correctness, a crop proves
+full coverage, or a failed detector establishes zero. Live and recorded states are
+explicit; inspection and replay do not issue inference requests.

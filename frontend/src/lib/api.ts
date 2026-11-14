@@ -1,5 +1,7 @@
 // Only the existing Python agent; no credentials, alternate agent or automatic retries.
+import type { SourceFrame } from "./runs";
 export interface Drawing {
+  source?: SourceFrame;
   document_id: string;
   page: number;
   image_url: string;
@@ -82,9 +84,19 @@ export async function uploadDrawing(
   const form = new FormData();
   form.append("file", file);
   form.append("page", String(page));
-  return readResponse<Drawing>(
+  const drawing = await readResponse<Drawing>(
     await fetch("/api/documents", { method: "POST", body: form }),
   );
+  try {
+    drawing.source = await readResponse<SourceFrame>(
+      await fetch(
+        `/api/v1/documents/${encodeURIComponent(drawing.document_id)}/frame`,
+      ),
+    );
+  } catch {
+    /* Older backends retain citations; activity overlays require a verified frame. */
+  }
+  return drawing;
 }
 export async function askDrawing(
   documentId: string,

@@ -7,14 +7,16 @@ Users upload a drawing and talk to Planproof; no model selection is required.
 There are no scripted answers or alternate `/api/chat` server.
 
 The agent baseline is `2bf56b05bd65cbcebe8eec7188742f0aeb0224c0`, also saved locally
-as `backup/agent-before-frontend-20261114`. This integration changes no files in
-`backend/`, `feedback/`, `ml/`, `geometry/` or `deterministic/`. It does not change
-agent prompts, routing, permission enforcement, provider recovery, budgets or model weights.
+as `backup/agent-before-frontend-20261114`. The transparency update adds backend observation hooks and resumable runs. It does not change
+agent prompts, tool decisions, permission enforcement, provider recovery, budgets or model weights.
+ML, geometry and deterministic algorithms remain unchanged.
 
 ## Run
 
-1. Start the existing backend using [the MVP handoff](../docs/MVP_FRONTEND_HANDOFF.md).
-   Its default port is 8002. Keep provider keys in the backend's private `.env`.
+1. Start this branch's backend using `backend/run_local.py --port 8003` with the
+   existing worker and private environment-file arguments described in
+   [the MVP handoff](../docs/MVP_FRONTEND_HANDOFF.md). Keep main on 8002.
+   Provider keys stay in the private backend configuration.
 2. Use Node 22.12+ (Node 24 tested), then run from `frontend/`:
 
    ```sh
@@ -24,7 +26,7 @@ agent prompts, routing, permission enforcement, provider recovery, budgets or mo
    ```
 
 3. Open **http://127.0.0.1:5175**. `npm run dev` is the development alternative.
-   Both modes proxy `/api` to the unchanged backend on port 8002 without an added
+   Both modes proxy `/api` to this branch's backend on port 8003 without an added
    short inference timeout. `PLANPROOF_API_TARGET` can override that server-side
    target. No provider secrets belong in Vite variables or browser storage.
 
@@ -41,8 +43,9 @@ separate on 5175. Do not merge this branch into main until the design is accepte
 - The bottom toolbar is the only page navigator: previous/next or enter a page
   number. Successful PDF page changes clear previous answers. Failed page loads
   retain the current source and conversation; sending is disabled during loading.
-- Only explicit send calls Planproof's AI services, with the unchanged payload
-  `{question, mode: "auto", allow_gemini: true, allow_nemotron: true}`. Upload,
+- Only explicit send calls Planproof's AI services. The unchanged agent request
+  `{question, mode: "auto", allow_gemini: true, allow_nemotron: true}` is wrapped
+  in a client-ID run submission and observed through read-only polling. Upload,
   restore, and suggested questions never call inference. Previous messages are
   display history, not model context. The composer has no footer or model controls.
 - Agent-selected algorithms, Nemotron and reflection remain optional. There is
@@ -70,7 +73,8 @@ structured browser records and original file blobs without a separate server dat
 
 Refreshing or selecting a saved drawing reuploads its unchanged original to the
 existing document endpoint, renewing expired backend document IDs. No question is
-resent. Interrupted questions are marked; their draft is retained for explicit retry.
+resent. Active questions reconnect to the same run ID after refresh. Interrupted or missing
+runs are marked and are never resubmitted automatically.
 If the backend is unavailable, originals and conversations remain saved and can be
 reopened from Your drawings later. If rendering dimensions change, retain history
 but suppress mismatched source boxes. The current page's history clears on a
@@ -81,6 +85,28 @@ Clearing site data removes it; it is not a backup or cross-device sync. Storage
 failures are visible and do not prevent asking questions. Removing a saved drawing
 removes its local original and conversation, not backend uploads or source files.
 Home closes the active workspace without deleting saved drawings.
+
+## Visual transparency
+
+Each answer offers **How this answer was found**; a running question offers
+**View activity**. The optional inspector replaces the conversation panel while
+keeping the drawing visible. Steps show actual tool events, source crops, focused
+Nemotron findings and explicit self-checks. Follow is off by default and pauses
+on manual pan/zoom. Replay never executes tools.
+
+Layers expose recorded ML, deterministic and ML-assisted boundary candidates,
+class filters and object-level spatial comparisons. Hybrid evidence is not
+independent confirmation. Agreement is not an accuracy score. Opening layers
+only reads already-produced evidence; it never triggers algorithms.
+
+Use **Compare ML / rules** for a movable divider over the same source. Select a
+candidate for its original crop, recorded rule explanation and measured support.
+The separate ML-assisted boundary layer identifies dependent refinements clearly.
+
+The browser stores run events and downloaded bundles with each conversation.
+Source raster identity, page and dimensions must match before rendering overlays.
+Old conversations without run metadata still show their existing answer/citations.
+See [the run contract and operational guide](../docs/VISUAL_TRANSPARENCY.md).
 
 ## Verify
 
@@ -96,7 +122,7 @@ coordinates, explicit send, duplicate prevention, failures and mobile layout.
 They do not establish model accuracy. On Windows an installed browser may be
 selected with `PLANPROOF_BROWSER` pointing to `msedge.exe`.
 
-Validation: 21 browser checks cover the UI, including page navigation failure
+Validation: 25 browser checks cover the UI, including page navigation failure
 recovery and narrow-screen controls. TypeScript and production build passed. One real
 end-to-end test used a generated, explicitly synthetic sheet: the unchanged agent
 returned the printed 24 m² room area and a source citation. This proves the UI/API

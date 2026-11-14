@@ -97,10 +97,69 @@ def test_direct_answer_never_initializes_algorithms_or_specialist():
     a.specialist_factory.assert_not_called()
 
 
+def test_observation_does_not_change_tools_answers_or_provider_inputs():
+    scripted = [
+        response("crop_region", {"bbox": [0, 0, 500, 500]}),
+        response(
+            "inspect_nemotron",
+            {"question": "Inspect this crop", "image_ids": ["crop-1"]},
+        ),
+        response("submit_answer", final("crop-1")),
+    ]
+    baseline = agent(*scripted)
+    observed = agent(*scripted)
+    events = []
+    observed.observer = lambda stage, state, **data: events.append((stage, state, data))
+    first, second = baseline.run(), observed.run()
+    assert first["answer"] == second["answer"]
+    assert first["canonical_citations"] == second["canonical_citations"]
+    assert [e["name"] for e in first["tool_trace"]] == [
+        e["name"] for e in second["tool_trace"]
+    ]
+    assert (
+        baseline.transport.generate.call_count == observed.transport.generate.call_count
+    )
+    assert (
+        baseline.specialist_factory.return_value.answer.call_count
+        == observed.specialist_factory.return_value.answer.call_count
+        == 1
+    )
+    assert any(
+        stage == "crop_region" and state == "completed" for stage, state, _ in events
+    )
+    broken = agent(response("submit_answer", final()))
+    broken.observer = lambda *args, **kwargs: (_ for _ in ()).throw(
+        OSError("Telemetry failure")
+    )
+    assert broken.run()["status"] == "ok"
+
+
 def test_boolean_cannot_be_promoted_to_numeric_answer():
     a = agent()
     with pytest.raises(ValueError):
         a.finish({**final(), "answer": True})
+
+
+@pytest.mark.parametrize("image_ids", [None, 3, [{}], [None]])
+def test_observation_preserves_invalid_argument_validation(image_ids):
+    args = {"image_ids": image_ids, "question": "Inspect"}
+    baseline, observed = agent(), agent()
+    observed.observer = Mock()
+    with pytest.raises(Exception) as original:
+        baseline.execute("inspect_nemotron", args)
+    with pytest.raises(type(original.value)) as tracked:
+        observed.execute("inspect_nemotron", args)
+    assert str(tracked.value) == str(original.value)
+    observed.specialist_factory.assert_not_called()
+
+
+def test_observation_projection_failure_preserves_successful_tool_result():
+    a = agent()
+    a.observer = Mock()
+    # A future result schema unknown to the inspector must remain usable.
+    output = ({"status": "ok", "observations": None}, [])
+    with patch.object(a, "_execute", return_value=output):
+        assert a.execute("get_algorithms", {"classes": ["room"]}) == output
 
 
 def test_uncooperative_model_stops_at_turn_budget():

@@ -272,12 +272,15 @@ class DrawingAgent:
         specialist_factory,
         *,
         out=None,
+        observer=None,
     ):
         self.page, self.request, self.transport = page, request, transport
         self.algorithm_factory, self.specialist_factory = (
             algorithm_factory,
             specialist_factory,
         )
+        self.observer = observer
+        self._observed_attempts = 0
         self.out = out
         self.job = self.specialist = None
         self.algorithm_delivered = False
@@ -300,9 +303,7 @@ class DrawingAgent:
         }
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
         self.original = Image.open(io.BytesIO(page.png)).convert("RGB")
-        self.add_image(
-            self.original, "overview", [0, 0, page.width, page.height]
-        )
+        self.add_image(self.original, "overview", [0, 0, page.width, page.height])
         if isinstance(self.transport, ResilientGeminiTransport):
             self.transport.on_attempt = self.checkpoint
 
@@ -352,7 +353,79 @@ class DrawingAgent:
             "scope": "This crop only; overlapping views are not additional objects.",
         }, [image]
 
+    def observe(self, stage, state, **payload):
+        if self.observer:
+            try:
+                self.observer(stage, state, **payload)
+            except Exception:
+                pass
+
     def execute(self, name, args, *, timeout_seconds=None):
+        if self.observer is None:
+            return self._execute(name, args, timeout_seconds=timeout_seconds)
+        image_ids = args.get("image_ids") if isinstance(args, dict) else None
+        selected = (
+            [
+                self.images[i].metadata
+                for i in image_ids
+                if isinstance(i, str) and i in self.images
+            ]
+            if isinstance(image_ids, list)
+            else []
+        )
+        safe_args = (
+            {k: v for k, v in args.items() if k in ("classes", "question")}
+            if isinstance(args, dict)
+            else {}
+        )
+        self.observe(name, "running", images=selected, **safe_args)
+        start = time.monotonic()
+        try:
+            result, images = self._execute(name, args, timeout_seconds=timeout_seconds)
+        except Exception:
+            self.observe(
+                name,
+                "unavailable",
+                seconds=round(time.monotonic() - start, 3),
+                summary="This tool could not supply evidence; absence of evidence is not zero.",
+            )
+            raise
+        try:
+            if name == "get_algorithms" and self.job is not None:
+                self.observe("algorithm_bundle", "completed", job=self.job)
+            delivered = [
+                r["id"]
+                for key in ("rooms", "observations", "openings")
+                for r in result.get(key, [])
+            ]
+            delivered = [self.algorithm_registry.get(i, i) for i in delivered]
+            details = {
+                k: result[k]
+                for k in (
+                    "advisory",
+                    "canonical_citations",
+                    "checks",
+                    "unresolved",
+                    "next_action",
+                )
+                if k in result
+            }
+            self.observe(
+                name,
+                "unavailable" if result.get("status") == "unavailable" else "completed",
+                seconds=round(time.monotonic() - start, 3),
+                images=[i.metadata for i in images] or selected,
+                delivered_ids=delivered,
+                cached=result.get("cached", False),
+                **safe_args,
+                **details,
+            )
+        except Exception:
+            # Presentation metadata must never discard a successful tool result.
+            pass
+        return result, images
+
+    def _execute(self, name, args, *, timeout_seconds=None):
         if name not in self.allowed or name == "submit_answer":
             raise ValueError("Unknown or disabled tool")
         expected = {
@@ -566,6 +639,19 @@ class DrawingAgent:
         return result
 
     def checkpoint(self):
+        attempts = getattr(self.transport, "events", [])
+        if not isinstance(attempts, list):
+            attempts = []
+        for event in attempts[self._observed_attempts :]:
+            self.observe(
+                "provider_attempt",
+                "completed" if event.get("status") == "ok" else "recorded",
+                category=event.get("category"),
+                attempt=event.get("attempt"),
+                phase=event.get("phase"),
+                summary="Provider attempt recorded; recovery does not certify the answer.",
+            )
+        self._observed_attempts = len(attempts)
         if self.out:
             # Separate file: a partial trace must never masquerade as a completed run.
             write_json(
@@ -748,6 +834,12 @@ class DrawingAgent:
                     )
                 )
             try:
+                self.observe(
+                    "gemini",
+                    "running",
+                    phase=phase,
+                    summary="Gemini is examining the available evidence.",
+                )
                 response = self.transport.generate(
                     history,
                     available,
@@ -756,9 +848,16 @@ class DrawingAgent:
                     max_attempts=2 if recovery else 3,
                 )
                 candidate = response_candidate(response)
+                self.observe("gemini", "completed", phase=phase)
             except Exception as exc:
                 # No provider bodies, request headers or secret-bearing exception strings.
                 self.last_failure = failure_info(exc)
+                self.observe(
+                    "gemini",
+                    "unavailable",
+                    phase=phase,
+                    category=self.last_failure.get("category"),
+                )
                 self.calls.append(
                     {
                         "turn": turn,
@@ -864,6 +963,13 @@ class DrawingAgent:
                         and function.name != "get_algorithms"
                     ):
                         result, images = self.tool_cache[cache_key]
+                        self.observe(
+                            function.name,
+                            "cached",
+                            cached=True,
+                            images=[i.metadata for i in images],
+                            summary="Reused an existing tool result; no new inspection.",
+                        )
                     else:
                         result, images = self.execute(function.name, args)
                         self.tool_cache[cache_key] = (result, images)

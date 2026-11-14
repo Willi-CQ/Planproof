@@ -23,13 +23,20 @@ import {
 import { BrandMark } from "./components/BrandMark";
 import { PlanCanvas2D } from "./components/PlanCanvas2D";
 import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
+import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
+
+import { EvidenceInspector } from "./components/EvidenceInspector";
 import {
-  ApiError,
-  askDrawing,
-  uploadDrawing,
-  validateFile,
-  type Drawing,
-} from "./lib/api";
+  startRun,
+  getRun,
+  getEvidence,
+  mergeRun,
+  terminal,
+  sameSource,
+  type AgentRun,
+  type EvidenceShape,
+  type Region,
+} from "./lib/runs";
 
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -53,6 +60,28 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [cacheError, setCacheError] = useState<string | null>(null);
+  const [inspectionId, setInspectionId] = useState<string | null>(null);
+  const [focusRegion, setFocusRegion] = useState<Region | null>(null);
+  const [shapes, setShapes] = useState<EvidenceShape[]>([]);
+  const [follow, setFollow] = useState(false);
+  const [comparisonSplit, setComparisonSplit] = useState<number | null>(null);
+  const [connection, setConnection] = useState("");
+  const [layersLoading, setLayersLoading] = useState(false);
+  const [layerError, setLayerError] = useState("");
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+  const closeInspector = () => {
+    setComparisonSplit(null);
+    setInspectionId(null);
+    setFocusRegion(null);
+    setShapes([]);
+    setFollow(false);
+  };
   const cacheFailure = () =>
     setCacheError(
       "Your browser couldn't save these changes. Keep this tab open, or free browser storage and try again.",
@@ -71,6 +100,7 @@ export default function App() {
         fresh.width === saved.drawing.width &&
         fresh.height === saved.drawing.height &&
         fresh.page === saved.drawing.page;
+      closeInspector();
       setFile(saved.file);
       setPage(fresh.page);
       setDrawing(fresh);
@@ -79,7 +109,12 @@ export default function App() {
       setDraft(saved.draft);
       setZoom(saved.zoom);
       setSelectedEvidence(sameFrame ? saved.selectedEvidence : null);
-      if (saved.interrupted)
+      const activeRun = saved.messages.find((m) => m.run && !terminal(m.run));
+      if (activeRun?.run)
+        setTimeout(() => {
+          void resumeRun(activeRun.id, activeRun.run!);
+        }, 0);
+      if (saved.interrupted && !activeRun)
         setError(
           "The previous question was interrupted by a refresh. It may still be processing; it has not been sent again.",
         );
@@ -170,6 +205,7 @@ export default function App() {
     pending.current = true;
     const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
+    closeInspector();
     setError(null);
     if (!changingPage) {
       setDrawing(null);
@@ -199,58 +235,181 @@ export default function App() {
       setBusy(null);
     }
   }
+  function updateRun(id: string, run: AgentRun) {
+    setMessages((previous) =>
+      previous.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              run: {
+                ...run,
+                evidence: run.evidence ?? m.run?.evidence,
+              },
+              result:
+                run.result ||
+                (["failed", "interrupted"].includes(run.status)
+                  ? { status: "unavailable" }
+                  : undefined),
+            }
+          : m,
+      ),
+    );
+  }
+  async function watchRun(id: string, initial: AgentRun): Promise<boolean> {
+    let current = initial;
+    updateRun(id, current);
+    let missing = 0;
+    while (mounted.current && !terminal(current)) {
+      try {
+        const next = await getRun(current.request_id, current.last_sequence);
+        current = mergeRun(current, next);
+        updateRun(id, current);
+        setConnection("");
+        missing = 0;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404 && ++missing >= 3) {
+          current = {
+            ...current,
+            status: "interrupted",
+            message:
+              "Activity is unavailable. This question has not been sent again.",
+          };
+          updateRun(id, current);
+          setError(current.message!);
+          break;
+        }
+        setConnection("Reconnecting to activity");
+      }
+      if (!terminal(current))
+        await new Promise((resolve) =>
+          setTimeout(resolve, document.hidden ? 3000 : 1000),
+        );
+    }
+    if (current.status === "failed" || current.status === "interrupted")
+      setError(
+        current.message ||
+          "The run was interrupted; it has not been resubmitted.",
+      );
+    if (current.result?.status === "ok") setDraft("");
+    return current.result?.status === "ok";
+  }
+  async function resumeRun(id: string, run: AgentRun) {
+    if (pending.current || !mounted.current) return;
+    pending.current = true;
+    setBusy("ask");
+    try {
+      await watchRun(id, run);
+    } finally {
+      pending.current = false;
+      setBusy(null);
+      setConnection("");
+    }
+  }
   async function sendMessage(question: string): Promise<boolean> {
-    if (pending.current || !drawing) return false;
+    if (pending.current || !drawing || !file) return false;
     pending.current = true;
     setBusy("ask");
     setError(null);
     setSelectedEvidence(null);
+    closeInspector();
     const id = crypto.randomUUID();
-    setMessages((previous) => [
-      ...previous,
+    const run: AgentRun = {
+      request_id: id,
+      status: "queued",
+      source: drawing.source || {
+        raster_sha256: "",
+        page_index: drawing.page - 1,
+        width: drawing.width,
+        height: drawing.height,
+      },
+      events: [],
+      last_sequence: 0,
+    };
+    const nextMessages: Message[] = [
+      ...messages,
       { id: id + "-question", role: "user", content: question },
-    ]);
+      { id, role: "assistant", content: "", run },
+    ];
+    setMessages(nextMessages);
     try {
-      // Only explicit send calls the existing Planproof agent.
-      // The same agent chooses all tools; no model choice or new routing is introduced.
-      const result = await askDrawing(drawing.document_id, question, {
-        allow_gemini: true,
-        allow_nemotron: true,
-      });
-      setMessages((previous) => [
-        ...previous,
-        { id, role: "assistant", content: "", result },
-      ]);
-      return result.status === "ok";
+      // Save the ID before dispatch so refresh cannot accidentally submit twice.
+      if (savedId)
+        await saveDrawing({
+          id: savedId,
+          file,
+          drawing,
+          messages: nextMessages,
+          draft: question,
+          zoom,
+          selectedEvidence: null,
+          interrupted: true,
+          updated: Date.now(),
+        }).catch(cacheFailure);
+      let accepted: AgentRun;
+      try {
+        accepted = await startRun(drawing.document_id, id, question);
+      } catch (e) {
+        if (!(e instanceof ApiError)) {
+          setConnection("Reconnecting to activity");
+          return await watchRun(id, run);
+        }
+        updateRun(id, { ...run, status: "failed", message: e.message });
+        if (e.status === 404) {
+          setDrawing(null);
+          setMessages([]);
+          throw new ApiError(
+            "This uploaded page has expired. Reopen the saved drawing before asking again.",
+            404,
+          );
+        }
+        throw e;
+      }
+      return await watchRun(id, accepted);
     } catch (e) {
       setError(
-        e instanceof TypeError
-          ? "The connection was interrupted. Your question may still be processing. Please wait before sending it again."
-          : e instanceof Error
-            ? e.message
-            : "Something went wrong. Please try again.",
+        e instanceof Error ? e.message : "This question could not be started.",
       );
-      setMessages((previous) => [
-        ...previous,
-        {
-          id,
-          role: "assistant",
-          content: "",
-          result: { status: "unavailable" },
-        },
-      ]);
-      if (e instanceof ApiError && e.status === 404) {
-        setDrawing(null);
-        setMessages([]);
-      }
       return false;
     } finally {
       pending.current = false;
       setBusy(null);
+      setConnection("");
     }
+  }
+  const inspected = messages.find((m) => m.id === inspectionId);
+  async function loadLayers() {
+    const run = inspected?.run;
+    if (!run || layersLoading) return;
+    setLayersLoading(true);
+    setLayerError("");
+    try {
+      const evidence = await getEvidence(run.request_id);
+      setMessages((previous) =>
+        previous.map((m) =>
+          m.id === inspectionId && m.run
+            ? { ...m, run: { ...m.run, evidence } }
+            : m,
+        ),
+      );
+    } catch {
+      setLayerError("Recorded layers could not be loaded.");
+    } finally {
+      setLayersLoading(false);
+    }
+  }
+  function focus(region: Region) {
+    if (
+      !sameSource(inspected?.run?.source, drawing?.source) ||
+      region.page_index !== drawing!.page - 1
+    )
+      return;
+    setFocusRegion(region);
+    setSelectedEvidence(null);
+    setMobileTab("drawing");
   }
   const reset = () => {
     if (pending.current) return;
+    closeInspector();
     setSavedId(null);
     setDraft("");
     void leaveDrawing().catch(cacheFailure);
@@ -263,12 +422,15 @@ export default function App() {
     setSelectedEvidence(null);
   };
   const highlight = (message: string, index: number) => {
+    setFocusRegion(null);
     setSelectedEvidence({ message, index });
     setMobileTab("drawing");
   };
-  const evidenceMessage = selectedEvidence
-    ? messages.find((m) => m.id === selectedEvidence.message)
-    : [...messages].reverse().find((m) => m.result);
+  const evidenceMessage =
+    inspected ||
+    (selectedEvidence
+      ? messages.find((m) => m.id === selectedEvidence.message)
+      : [...messages].reverse().find((m) => m.role === "assistant"));
   function drop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
@@ -461,7 +623,20 @@ export default function App() {
               <PlanCanvas2D
                 drawing={drawing}
                 name={file?.name}
-                result={busy === "ask" ? undefined : evidenceMessage?.result}
+                shapes={shapes}
+                comparisonSplit={comparisonSplit}
+                focusRegion={focusRegion}
+                onManualView={() => {
+                  setFollow(false);
+                  setFocusRegion(null);
+                }}
+                result={
+                  busy === "ask" ||
+                  (evidenceMessage?.run &&
+                    !sameSource(evidenceMessage.run.source, drawing.source))
+                    ? undefined
+                    : evidenceMessage?.result
+                }
                 selectedIndex={selectedEvidence?.index ?? null}
                 onSelectEvidence={(index) => {
                   if (evidenceMessage) highlight(evidenceMessage.id, index);
@@ -477,25 +652,50 @@ export default function App() {
                 }}
               />
             </div>
-            <PlanChatbotPanel
-              key={drawing.document_id}
-              draft={draft}
-              onDraftChange={setDraft}
-              onNewDrawing={() => input.current?.click()}
-              messages={messages}
-              drawing={drawing}
-              busy={busy === "ask"}
-              disabled={!!busy || !ready}
-              onSendMessage={sendMessage}
-              onClearChat={() => {
-                if (!pending.current) {
-                  setMessages([]);
-                  setSelectedEvidence(null);
-                }
-              }}
-              selectedEvidence={selectedEvidence}
-              onHighlight={highlight}
-            />
+            {inspectionId ? (
+              <EvidenceInspector
+                key={inspectionId}
+                run={inspected?.run}
+                drawing={drawing}
+                frame={drawing.source}
+                connection={connection}
+                onBack={closeInspector}
+                onLoadLayers={() => void loadLayers()}
+                loading={layersLoading}
+                layerError={layerError}
+                onFocus={focus}
+                onShapes={setShapes}
+                onCompare={setComparisonSplit}
+                follow={follow}
+                onFollow={setFollow}
+              />
+            ) : (
+              <PlanChatbotPanel
+                key={drawing.document_id}
+                draft={draft}
+                onDraftChange={setDraft}
+                onNewDrawing={() => input.current?.click()}
+                connection={connection}
+                onInspect={(id) => {
+                  closeInspector();
+                  setInspectionId(id);
+                  setLayerError("");
+                }}
+                messages={messages}
+                drawing={drawing}
+                busy={busy === "ask"}
+                disabled={!!busy || !ready}
+                onSendMessage={sendMessage}
+                onClearChat={() => {
+                  if (!pending.current) {
+                    setMessages([]);
+                    setSelectedEvidence(null);
+                  }
+                }}
+                selectedEvidence={selectedEvidence}
+                onHighlight={highlight}
+              />
+            )}
           </main>
         </>
       )}
