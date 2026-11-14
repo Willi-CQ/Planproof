@@ -64,7 +64,8 @@ def encode(
             )
         if name == "room":
             types[mask.astype(bool)] = room_type(feature.get("room_type"))
-    # Unsupported annotated regions are ignored for all structural losses, not relabeled.
+    # Unsupported regions are excluded from dense losses. Explicit object boxes
+    # retain positive evidence separately; unknown regions supply no negatives.
     for region in ignore_regions:
         ignored = polygon_mask(shape, region["outer"], region.get("holes", [])).astype(bool)
         valid[:, ignored] = 0

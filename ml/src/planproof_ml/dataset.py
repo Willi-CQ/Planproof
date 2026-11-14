@@ -109,6 +109,10 @@ def sample(record, root, size=1024, rng=None, crop_probability=0.5, augment=True
             center_valid[label + 1, yy0:yy1, xx0:xx1] = active[yy0:yy1, xx0:xx1]
     for label, xa, ya, xb, yb in clipped:
         center_valid[int(label) + 1, int(ya) : int(np.ceil(yb)), int(xa) : int(np.ceil(xb))] = 0
+    # Explicit complete-object annotations remain positive evidence inside an
+    # otherwise unknown region, including a stairwell void at the box center.
+    # Do this after clipping ignores so they cannot erase a different known object.
+    center_valid[1:][centers[1:] == 1] = 1
     if augment:
         if rng.random() < 0.2:
             image = cv2.cvtColor(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)

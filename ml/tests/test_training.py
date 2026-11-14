@@ -227,12 +227,48 @@ def test_overlap_loss_recipe_checkpoints_with_unchanged_inference_encoding(tmp_p
 
 
 def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):
+    from planproof_ml.evaluate import calibrate
+    from planproof_ml.schema import sha256
+    from planproof_ml.cli import parser, execute
+
     manifest = check_corpus(tmp_path / "data")
     cfg = config_file(tmp_path)
     train(cfg, manifest, tmp_path / "run", "cpu", max_steps=1)
-    report = export(tmp_path / "run/last.pt", tmp_path / "export", 64)
+    checkpoint = tmp_path / "run/last.pt"
+    model, original = load_detector(checkpoint)
+    calibration = calibrate(model, manifest, "cpu", 64, 1, tiled=False)
+    calibration["checkpoint_sha256"] = sha256(checkpoint)
+    report = export(checkpoint, tmp_path / "export", 64, calibration=calibration)
     assert set(report["onnx_parity_max_abs_error"]) == {"masks", "boundary", "centers", "boxes", "types"}
     assert (tmp_path / "export/wall.onnx").is_file()
+    lightweight = tmp_path / "export/detector.pt"
+    released_model, released = load_detector(lightweight)
+    assert "optimizer" not in released and released["artifact_type"] == "inference"
+    assert lightweight.stat().st_size < checkpoint.stat().st_size / 2
+    for name, value in original["model"].items():
+        torch.testing.assert_close(value, released["model"][name], rtol=0, atol=0)
+    rebound = json.loads((tmp_path / "export/calibration.json").read_text())
+    assert rebound["checkpoint_sha256"] == sha256(lightweight)
+    assert rebound["source_checkpoint_sha256"] == sha256(checkpoint)
+    with pytest.raises(ValueError, match="no optimizer state"):
+        train(cfg, manifest, tmp_path / "invalid-release-resume", "cpu", resume=lightweight, max_steps=2)
+    args = parser().parse_args(
+        [
+            "infer",
+            "--checkpoint",
+            str(lightweight),
+            "--image",
+            str(manifest.parent / "fixture-0.png"),
+            "--out",
+            str(tmp_path / "released-inference"),
+            "--calibration",
+            str(tmp_path / "export/calibration.json"),
+            "--global-view",
+            "--device",
+            "cpu",
+        ]
+    )
+    assert execute(args)["detections"]
     import onnxruntime as ort
 
     opts = ort.SessionOptions()
@@ -240,8 +276,13 @@ def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):
     session = ort.InferenceSession(
         str(tmp_path / "export/detector.onnx"), sess_options=opts, providers=["CPUExecutionProvider"]
     )
-    outputs = session.run(None, {"image": np.zeros((1, 3, 96, 128), np.float32)})
+    dynamic_input = np.random.default_rng(42).normal(size=(1, 3, 96, 128)).astype(np.float32)
+    outputs = session.run(None, {"image": dynamic_input})
     assert outputs[0].shape == (1, 5, 96, 128)
+    with torch.inference_mode():
+        dynamic_reference = released_model(torch.from_numpy(dynamic_input))
+    for name, actual in zip(("masks", "boundary", "centers", "boxes", "types"), outputs):
+        np.testing.assert_allclose(dynamic_reference[name].numpy(), actual, rtol=1e-3, atol=1e-4)
     model, _ = load_detector(tmp_path / "run/last.pt")
     result = detect(
         model,

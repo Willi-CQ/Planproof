@@ -12,6 +12,9 @@ def load_config(path: Path) -> dict:
     cfg = yaml.safe_load(path.read_text(encoding="utf-8-sig"))
     if not isinstance(cfg, dict):
         raise ValueError("Training config must be a mapping")
+    cfg.setdefault("target_transform_revision", 2)
+    if cfg["target_transform_revision"] != 2:
+        raise ValueError("Use target_transform_revision 2; initialize a new run from older weights")
     size = cfg.get("image_size", 1024)
     if size < 64 or size % 32:
         raise ValueError("image_size must be >=64 and divisible by 32")

@@ -173,3 +173,18 @@ larger targets, where overlap gradients are weak. The relative-size term is
 scale invariant and does not change inference encoding. Its default weight is
 zero, preserving exact-resume behavior for all earlier recipes. Both recipes
 start with a bounded probe and retain the previous validated checkpoint.
+
+Target-transform revision2 preserves explicit object-center positives inside
+otherwise ignored regions. Evaluation v2 likewise keeps those known object
+annotations eligible while ignoring unknown predictions outside their coverage.
+Older weights remain valid --init-weights inputs; exact resume refuses the changed
+target-processing contract. Compare candidate and parent using the same v2
+protocol, never a historical v1 report. `corrected-refine.yaml` is the bounded
+real-drawing recovery recipe for this revision.
+
+Calibration, evaluation and inference accept --global-view. Leave it off for
+tiled processing. Applying a calibration with the wrong mode is refused.
+Export produces detector.pt without optimizer state, detector.onnx, wall.onnx,
+metadata.json and, when supplied, calibration.json rebound to the identical
+inference weights. Preserve original training checkpoints for optimizer resume;
+use --init-weights with an inference release to start a fresh training run.

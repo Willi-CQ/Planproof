@@ -77,7 +77,7 @@ def evaluate(
             "tiled": tiled,
             "limit_per_source": limit_per_source,
             "thresholds": thresholds,
-            "protocol": "project-v1-original-pixel-coordinates",
+            "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
             "cohort_fingerprints": {
                 source: hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
                 for source, rows in cohorts.items()

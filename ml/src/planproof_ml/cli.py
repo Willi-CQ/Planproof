@@ -90,6 +90,9 @@ def parser():
         q.add_argument("--manifest", type=Path, required=True)
         q.add_argument("--out", type=Path, required=True)
         q.add_argument("--device", default="cuda")
+        q.add_argument(
+            "--global-view", action="store_true", help="Use one global view instead of tiled inference"
+        )
         if name == "evaluate":
             q.add_argument("--split", choices=("val", "test"), default="val")
             q.add_argument("--calibration", type=Path)
@@ -109,6 +112,9 @@ def parser():
     q.add_argument("--document-id")
     q.add_argument("--page-index", type=int, default=0)
     q.add_argument("--save-probabilities", action="store_true")
+    q.add_argument(
+        "--global-view", action="store_true", help="Use one global view instead of tiled inference"
+    )
     q.add_argument("--device", default="cuda")
     q = sub.add_parser("export")
     q.add_argument("--checkpoint", type=Path, required=True)
@@ -222,6 +228,9 @@ def execute(args):
         ):
             raise ValueError("Calibration must come from validation and match this checkpoint/dataset")
         thresholds = calibration["thresholds"] if calibration else None
+        tiled = not getattr(args, "global_view", False)
+        if calibration and command in {"evaluate", "infer"} and calibration.get("tiled", True) != tiled:
+            raise ValueError("Calibration inference mode differs; match --global-view to the calibration")
         if command == "evaluate":
             from .evaluate import evaluate
 
@@ -232,6 +241,7 @@ def execute(args):
                 device,
                 size,
                 thresholds,
+                tiled=tiled,
                 output=args.out,
                 overlays=args.overlays,
             )
@@ -250,7 +260,7 @@ def execute(args):
 
             if fingerprint(load_manifest(args.manifest)) != data["manifest_fingerprint"]:
                 raise ValueError("Calibration manifest must match the checkpoint training dataset")
-            result = calibrate(model, args.manifest, device, size, args.limit_per_source)
+            result = calibrate(model, args.manifest, device, size, args.limit_per_source, tiled=tiled)
             result["manifest_fingerprint"] = data["manifest_fingerprint"]
             result["checkpoint_sha256"] = sha256(args.checkpoint)
             write_json(args.out, result)
@@ -267,6 +277,7 @@ def execute(args):
                 device,
                 size,
                 thresholds,
+                tiled=tiled,
                 document_id=args.document_id,
                 page_index=args.page_index,
                 model_version=f"step-{data['step']}",
@@ -282,7 +293,7 @@ def execute(args):
             return {"detections": str(args.out / "detections.json"), "instances": len(result["instances"])}
         from .export import export
 
-        return export(args.checkpoint, args.out, size, thresholds)
+        return export(args.checkpoint, args.out, size, thresholds, calibration)
     raise ValueError("Unknown command")
 
 

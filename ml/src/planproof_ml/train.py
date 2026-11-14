@@ -173,6 +173,8 @@ def train(
     best = -1.0
     if resume:
         saved = torch.load(resume, map_location=device, weights_only=True)
+        if saved.get("artifact_type") == "inference":
+            raise ValueError("Inference release has no optimizer state; use --init-weights for a new run")
         initialization = saved.get("initialization", {"mode": "legacy_resume"})
         if saved["manifest_fingerprint"] != inventory["fingerprint"]:
             raise ValueError("Dataset changed since checkpoint; resume refused")

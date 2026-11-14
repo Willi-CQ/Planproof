@@ -165,6 +165,11 @@ class SourceMetrics:
                         min(h - 1, int((p["bbox"][1] + p["bbox"][3]) / 2)),
                         min(w - 1, int((p["bbox"][0] + p["bbox"][2]) / 2)),
                     ]
+                    or any(
+                        g[0] <= (p["bbox"][0] + p["bbox"][2]) / 2 < g[2]
+                        and g[1] <= (p["bbox"][1] + p["bbox"][3]) / 2 < g[3]
+                        for g in gt
+                    )
                 ]
             for threshold in np.arange(0.5, 0.96, 0.05):
                 entry = self.ap[(name, round(float(threshold), 2))]

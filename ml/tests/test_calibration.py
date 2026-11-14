@@ -61,3 +61,39 @@ def test_cli_refuses_calibration_against_another_dataset(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="manifest must match"):
         execute(args)
     assert not args.out.exists()
+
+
+def test_cli_refuses_global_calibration_in_tiled_inference(tmp_path, monkeypatch):
+    from argparse import Namespace
+    from planproof_ml.cli import execute
+    from planproof_ml.schema import write_json, sha256
+    import planproof_ml.model as models
+
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"mock checkpoint")
+    calibration = tmp_path / "calibration.json"
+    write_json(
+        calibration,
+        dict(
+            checkpoint_sha256=sha256(checkpoint),
+            manifest_fingerprint="same",
+            split="val",
+            tiled=False,
+            thresholds={},
+        ),
+    )
+    monkeypatch.setattr(
+        models,
+        "load_detector",
+        lambda *args: (object(), {"config": {"image_size": 64}, "manifest_fingerprint": "same"}),
+    )
+    args = Namespace(
+        command="infer",
+        checkpoint=checkpoint,
+        calibration=calibration,
+        out=tmp_path / "output",
+        device="cpu",
+        global_view=False,
+    )
+    with pytest.raises(ValueError, match="inference mode differs"):
+        execute(args)
