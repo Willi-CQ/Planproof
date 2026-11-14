@@ -252,6 +252,28 @@ def payload(pack):
 
 def build(pack):
     data = payload(pack)
+    room_report_path = pack / "ROOM_BOUNDARY_REPORT.json"
+    if room_report_path.exists():
+        room_report = json.loads(room_report_path.read_text())
+        if room_report["baseline_report_sha256"] != sha256(
+            pack / "failure-report.json"
+        ):
+            raise ValueError("Room comparison has stale baseline evidence")
+        data["room_report"] = room_report
+        rows = {row["case_id"]: row for row in room_report["cases"]}
+        for case in data["cases"]:
+            row = rows[case["id"]]
+            artifact = (pack / row["artifact"]).resolve()
+            if (
+                not artifact.is_relative_to(pack.resolve())
+                or sha256(artifact) != row["artifact_sha256"]
+            ):
+                raise ValueError("Room artifact changed or outside pack")
+            bundle = json.loads(artifact.read_text())
+            if bundle["source_evidence_sha256"] != sha256(pack / case["evidence"]):
+                raise ValueError("Room source evidence changed")
+            case["room_boundaries"] = bundle["pages"][0]
+            case["room_review"] = row
     review_path = Path(__file__).with_name("evidence_lab_review.json")
     review = json.loads(review_path.read_text(encoding="utf-8"))
     data["review_findings"] = (

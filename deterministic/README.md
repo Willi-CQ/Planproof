@@ -124,6 +124,11 @@ is described in the [PDFium wrapper documentation](https://pypdfium2.readthedocs
 
 ## Repeat the ten-plan check
 
+For ML-assisted room boundaries, wall roles, opening rules and clean per-room
+context exports, use the optional [room-boundary postprocessor](../docs/deterministic-evidence/ROOM_BOUNDARIES.md).
+Its primary room geometry preserves ML by default; deterministic refinements
+remain inspectable alternatives. The guide includes the real-plan feedback loop.
+
 The already labeled development pack and frozen ML outputs are local artifacts,
 never tracked datasets. Keep the original frozen pack unchanged:
 

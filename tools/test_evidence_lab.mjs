@@ -104,6 +104,30 @@ try{
   await evaluate("document.getElementById('model').value='main';window.__evidenceLab.selectCase('P05-resplan');document.querySelector('[data-stage=ml]').click();document.getElementById('fit').click()");
   await evaluate("document.querySelector('[data-classes=all]').click();document.querySelector('[data-view=both]').click();window.scrollTo(0,0)");
   await screenshot('evidence-lab-overview.png');
+  if(await evaluate('Boolean(DATA.room_report)')){
+    for(const id of ['P05-resplan','P01-cubicasa5k']){
+      await evaluate(`window.__evidenceLab.selectCase('${id}');document.querySelector('[data-classes=all]').click();document.querySelector('[data-view=ml]').click();window.scrollTo(0,0)`);
+      await screenshot('room-baseline-'+id+'.png');
+      await evaluate(`window.__evidenceLab.selectCase('${id}');document.querySelector('[data-view=rooms]').click();window.scrollTo(0,0)`);
+      assert.ok(await evaluate("document.querySelectorAll('#drawing [data-room]').length>0"));
+      assert.equal(await evaluate("document.querySelectorAll('#drawing [data-obs]').length"),0);
+      await screenshot('room-boundaries-'+id+'.png');
+      await evaluate("document.getElementById('roomSelect').selectedIndex=1;document.getElementById('roomSelect').dispatchEvent(new Event('change'))");
+      await until(()=>evaluate("document.getElementById('cropEmpty').hidden"),'room clean crop');
+      assert.ok(await evaluate("document.getElementById('details').textContent.includes('ML parents')"));
+      await screenshot('room-crop-'+id+'.png');
+      await evaluate("document.getElementById('room-layer-regions').click()");
+      await evaluate("document.getElementById('room-layer-alternatives').click()");
+      assert.ok(await evaluate("document.querySelectorAll('#drawing [data-boundary-alternative]').length>0"));
+      await evaluate("document.getElementById('room-layer-alternatives').click()");
+      assert.equal(await evaluate("document.querySelectorAll('#drawing [data-room]').length"),0);
+      await evaluate("document.getElementById('room-layer-regions').click()");
+    }
+    checks.push('Simple and complex room views render, select clean crops and toggle independently');
+    await evaluate("document.querySelector('[data-opening]')?.dispatchEvent(new MouseEvent('click',{bubbles:true}))");
+    assert.ok(await evaluate("document.getElementById('inspectTitle').textContent.includes('hypothesis')"));
+    checks.push('Opening hypotheses expose rule evidence and ML alternatives');
+  }
   await rpc('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   assert.ok(await evaluate('document.documentElement.scrollWidth<=390'));
   checks.push('Narrow screen has no document-level horizontal overflow');
