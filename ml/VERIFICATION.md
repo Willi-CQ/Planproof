@@ -70,11 +70,13 @@ measured run report after matched-cohort validation, not this readiness record.
 
 ## Supervised release verification — 14 November 2026
 
-72 CPU tests pass, with Ruff lint and format checks. Coverage now includes exact
+73 CPU tests pass, with Ruff lint and format checks. Coverage now includes exact
 resume, fresh cross-dataset initialization, deterministic threaded prefetch,
 real publisher schema regressions, class-balanced GIoU/relative-size losses,
 known-object supervision in otherwise ignored pixels, calibration cache parity,
-global/tiled calibration guards, slim checkpoint equality and ONNX parity.
+global/tiled calibration guards, cached component-area calibration, slim
+checkpoint equality and ONNX parity. The last full run had two non-fatal Windows
+pytest-cache permission warnings; all tests passed.
 
 On the A100 host, original CubiCasa, ResPlan and usable FloorPlanCAD imports passed
 deep content audits and visual label review. Training completed finite CUDA
