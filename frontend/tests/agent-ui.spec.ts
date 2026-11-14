@@ -61,26 +61,36 @@ async function upload(page: Page, name = "plan.png", mimeType = "image/png") {
   await page
     .getByLabel("Upload drawing", { exact: true })
     .setInputFiles({ name, mimeType, buffer: png });
-  await expect(page.getByTestId("source-image")).toBeVisible();
+  await expect(page.getByTestId("source-image")).toBeAttached();
 }
 async function ask(page: Page) {
-  await page.getByLabel("Gemini (answer agent)", { exact: true }).check();
   await page.getByLabel("Question about this drawing").fill("How many doors?");
-  await page.getByRole("button", { name: "Ask drawing", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Ask Planproof", exact: true })
+    .click();
 }
-test("empty state contains no invented answers and requires upload and permission", async ({
+test("one assistant with upload first and no model controls", async ({
   page,
 }) => {
   await setup(page);
-  await expect(page.getByTestId("agent-answer")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Ask drawing", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("heading", { name: "Your plans. Clearly understood." }),
+  ).toBeVisible();
+  await expect(page.getByTestId("agent-answer")).toHaveCount(0);
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  await expect(page.getByLabel("Question about this drawing")).toHaveCount(0);
   await upload(page);
+  await expect(
+    page.getByRole("button", { name: "Ask Planproof", exact: true }),
+  ).toBeDisabled();
   await page.getByLabel("Question about this drawing").fill("How many doors?");
   await expect(
-    page.getByRole("button", { name: "Ask drawing", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: "Ask Planproof", exact: true }),
+  ).toBeEnabled();
+  await expect(page.getByText(/Sending lets Planproof/)).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(
+    /Gemini|Nemotron|Algorithms|configured-model/,
+  );
 });
 test("sends unchanged agent contract, prevents duplicates, and draws canonical evidence", async ({
   page,
@@ -97,13 +107,12 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
     await gate;
     await route.fulfill({ json: result });
   });
-  await page.getByLabel("Nemotron (detail crops)", { exact: true }).check();
   await ask(page);
   await expect(
-    page.getByRole("button", { name: "Ask drawing", exact: true }),
+    page.getByRole("button", { name: "Ask Planproof", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Upload plan", exact: true }),
+    page.getByRole("button", { name: "New drawing", exact: true }),
   ).toBeDisabled();
   await expect(page.getByTestId("actual-tools")).toHaveCount(0);
   release();
@@ -116,11 +125,9 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
       allow_nemotron: true,
     },
   ]);
-  await expect(page.getByTestId("actual-tools")).toContainText(
-    "Algorithms not used",
-  );
+  await expect(page.getByTestId("actual-tools")).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Evidence 1 · p1", exact: true })
+    .getByRole("button", { name: "View evidence 1, page 1", exact: true })
     .click();
   await expect(page.getByTestId("evidence-overlay")).toHaveAttribute(
     "viewBox",
@@ -133,14 +140,14 @@ test("sends unchanged agent contract, prevents duplicates, and draws canonical e
   );
   await expect(page.getByTestId("evidence-box")).toHaveAttribute(
     "stroke",
-    "#f97316",
+    "#005bb5",
   );
   const imageBox = await page.getByTestId("source-image").boundingBox();
   const evidenceBox = await page.getByTestId("evidence-box").boundingBox();
   expect(imageBox!.height / imageBox!.width).toBeCloseTo(0.6, 2);
   expect((evidenceBox!.x - imageBox!.x) / imageBox!.width).toBeCloseTo(0.1, 2);
   expect(evidenceBox!.width / imageBox!.width).toBeCloseTo(0.3, 2);
-  await page.getByText("Coverage and uncertainty", { exact: true }).click();
+  await page.getByText("About this answer", { exact: true }).click();
   await expect(
     page.getByText("Whole-page coverage is not established.", { exact: true }),
   ).toBeVisible();
@@ -170,12 +177,14 @@ test("abstention and outages are not displayed as zero, with no automatic retrie
     "Not enough evidence to answer",
   );
   await expect(
-    page.getByText("Wait at least 20 seconds before trying again."),
+    page.getByText("Please wait 20 seconds before trying again."),
   ).toBeVisible();
   await page.waitForTimeout(250);
   expect(calls).toBe(1);
 });
-test("a token-recovered answer reports the real recovery", async ({ page }) => {
+test("a recovered answer stays usable without exposing model machinery", async ({
+  page,
+}) => {
   await setup(page);
   await upload(page);
   await page.route("**/api/v1/documents/*/ask", (r) =>
@@ -184,9 +193,10 @@ test("a token-recovered answer reports the real recovery", async ({ page }) => {
     }),
   );
   await ask(page);
-  await expect(
-    page.getByText("Completed after provider recovery."),
-  ).toBeVisible();
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  await expect(page.locator("body")).not.toContainText(
+    /provider|token_repair|Nemotron/,
+  );
 });
 test("expired document clears source and requires explicit re-upload", async ({
   page,
@@ -200,7 +210,7 @@ test("expired document clears source and requires explicit re-upload", async ({
   await expect(page.getByRole("alert")).toContainText("expired");
   await expect(page.getByTestId("source-image")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Re-upload plan.png" }),
+    page.getByRole("button", { name: /Try opening this drawing again/ }),
   ).toBeVisible();
 });
 test("network failure never restores stale evidence for the new question", async ({
@@ -214,13 +224,13 @@ test("network failure never restores stale evidence for the new question", async
   await ask(page);
   await expect(page.getByTestId("evidence-box")).toHaveCount(1);
   await page.route("**/api/v1/documents/*/ask", (r) => r.abort("failed"));
-  await page.getByRole("button", { name: "Ask drawing", exact: true }).click();
+  await ask(page);
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText(
-    "server may still be processing",
+    "question may still be processing",
   );
   await expect(page.getByTestId("answer-value").last()).toHaveText(
-    "The agent could not complete this question",
+    "We couldn’t complete this question",
   );
   await expect(page.getByTestId("evidence-box")).toHaveCount(0);
 });
@@ -288,13 +298,11 @@ test("rejects unsupported and oversized originals without upload", async ({
     .getByLabel("Upload drawing", { exact: true })
     .setInputFiles({ name: "plan.webp", mimeType: "image/webp", buffer: png });
   await expect(page.getByRole("alert")).toContainText("PDF, PNG or JPEG");
-  await page
-    .getByLabel("Upload drawing", { exact: true })
-    .setInputFiles({
-      name: "large.png",
-      mimeType: "image/png",
-      buffer: Buffer.alloc(10 * 1024 * 1024 + 1),
-    });
+  await page.getByLabel("Upload drawing", { exact: true }).setInputFiles({
+    name: "large.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(10 * 1024 * 1024 + 1),
+  });
   await expect(page.getByRole("alert")).toContainText("10 MiB");
   expect(uploads).toBe(0);
 });
@@ -321,6 +329,115 @@ test("canonical filtering excludes local, wrong-page and mismatched-frame boxes"
   ).toEqual([]);
   expect(isAnswered({ ...result, status: "unavailable" })).toBe(false);
   expect(resultText({ status: "not_configured", answer: null })).toContain(
-    "configuration",
+    "available",
   );
+});
+
+test("suggestions prepare a question without sending, Enter sends and Shift+Enter adds a line", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page);
+  let calls = 0;
+  await page.route("**/api/v1/documents/*/ask", (r) => {
+    calls++;
+    return r.fulfill({ json: result });
+  });
+  await page
+    .getByRole("button", { name: "What is the drawing title?", exact: true })
+    .click();
+  const composer = page.getByLabel("Question about this drawing");
+  await expect(composer).toHaveValue("What is the drawing title?");
+  expect(calls).toBe(0);
+  await composer.press("End");
+  await composer.press("Shift+Enter");
+  await expect(composer).toHaveValue("What is the drawing title?\n");
+  expect(calls).toBe(0);
+  await composer.press("Enter");
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  expect(calls).toBe(1);
+  await expect(composer).toHaveValue("");
+});
+
+test("mobile evidence opens the drawing and returns to the conversation", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await setup(page);
+  await upload(page);
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({ json: result }),
+  );
+  await ask(page);
+  await page
+    .getByRole("button", { name: "View evidence 1, page 1", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Show drawing", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("source-image")).toBeVisible();
+  await expect(page.getByTestId("evidence-box")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Show conversation", exact: true })
+    .click();
+  await expect(page.getByTestId("answer-value")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("drag and drop uploads exactly once without a hidden inference call", async ({
+  page,
+}) => {
+  await setup(page);
+  let uploads = 0,
+    asks = 0;
+  await page.route("**/api/documents", (r) => {
+    uploads++;
+    return r.fulfill({ json: drawing });
+  });
+  await page.route("**/api/v1/documents/*/ask", (r) => {
+    asks++;
+    return r.fulfill({ json: result });
+  });
+  const dataTransfer = await page.evaluateHandle((bytes) => {
+    const dt = new DataTransfer();
+    dt.items.add(
+      new File([new Uint8Array(bytes)], "drop.png", { type: "image/png" }),
+    );
+    return dt;
+  }, Array.from(png));
+  await page.locator(".product").dispatchEvent("dragover", { dataTransfer });
+  await expect(
+    page.getByText("Drop your drawing", { exact: true }),
+  ).toBeVisible();
+  await page.locator(".product").dispatchEvent("drop", { dataTransfer });
+  await expect(page.getByTestId("source-image")).toBeVisible();
+  expect(uploads).toBe(1);
+  expect(asks).toBe(0);
+});
+
+test("narrow welcome and keyboard focus remain usable", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await setup(page);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: /Add your drawing/ }).focus();
+  await expect(
+    page.getByRole("button", { name: /Add your drawing/ }),
+  ).toBeFocused();
+  await upload(page);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await expect(page.getByLabel("Question about this drawing")).toBeVisible();
 });

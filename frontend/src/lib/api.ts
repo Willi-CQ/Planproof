@@ -117,12 +117,12 @@ export function resultText(result: AgentResult): string {
   if (isAnswered(result))
     return `${result.answer!.answer}${result.answer!.unit ? " " + result.answer!.unit : ""}`;
   if (result.status === "not_configured")
-    return "Agent configuration is missing on the server.";
+    return "Planproof isn’t available right now.";
   if (result.status === "not_authorized")
-    return "Provider permission is required.";
+    return "Planproof couldn’t start this question.";
   if (result.answer?.status === "abstain")
     return "Not enough evidence to answer";
-  return "The agent could not complete this question";
+  return "We couldn’t complete this question";
 }
 export function visibleCitations(
   result: AgentResult,
