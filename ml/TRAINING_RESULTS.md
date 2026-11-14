@@ -3,8 +3,9 @@
 The selected detector completed CubiCasa baseline training, ResPlan transfer and
 replay refinement with corrected explicit-object supervision. Its PyTorch and
 ONNX inference bundle is exported, verified and backed up locally outside Git.
-Selection was locked before the full held-out test results; that reporting run
-is currently in progress. A separate CAD object specialist is being assessed.
+Selection was locked before the full held-out test results. That evaluation is
+complete with unchanged weights and thresholds. A separate 3000-update CAD object
+specialist is also exported and verified.
 
 ## Selected detector
 
@@ -13,6 +14,22 @@ Checkpoint: `runs/corrected-refine-selected/final-review.pt`, refinement step 35
 Operating point: global view, canvas 1024, mask thresholds
 `[0.35, 0.65, 0.5, 0.5, 0.5]`, center thresholds `[0.1, 0.1, 0.1, 0.1]`,
 and minimum wall/room component area 2048 working-image pixels.
+
+### Full post-selection test
+
+| Test source | Drawings | Wall IoU | Object mAP @ .5 | Room-instance F1 @ IoU .5 |
+| --- | ---: | ---: | ---: | ---: |
+| CubiCasa5K | 403 | .6450 | .5421 | .6393 |
+| ResPlan | 1,648 | .7817 | .6319 | .8389 |
+| Source macro | 2,051 | .7134 | .5870 | .7391 |
+
+Door/window AP50 is .7434/.7270 on CubiCasa and .9477/.9406 on ResPlan.
+Stair AP50 is .1559 on 377 CubiCasa instances and .0074 on 79 ResPlan instances.
+Stairs remain unreliable. These component scores are not Stoa QA accuracy or
+publisher benchmark reproductions. The test report did not select or tune models.
+
+### Selection validation
+
 Thresholds were selected on 32 validation drawings per source and then kept fixed
 for the larger 128-per-source confirmation below.
 
@@ -26,7 +43,7 @@ Door/window AP50 is .7688/.7673 on CubiCasa and .9492/.9480 on ResPlan.
 Stairs remain weak: .1941 AP50 on 96 CubiCasa instances, .1485 on seven ResPlan
 instances. Room-category macro F1 is .5433/.7579, conditional on 716/799 matched
 rooms with known category labels; it is not an all-room classification score.
-The provisional .80/.80/.70 targets have **not** been met.
+The provisional targets (wall IoU .80, room F1 .80, object mAP .70) have **not** been met.
 
 These are project validation metrics, not publisher benchmark reproductions,
 final test scores, or Stoa question-answering accuracy. All current comparisons
@@ -81,11 +98,14 @@ issue, not proof that it explains every stair failure. Target-transform revision
 prevents silently resuming an old optimizer with changed target semantics.
 
 CAD transfer and class-balanced mixed-source training did not establish a better
-universal detector. Their checkpoints remain separate. A full-view CAD-focused
-continuation improved object AP on 128 matching CAD validation drawings from
-.1372 to .4032 at step1500 (door .6393, window .4009, stairs .1696); its final
-bounded continuation is pending. This is an object specialist, with no claim of
-reliable CAD wall/room extraction or a reproduced publisher benchmark.
+universal detector. Their checkpoints remain separate. Full-view CAD-focused
+training improved object AP on 128 matching CAD validation drawings from .1372
+to .4032 at step1500 and **.4675 at step3000**. Final AP50 is .7108 door (285 GT),
+.4479 window (85 GT) and .2436 stairs (22 GT). The final continuation improved
+every class and passed the predeclared mean/per-class regression rule.
+On the same CAD cohort the selected residential model scored .0250 object mAP,
+supporting separate models for these domains. This is an object specialist, with
+no claim of reliable CAD wall/room extraction or a publisher benchmark reproduction.
 A CAD viewport audit ruled out out-of-frame annotations as the main explanation.
 No claim is made that additional datasets automatically improve accuracy.
 
@@ -117,6 +137,8 @@ preserved independently.
 The bundle contains `detector.pt`, `detector.onnx`, `wall.onnx`, `metadata.json`,
 the rebound `calibration.json`, validation/selection evidence, real-input parity,
 CLI integration evidence, dataset source notices and `SHA256SUMS`.
+`test.json` contains the complete post-selection 2051-drawing report;
+`selection-lock.json` records the frozen weights and thresholds before results.
 The slim PyTorch checkpoint has identical model parameters and
 omits optimizer state. Keep this bundle outside Git.
 
@@ -141,6 +163,31 @@ actual selected slim checkpoint loaded
 and ran a finite five-head CPU forward locally. Tiled inference needs separate
 calibration and validation; do not reuse this global calibration in tiled mode.
 
+### CAD object bundle
+
+`/srv/planproof-data/releases/cad-objects-3000-global` and the corresponding local
+ignored `.artifacts/releases/cad-objects-3000-global` contain the CAD specialist.
+The parent `CAD_OBJECTS.json` pointer declares its role and validation scores.
+
+Use the same inference command with this bundle's checkpoint and calibration.
+Its checkpoint declares `intended_classes = [door, window, stairs]`; the CLI
+automatically limits JSON and overlays to these classes. Dense probability-map
+export is rejected for this object-only release. Python callers of `detect`
+should retain the declared classes before exposing results.
+
+Its ONNX outputs are **centers and boxes only**. The center tensor has four
+channels: channel0 is reserved, while channels1–3 represent door/window/stairs.
+Boxes use the existing 12-channel encoding. Inspect `metadata.json` rather than
+assuming every model exports five heads. Reproduce with `export --objects-only`.
+
+The full-head CAD export failed strict real-input parity in unsupported mask/type
+outputs. It was retained as a rejected diagnostic artifact. The object-only
+export publishes the validated task: both outputs passed the original
+rtol=1e-3/atol=1e-4 gate on an actual CAD drawing. No tolerance was relaxed.
+The actual CLI also passed object-only output, original-coordinate overlay and
+input-preservation checks. Its fixed threshold profile is validated, not a
+statistical calibration of correctness probabilities.
+
 ## Continuing training
 
 Use `--init-weights /path/to/detector.pt` with a new run/config for another compatible
@@ -153,6 +200,7 @@ The selected artifact is intended for the hackathon evidence pipeline. Reliable
 stairs, precise room counts, room categories, metric measurements and Stoa QA
 accuracy remain integration/evaluation work, not demonstrated capabilities.
 
-73 CPU tests and Ruff lint/format checks pass, including cached component-area
-parity and calibration binding. The release's real-input and CLI checks supplement
+74 CPU tests and Ruff lint/format checks pass, including cached component-area
+parity, calibration binding, dynamic object-only ONNX parity and non-vacuous CLI
+scope filtering. The release's real-input and CLI checks supplement
 fixture tests; no remote GitHub CI or multi-GPU execution is claimed.

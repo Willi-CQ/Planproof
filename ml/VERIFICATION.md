@@ -70,18 +70,22 @@ measured run report after matched-cohort validation, not this readiness record.
 
 ## Supervised release verification — 14 November 2026
 
-73 CPU tests pass, with Ruff lint and format checks. Coverage now includes exact
+74 CPU tests pass, with Ruff lint and format checks. Coverage now includes exact
 resume, fresh cross-dataset initialization, deterministic threaded prefetch,
 real publisher schema regressions, class-balanced GIoU/relative-size losses,
 known-object supervision in otherwise ignored pixels, calibration cache parity,
 global/tiled calibration guards, cached component-area calibration, slim
-checkpoint equality and ONNX parity. The last full run had two non-fatal Windows
-pytest-cache permission warnings; all tests passed.
+checkpoint equality and ONNX parity. The final full run passed without warnings.
+Object-only export tests verify two ONNX outputs with dynamic shapes, declared
+checkpoint scope, actual CLI removal of unsupported room/wall predictions, and
+rejection of unsupported dense maps or accidental full-scope re-export.
 
 On the A100 host, original CubiCasa, ResPlan and usable FloorPlanCAD imports passed
 deep content audits and visual label review. Training completed finite CUDA
-updates, checkpoints and matched validation comparisons. The selected fallback
-was confirmed on 128 validation drawings per source with fixed thresholds.
+updates, checkpoints and matched validation comparisons. The selected main model
+was confirmed on128 validation drawings/source, then all2051 project test
+drawings after locking weights and thresholds. The separate CAD specialist was
+selected on128 matching CAD validation drawings with per-class regression gates.
 
 Its actual trained weights exported to full and wall-only ONNX. Every output
 matched PyTorch on a real 1024-pixel drawing within rtol=1e-3/atol=1e-4.
@@ -89,6 +93,11 @@ The inference-only PyTorch checkpoint has identical parameters, rebound
 calibration and explicit normalization/coordinate metadata. All copied release
 files passed local SHA256 verification; the actual released weights also passed
 a finite five-head forward on the local CPU.
+
+The CAD object-only ONNX export passed center/box parity on a real CAD drawing at
+the same tolerance. An earlier full-head CAD export failed in unsupported
+segmentation outputs and was rejected. Its published output contract is now
+limited to door/window/stairs; actual CLI checks confirm that scope.
 
 Root README remains empty. No dataset, weight, credential, private brain or
 instruction file is tracked. Source commits are local; no GitHub push occurred.

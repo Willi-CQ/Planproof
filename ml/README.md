@@ -14,6 +14,12 @@ the deterministic packages or call Gemini.
 
 ## Model and output
 
+The CAD specialist declares an object-only scope. Its inference checkpoint makes
+the CLI filter JSON/overlays to door/window/stairs, and its ONNX exports only
+`centers` and `boxes`. Export this variant with `--objects-only`; inspect each
+bundle's metadata for supported outputs. Dense probability-map export applies
+to the full structural model.
+
 The first detector uses a U-Net/ResNet-34 shared encoder/decoder, initialized
 from ImageNet for real training. Five mask channels describe wall body, room
 interior, door, window and stairs. Auxiliary heads predict room boundaries,
