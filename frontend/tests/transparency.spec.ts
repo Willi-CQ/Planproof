@@ -122,6 +122,9 @@ const bundle = {
   warnings: ["Candidates are not verified physical counts."],
 };
 async function setup(page: Page) {
+  await page.route("**/api/**", (r) =>
+    r.fulfill({ status: 404, json: { detail: "Fixture resource unavailable." } }),
+  );
   await page.route("**/api/documents", (r) => r.fulfill({ json: drawing }));
   await page.route("**/api/v1/documents/*/frame", (r) =>
     r.fulfill({ json: source }),

@@ -106,6 +106,10 @@ async function routeAnswer(page: Page, handler: (route: Route) => unknown) {
 }
 async function setup(page: Page) {
   await page.route("https://**/*", (r) => r.abort());
+  // Never depend on a developer's running backend for an unspecified fixture.
+  await page.route("**/api/**", (r) =>
+    r.fulfill({ status: 404, json: { detail: "Fixture resource unavailable." } }),
+  );
   await page.route("**/api/v1/agent", (r) =>
     r.fulfill({
       json: {
