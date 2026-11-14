@@ -33,6 +33,9 @@ def test_deep_audit_detects_changed_pixels(tmp_path):
 
     manifest = check_corpus(tmp_path / "data")
     assert audit_manifest(manifest, deep=True)["image_hashes_checked"] == 4
+    assert audit_manifest(manifest, deep=True, near=True, workers=2) == audit_manifest(
+        manifest, deep=True, near=True
+    )
     Image.fromarray(np.zeros((64, 64, 3), np.uint8)).save(manifest.parent / "fixture-0.png")
     with pytest.raises(ValueError, match="Image hash mismatch"):
         audit_manifest(manifest, deep=True)

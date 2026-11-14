@@ -42,10 +42,16 @@ def parser():
     q.add_argument("--trust-pickle", action="store_true")
     q.add_argument("--limit", type=int, help="Explicit diagnostic import only; not a full training corpus")
     q.add_argument("--workers", type=int, default=1, help="Bounded CPU import workers (1-16)")
+    q.add_argument(
+        "--exclusions",
+        type=Path,
+        help="Explicit source-relative SVG exclusions with reasons; recorded in provenance",
+    )
     q = sub.add_parser("audit")
     q.add_argument("--manifest", type=Path, required=True)
     q.add_argument("--deep", action="store_true")
     q.add_argument("--near", action="store_true")
+    q.add_argument("--workers", type=int, default=1, help="Bounded read-only audit processes (1-16)")
     q.add_argument("--out", type=Path)
     q = sub.add_parser("inspect", help="Render prepared ground-truth overlays for source-adapter review")
     q.add_argument("--manifest", type=Path, required=True)
@@ -155,12 +161,19 @@ def execute(args):
         if args.limit is not None and args.limit < 1:
             raise ValueError("--limit must be positive")
         return prepare(
-            args.source, args.raw, args.out, args.class_map, args.trust_pickle, args.limit, args.workers
+            args.source,
+            args.raw,
+            args.out,
+            args.class_map,
+            args.trust_pickle,
+            args.limit,
+            args.workers,
+            args.exclusions,
         )
     if command == "audit":
         from .audit import audit_manifest
 
-        result = audit_manifest(args.manifest, args.deep, args.near)
+        result = audit_manifest(args.manifest, args.deep, args.near, args.workers)
         if args.out:
             write_json(args.out, result)
         return result

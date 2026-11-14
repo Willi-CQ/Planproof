@@ -42,6 +42,24 @@ def item_mask(item, shape):
     return out.astype(bool)
 
 
+def item_roi_mask(item, shape):
+    polygons = item.get("polygons", [])
+    if not polygons:
+        return (slice(0, 0), slice(0, 0)), np.zeros((0, 0), bool)
+    points = np.rint(np.vstack([p["outer"] for p in polygons])).astype(np.int64)
+    low = np.maximum(points.min(0), 0)
+    high = np.minimum(points.max(0) + 1, [shape[1], shape[0]])
+    if np.any(high <= low):
+        return (slice(0, 0), slice(0, 0)), np.zeros((0, 0), bool)
+    bounds = (slice(int(low[1]), int(high[1])), slice(int(low[0]), int(high[0])))
+    mask = np.zeros((high[1] - low[1], high[0] - low[0]), np.uint8)
+    for polygon in polygons:
+        outer = np.rint(np.asarray(polygon["outer"])).astype(np.int64) - low
+        holes = [np.rint(np.asarray(r)).astype(np.int64) - low for r in polygon.get("holes", [])]
+        mask |= polygon_mask(mask.shape, outer, holes)
+    return bounds, mask.astype(bool)
+
+
 class SourceMetrics:
     def __init__(self):
         self.samples = 0
@@ -65,7 +83,8 @@ class SourceMetrics:
             prediction = np.zeros((h, w), bool)
             for item in result["instances"]:
                 if item["class"] == "wall":
-                    prediction |= item_mask(item, (h, w))
+                    bounds, region = item_roi_mask(item, (h, w))
+                    prediction[bounds] |= region
             truth = masks[0].astype(bool)
             self.wall_intersection += int(np.sum(prediction & truth & valid[0]))
             self.wall_union += int(np.sum((prediction | truth) & valid[0]))
@@ -93,12 +112,18 @@ class SourceMetrics:
             ids = [i for i in np.unique(targets["instances"][0]) if i > 0]
             truth = [(targets["instances"][0] == i) & valid[1] for i in ids]
             predictions = [p for p in result["instances"] if p["class"] == "room"]
-            pred_masks = [item_mask(p, (h, w)) & valid[1] for p in predictions]
+            pred_masks = []
+            for prediction in predictions:
+                bounds, region = item_roi_mask(prediction, (h, w))
+                pred_masks.append((bounds, region & valid[1][bounds]))
             overlaps = np.zeros((len(pred_masks), len(truth)))
-            for i, p in enumerate(pred_masks):
+            truth_areas = [int(t.sum()) for t in truth]
+            for i, (bounds, p) in enumerate(pred_masks):
+                area = int(p.sum())
                 for j, t in enumerate(truth):
-                    union = np.sum(p | t)
-                    overlaps[i, j] = np.sum(p & t) / union if union else 0
+                    intersection = int(np.sum(p & t[bounds]))
+                    union = area + truth_areas[j] - intersection
+                    overlaps[i, j] = intersection / union if union else 0
             matches = assignment(overlaps)
             self.room_tp += len(matches)
             self.room_fp += len(pred_masks) - len(matches)

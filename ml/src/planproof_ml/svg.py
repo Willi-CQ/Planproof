@@ -137,13 +137,15 @@ def read_svg(
                 new_ignore, new_label = True, None
             else:
                 new_label, new_type = "room", classes[1]
-        if "semanticId" in a:
+        semantic_id = a.get("semanticId", a.get("semantic-id"))
+        instance_id = a.get("instanceId", a.get("instance-id", "-1"))
+        if semantic_id is not None:
             numeric += 1
             if class_map is None:
                 raise ValueError("Numeric semanticId requires a release-specific --class-map")
-            new_label = mapping.get(a["semanticId"])
-            owner = "cad:" + a.get("instanceId", "-1") + ":" + a["semanticId"]
-            if a.get("instanceId", "-1") == "-1":
+            new_label = mapping.get(semantic_id)
+            owner = "cad:" + instance_id + ":" + semantic_id
+            if instance_id == "-1":
                 new_label = None
             label, rtype, ignore = new_label, None, False
         elif new_label or new_ignore:
@@ -191,7 +193,7 @@ def read_svg(
         closed = [p for p, c in shapes if c and len(p) >= 3]
         if closed:
             ignore_regions.append({"outer": closed[0].tolist()})
-    if not features:
+    if not features and not (class_map and numeric and class_map.get("complete")):
         raise ValueError(
             f"No supported annotations in {path}; inspect schema rather than making empty labels"
         )

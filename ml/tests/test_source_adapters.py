@@ -26,6 +26,23 @@ def test_resplan_requires_explicit_pickle_trust_and_preserves_canonical_split(tm
     assert "door" in examples[1]["complete"]  # explicitly present empty annotation field
 
 
+def test_resplan_uses_publisher_ids_when_pickle_order_is_shuffled(tmp_path):
+    plans = [
+        {"id": 42, "wall": box(0, 0, 5, 0.2), "kitchen": box(0.2, 0.2, 4, 4)},
+        {"id": 7, "wall": box(0, 0, 6, 0.2), "bedroom": box(0.2, 0.2, 5, 5)},
+        {"id": 100007, "wall": box(0, 0, 7, 0.2), "bedroom": box(0.2, 0.2, 6, 6)},
+    ]
+    with (tmp_path / "ResPlan.pkl").open("wb") as stream:
+        pickle.dump(plans, stream)
+    (tmp_path / "split.json").write_text(
+        json.dumps({"train": [7], "val": [42], "test": [], "augmented": [100007]})
+    )
+    examples = list(resplan_samples(tmp_path, True))
+    assert [x["key"] for x in examples] == ["42", "7"]
+    assert [x["publisher_split"] for x in examples] == ["val", "train"]
+    assert [x["group"] for x in examples] == ["resplan:42", "resplan:7"]
+
+
 def test_modres_geojson_masks_and_coverage_do_not_invent_negatives(tmp_path):
     folder = tmp_path / "Geometry/2D/Geometry"
     folder.mkdir(parents=True)

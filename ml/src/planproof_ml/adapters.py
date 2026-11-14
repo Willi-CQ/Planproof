@@ -183,17 +183,20 @@ def publisher_splits(source, raw):
     return split_lookup
 
 
+def svg_source_paths(source, raw):
+    paths = sorted(raw.rglob("model.svg")) if source == "cubicasa5k" else sorted(raw.rglob("*.svg"))
+    if source == "floorplancad":
+        partitioned = [
+            p for p in paths if any(part.startswith(("train-", "test-")) for part in p.relative_to(raw).parts)
+        ]
+        if partitioned:
+            paths = partitioned
+    return [p for p in paths if "coco_vis" not in p.parts]
+
+
 def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None, raster_max_size=4096):
     if svg_paths is None:
-        svg_paths = sorted(raw.rglob("model.svg")) if source == "cubicasa5k" else sorted(raw.rglob("*.svg"))
-        if source == "floorplancad":
-            partitioned = [
-                p
-                for p in svg_paths
-                if any(part.startswith(("train-", "test-")) for part in p.relative_to(raw).parts)
-            ]
-            if partitioned:
-                svg_paths = partitioned
+        svg_paths = svg_source_paths(source, raw)
     if not svg_paths:
         raise ValueError(f"No annotated SVG files under {raw}")
     if split_lookup is None:
@@ -249,6 +252,12 @@ def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None, 
             info["original_raster_size"] = list(raster_size)
         if image is None:
             image = render_strokes(size, strokes)
+        elif source == "floorplancad":
+            # Ignore CAD layer/annotation colors; learn geometry from monochrome
+            # linework rendered independently of semantic labels.
+            image = render_strokes(size, strokes)
+        if source == "floorplancad":
+            info["input_rendering"] = "monochrome-svg-strokes"
         key = (
             path.parent.relative_to(raw).as_posix()
             if source == "cubicasa5k"
@@ -302,24 +311,29 @@ def resplan_samples(raw, trust_pickle=False):
         for split, ids in read_json(split_files[0]).items():
             if split in {"train", "val", "test"}:
                 lookup.update({str(x): split for x in ids})
+    seen_ids = set()
     for i, plan in enumerate(plans):
-        if lookup and str(i) not in lookup:  # publisher's augmentation list excluded by default
+        plan_id = str(plan.get("id", i))
+        if plan_id in seen_ids:
+            raise ValueError(f"Duplicate ResPlan publisher ID: {plan_id}")
+        seen_ids.add(plan_id)
+        if lookup and plan_id not in lookup:  # publisher's augmentation list excluded by default
             continue
         features = room_features(plan)
         if not features:
             raise ValueError(f"No ResPlan geometry in plan {i}")
         image, features, meta = render_layout(features)
         yield {
-            "key": str(i),
-            "group": "resplan:" + str(i),
+            "key": plan_id,
+            "group": "resplan:" + plan_id,
             "image": image,
             "features": features,
             "ignore": [],
             "complete": declared_coverage(plan),
             "instance_complete": declared_coverage(plan),
-            "publisher_split": lookup.get(str(i)),
+            "publisher_split": lookup.get(plan_id),
             "annotation": files[0],
-            "metadata": meta,
+            "metadata": {**meta, "publisher_plan_id": plan_id, "archive_index": i},
         }
 
 

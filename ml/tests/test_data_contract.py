@@ -92,6 +92,44 @@ def test_original_cad_numeric_ids_require_explicit_mapping(tmp_path):
         read_svg(svg, (100, 100))
     result, _, _, _ = read_svg(svg, (100, 100), {"mapping": {"1": "door"}, "complete": ["door"]})
     assert result == [{"class": "door", "bbox": [10.0, 20.0, 30.0, 40.0], "box_only": True}]
+    svg.write_text(svg.read_text().replace("semanticId", "semantic-id").replace("instanceId", "instance-id"))
+    hyphenated, _, _, _ = read_svg(svg, (100, 100), {"mapping": {"1": "door"}, "complete": ["door"]})
+    assert hyphenated == result
+    negative, _, _, _ = read_svg(svg, (100, 100), {"mapping": {"7": "window"}, "complete": ["window"]})
+    assert negative == []
+
+
+def test_cad_renders_monochrome_and_groups_release_crops(tmp_path):
+    folder = tmp_path / "train-00"
+    folder.mkdir()
+    path = folder / "0024-0001.svg"
+    path.write_text(
+        '<svg viewBox="0 0 100 100"><path semantic-id="1" instance-id="7" '
+        'stroke="red" d="M10 20 L30 20 L30 40"/></svg>'
+    )
+    Image.fromarray(np.full((100, 100, 3), [255, 0, 0], np.uint8)).save(path.with_suffix(".png"))
+    item = next(svg_samples("floorplancad", tmp_path, {"mapping": {"1": "door"}, "complete": ["door"]}))
+    assert item["publisher_split"] == "train"
+    assert item["group"] == "cad-family:0024"
+    assert np.array_equal(item["image"][:, :, 0], item["image"][:, :, 1])
+    assert item["image"].min() < 255
+    assert item["metadata"]["svg"]["input_rendering"] == "monochrome-svg-strokes"
+
+
+def test_original_cad_release_ids_use_author_remapping_not_benchmark_ids(tmp_path):
+    from pathlib import Path
+
+    mapping = json.loads((Path(__file__).parents[1] / "configs/floorplancad-v2-map.json").read_text())
+    path = tmp_path / "cad.svg"
+    path.write_text(
+        '<svg viewBox="0 0 100 100">'
+        '<path semantic-id="3" instance-id="1" d="M1 1 L5 1 L5 5"/>'
+        '<path semantic-id="9" instance-id="2" d="M10 10 L15 10 L15 15"/>'
+        '<path semantic-id="30" instance-id="3" d="M20 20 L25 20 L25 25"/>'
+        '<path semantic-id="28" instance-id="4" d="M30 30 L35 30 L35 35"/></svg>'
+    )
+    features, _, _, _ = read_svg(path, (100, 100), mapping)
+    assert [f["class"] for f in features] == ["door", "window", "stairs"]
 
 
 def row(idx, split, source="cubicasa5k", image=None, group=None):
@@ -160,6 +198,17 @@ def test_preparation_original_split_and_manifest_audit(tmp_path):
     assert (prepared / "manifest.jsonl").read_text() == (tmp_path / "parallel/manifest.jsonl").read_text()
     with pytest.raises(ValueError, match="workers"):
         prepare("cubicasa5k", raw, tmp_path / "invalid", workers=0)
+    exclusions = tmp_path / "exclusions.json"
+    exclusions.write_text(json.dumps({"plans/2/model.svg": "Held-out source retained separately"}))
+    curated = tmp_path / "curated"
+    result = prepare("cubicasa5k", raw, curated, workers=2, exclusions=exclusions)
+    assert result["added"] == 2
+    provenance = json.loads((curated / "provenance/cubicasa5k.json").read_text())
+    assert provenance["excluded_records"] == 1
+    assert provenance["exclusions"]["plans/2/model.svg"]
+    exclusions.write_text(json.dumps({"missing.svg": "invalid path"}))
+    with pytest.raises(ValueError, match="unknown source paths"):
+        prepare("cubicasa5k", raw, tmp_path / "bad-exclusion", exclusions=exclusions)
 
 
 def test_stoa_archive_path_is_rejected(tmp_path):

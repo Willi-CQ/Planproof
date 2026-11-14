@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from concurrent.futures import ThreadPoolExecutor
+from collections import deque
 import json
 import math
 import os
@@ -198,7 +200,7 @@ def train(
                 ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
             ).strip()
         except (OSError, subprocess.CalledProcessError):
-            commit = "unknown"
+            commit = os.environ.get("PLANPROOF_SOURCE_COMMIT", "unknown")
         write_json(
             run / "run.json",
             {
@@ -223,6 +225,33 @@ def train(
     stop = min(total, max_steps) if max_steps is not None else total
     if stop <= start:
         raise ValueError("Requested stop step is not after resumed step")
+    workers = cfg.get("data_workers", 0)
+    prefetch = ThreadPoolExecutor(max_workers=workers) if workers else None
+    pending = deque()
+    tasks = iter((s, a) for s in range(start, stop) for a in range(accumulation))
+
+    def submit_next():
+        try:
+            key = next(tasks)
+        except StopIteration:
+            return
+        pending.append(
+            (key, prefetch.submit(_sample_microbatch, key, training, manifest.parent, cfg, seed, rank))
+        )
+
+    def next_examples(step, acc):
+        if prefetch is None:
+            return _sample_microbatch((step, acc), training, manifest.parent, cfg, seed, rank)
+        key, future = pending.popleft()
+        if key != (step, acc):
+            raise RuntimeError("Prefetch order differs from deterministic sampling schedule")
+        examples = future.result()
+        submit_next()
+        return examples
+
+    if prefetch is not None:
+        for _ in range(workers * 2):
+            submit_next()
     stop_reason = "step_limit"
     last_validation = None
     try:
@@ -235,26 +264,12 @@ def train(
                 group["lr"] = group["base_lr"] * phase.get("lr_scale", 1.0) * warmup * max(0.01, cosine)
             optimizer.zero_grad(set_to_none=True)
             total_loss = 0.0
+            data_wait = 0.0
             for acc in range(accumulation):
-                rng = np.random.default_rng(seed + step * 100003 + rank * 1009 + acc * 37)
-                names = list(phase["sources"])
-                weights = np.array([phase["sources"][n] for n in names], float)
-                examples = []
-                for _ in range(micro):
-                    source = str(rng.choice(names, p=weights / weights.sum()))
-                    candidates = training[source]
-                    record = candidates[int(rng.integers(len(candidates)))]
-                    examples.append(
-                        sample(
-                            record,
-                            manifest.parent,
-                            cfg["image_size"],
-                            rng,
-                            cfg.get("crop_probability", 0.5),
-                            augment=True,
-                        )
-                    )
+                wait_started = time.monotonic()
+                examples = next_examples(step, acc)
                 batch = tensor_batch(examples, device)
+                data_wait += time.monotonic() - wait_started
                 synchronization = model.no_sync() if world > 1 and acc < accumulation - 1 else nullcontext()
                 with synchronization:
                     with torch.autocast(device_type="cuda", dtype=dtype, enabled=amp):
@@ -287,6 +302,8 @@ def train(
                     "step": completed,
                     "phase": phase["name"],
                     "loss": total_loss,
+                    "data_wait_seconds": data_wait,
+                    "data_workers": workers,
                     "lr": optimizer.param_groups[-1]["lr"],
                     "elapsed_seconds": time.monotonic() - started,
                     "loss_parts_rank0_last_microbatch": parts,
@@ -299,6 +316,26 @@ def train(
                     print(json.dumps(log), flush=True)
             validation_due = completed % cfg.get("validation_every", 1000) == 0 or stopping
             improved = False
+            checkpoint_due = validation_due or completed % cfg.get("checkpoint_every", 1000) == 0
+            if rank == 0 and checkpoint_due:
+                state = {
+                    "step": completed,
+                    "best_score": best,
+                    "model": plain.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scaler": scaler.state_dict(),
+                    "config": cfg,
+                    "config_digest": config_digest(cfg),
+                    "manifest_fingerprint": inventory["fingerprint"],
+                    "model_metadata": plain.metadata(),
+                    "initialization": initialization,
+                    "source_commit": commit,
+                    "world_size": world,
+                    "rng_cpu": torch.get_rng_state(),
+                    "rng_cuda": torch.cuda.get_rng_state_all() if amp else [],
+                }
+                state["validation_pending"] = validation_due
+                atomic_checkpoint(run / "last.pt", state)
             if rank == 0 and validation_due:
                 plain.eval()
                 report = evaluate(
@@ -320,22 +357,9 @@ def train(
                 if score is not None and score > best:
                     best = score
                     improved = True
-            if rank == 0 and (validation_due or completed % cfg.get("checkpoint_every", 1000) == 0):
-                state = {
-                    "step": completed,
-                    "best_score": best,
-                    "model": plain.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scaler": scaler.state_dict(),
-                    "config": cfg,
-                    "config_digest": config_digest(cfg),
-                    "manifest_fingerprint": inventory["fingerprint"],
-                    "model_metadata": plain.metadata(),
-                    "initialization": initialization,
-                    "world_size": world,
-                    "rng_cpu": torch.get_rng_state(),
-                    "rng_cuda": torch.cuda.get_rng_state_all() if amp else [],
-                }
+            if rank == 0 and checkpoint_due:
+                state["best_score"] = best
+                state["validation_pending"] = False
                 atomic_checkpoint(run / "last.pt", state)
                 if improved:
                     atomic_checkpoint(run / "best.pt", state)
@@ -381,5 +405,32 @@ def train(
             )
         raise
     finally:
+        if prefetch is not None:
+            prefetch.shutdown(wait=True, cancel_futures=True)
         if world > 1:
             torch.distributed.destroy_process_group()
+
+
+def _sample_microbatch(key, training, root, cfg, seed, rank):
+    step, acc = key
+    phase, _ = phase_at(cfg["phases"], step)
+    micro = cfg.get("micro_batch", 2)
+    rng = np.random.default_rng(seed + step * 100003 + rank * 1009 + acc * 37)
+    names = list(phase["sources"])
+    weights = np.array([phase["sources"][n] for n in names], float)
+    examples = []
+    for _ in range(micro):
+        source = str(rng.choice(names, p=weights / weights.sum()))
+        candidates = training[source]
+        record = candidates[int(rng.integers(len(candidates)))]
+        examples.append(
+            sample(
+                record,
+                root,
+                cfg["image_size"],
+                rng,
+                cfg.get("crop_probability", 0.5),
+                augment=True,
+            )
+        )
+    return examples

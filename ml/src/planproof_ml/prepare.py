@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from .adapters import geometry_hash, iter_samples, svg_samples, publisher_splits
+from .adapters import geometry_hash, iter_samples, svg_samples, publisher_splits, svg_source_paths
 from .manifest import load_manifest, write_manifest
 from .schema import sha256, write_json, read_json
 from .targets import encode, validate_targets
@@ -25,6 +25,7 @@ def prepare(
     trust_pickle=False,
     limit=None,
     workers=1,
+    exclusions: Path | None = None,
 ):
     if not isinstance(workers, int) or not 1 <= workers <= 16:
         raise ValueError("workers must be between 1 and 16")
@@ -57,15 +58,31 @@ def prepare(
     records = [r for r in existing if r["source"] != source]
     added = []
     annotation_hashes = {}
+    excluded = read_json(exclusions) if exclusions else {}
+    if not isinstance(excluded, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in excluded.items()
+    ):
+        raise ValueError("Exclusions must map source-relative SVG paths to explicit reasons")
+    paths = None
+    if source in {"cubicasa5k", "floorplancad"}:
+        paths = svg_source_paths(source, raw)
+        known = {p.relative_to(raw).as_posix() for p in paths}
+        if set(excluded) - known:
+            raise ValueError("Exclusions contain unknown source paths")
+        paths = [p for p in paths if p.relative_to(raw).as_posix() not in excluded]
+    elif excluded:
+        raise ValueError("Explicit path exclusions currently support CubiCasa and FloorPlanCAD SVGs")
     executor_class = ThreadPoolExecutor
-    if source == "cubicasa5k" and workers > 1:
-        paths = sorted(raw.rglob("model.svg"))
-        paths = [p for p in paths if "coco_vis" not in p.parts]
+    if source in {"cubicasa5k", "floorplancad"} and workers > 1:
         iterator = ((path, raw, mapping, source, output, limit is not None) for path in paths)
         worker = _prepare_svg_path
         executor_class = ProcessPoolExecutor
     else:
-        iterator = iter_samples(source, raw, mapping, trust_pickle)
+        iterator = (
+            svg_samples(source, raw, mapping, svg_paths=paths)
+            if paths is not None
+            else iter_samples(source, raw, mapping, trust_pickle)
+        )
         worker = partial(
             _prepare_item,
             source=source,
@@ -117,6 +134,8 @@ def prepare(
             "raw_root": str(raw.resolve()),
             "records": len(added),
             "limited_import": limit is not None,
+            "excluded_records": len(excluded),
+            "exclusions": excluded,
             "adapter_validation": "automated contract tests; real publisher archive must pass inspect on GPU host",
         },
     )

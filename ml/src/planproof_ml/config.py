@@ -27,6 +27,8 @@ def load_config(path: Path) -> dict:
             raise ValueError("Stoa is evaluation/reference only")
     if not 0 <= cfg.get("crop_probability", 0.5) <= 1:
         raise ValueError("Invalid crop probability")
+    if not isinstance(cfg.get("data_workers", 0), int) or not 0 <= cfg.get("data_workers", 0) <= 16:
+        raise ValueError("data_workers must be between 0 and 16")
     cfg["image_size"] = size
     return cfg
 

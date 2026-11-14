@@ -26,42 +26,62 @@ def box_iou(a, b):
 
 
 def nms(items, threshold=0.5):
+    ordered = sorted(items, key=lambda x: x["confidence"], reverse=True)
+    if not ordered:
+        return []
+    boxes = np.asarray([item["bbox"] for item in ordered], dtype=np.float64)
+    classes = np.asarray([item["class"] for item in ordered])
+    areas = np.maximum(0, boxes[:, 2] - boxes[:, 0]) * np.maximum(0, boxes[:, 3] - boxes[:, 1])
+    remaining = np.arange(len(ordered))
     selected = []
-    for candidate in sorted(items, key=lambda x: x["confidence"], reverse=True):
-        if all(
-            candidate["class"] != s["class"] or box_iou(candidate["bbox"], s["bbox"]) < threshold
-            for s in selected
-        ):
-            selected.append(candidate)
+    while len(remaining):
+        index = remaining[0]
+        selected.append(ordered[index])
+        remaining = remaining[1:]
+        low = np.maximum(boxes[index, :2], boxes[remaining, :2])
+        high = np.minimum(boxes[index, 2:], boxes[remaining, 2:])
+        intersection = np.maximum(0, high[:, 0] - low[:, 0]) * np.maximum(0, high[:, 1] - low[:, 1])
+        union = areas[index] + areas[remaining] - intersection
+        overlap = np.divide(intersection, union, out=np.zeros_like(union), where=union > 0)
+        remaining = remaining[(classes[remaining] != classes[index]) | (overlap < threshold)]
     return selected
 
 
 def peaks(prob, threshold, min_distance=5):
     mask = (prob >= threshold) & (prob == ndimage.maximum_filter(prob, size=2 * min_distance + 1))
-    labels, count = ndimage.label(mask)
+    labels, _ = ndimage.label(mask)
     found = []
-    for idx in range(1, count + 1):
-        yy, xx = np.where(labels == idx)
-        best = int(np.argmax(prob[yy, xx]))
-        found.append((int(yy[best]), int(xx[best])))
+    for idx, bounds in enumerate(ndimage.find_objects(labels), 1):
+        if bounds is None:
+            continue
+        yy, xx = np.where(labels[bounds] == idx)
+        best = int(np.argmax(prob[bounds][yy, xx]))
+        found.append((int(yy[best] + bounds[0].start), int(xx[best] + bounds[1].start)))
     return found
 
 
 def split_rooms(room_prob, boundary, center_prob, thresholds):
     foreground = room_prob >= thresholds["masks"][1]
-    components, count = ndimage.label(foreground)
+    components, _ = ndimage.label(foreground)
     markers = np.zeros_like(components)
     next_id = 0
     for cy, cx in peaks(center_prob, thresholds["centers"][0]):
         if foreground[cy, cx]:
             next_id += 1
             markers[cy, cx] = next_id
-    for idx in range(1, count + 1):
-        component = components == idx
-        if not np.any(markers[component]):
+    for idx, bounds in enumerate(ndimage.find_objects(components), 1):
+        if bounds is None:
+            continue
+        # Include one in-image zero border, preserving whole-image EDT semantics
+        # without scanning the entire page for every disconnected component.
+        bounds = tuple(
+            slice(max(0, b.start - 1), min(n, b.stop + 1)) for b, n in zip(bounds, components.shape)
+        )
+        component = components[bounds] == idx
+        if not np.any(markers[bounds][component]):
             y, x = np.unravel_index(np.argmax(ndimage.distance_transform_edt(component)), component.shape)
             next_id += 1
-            markers[y, x] = next_id
+            markers[y + bounds[0].start, x + bounds[1].start] = next_id
     if not next_id:
         return markers
     return watershed(boundary - room_prob, markers=markers, mask=foreground).astype(np.int32)
@@ -170,27 +190,9 @@ def detect(
         ("room", rooms, 1),
         ("wall", ndimage.label(masks[0] >= thresholds["masks"][0])[0], 0),
     ):
-        for label in np.unique(label_map):
-            if label == 0:
-                continue
-            region = label_map == label
-            if region.sum() < thresholds["min_pixels"]:
-                continue
-            yy, xx = np.where(region)
-            polygons = mask_polygons(region)
-            if not polygons:
-                continue
-            item = {
-                "class": name,
-                "bbox": [float(xx.min()), float(yy.min()), float(xx.max() + 1), float(yy.max() + 1)],
-                "polygons": polygons,
-                "confidence": float(masks[channel][region].mean()),
-            }
-            if name == "room":
-                scores = types[:, region].mean(1)
-                item["room_type"] = ROOM_TYPES[int(scores.argmax())] if scores.max() >= 0.5 else "unknown"
-                item["room_type_confidence"] = float(scores.max())
-            instances.append(item)
+        instances.extend(
+            component_instances(name, label_map, channel, masks, types, thresholds["min_pixels"])
+        )
     sx, sy = original_w / w, original_h / h
     for idx, item in enumerate(instances):
         item["id"] = f"p{page_index}-{item['class']}-{idx:05d}"
@@ -225,6 +227,40 @@ def detect(
             "work_size": np.array([w, h]),
         }
     return result
+
+
+def component_instances(name, label_map, channel, masks, types, min_pixels):
+    instances = []
+    counts = np.bincount(label_map.ravel())
+    for label, bounds in enumerate(ndimage.find_objects(label_map), 1):
+        if bounds is None or counts[label] < min_pixels:
+            continue
+        region = label_map[bounds] == label
+        yy, xx = np.where(region)
+        polygons = mask_polygons(region)
+        if not polygons:
+            continue
+        offset = np.array([bounds[1].start, bounds[0].start])
+        for polygon in polygons:
+            polygon["outer"] = (np.asarray(polygon["outer"]) + offset).tolist()
+            polygon["holes"] = [(np.asarray(ring) + offset).tolist() for ring in polygon["holes"]]
+        item = {
+            "class": name,
+            "bbox": [
+                float(xx.min() + offset[0]),
+                float(yy.min() + offset[1]),
+                float(xx.max() + 1 + offset[0]),
+                float(yy.max() + 1 + offset[1]),
+            ],
+            "polygons": polygons,
+            "confidence": float(masks[channel][bounds][region].mean()),
+        }
+        if name == "room":
+            scores = types[(slice(None), *bounds)][:, region].mean(1)
+            item["room_type"] = ROOM_TYPES[int(scores.argmax())] if scores.max() >= 0.5 else "unknown"
+            item["room_type_confidence"] = float(scores.max())
+        instances.append(item)
+    return instances
 
 
 def overlay(image, result):

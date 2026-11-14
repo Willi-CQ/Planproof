@@ -159,6 +159,41 @@ def test_transfer_initialization_allows_new_data_and_resets_optimizer(tmp_path):
         train(cfg, manifest, tmp_path / "bad-run", "cpu", init_weights=bad)
 
 
+def test_cpu_prefetch_preserves_sampling_and_optimizer_results(tmp_path):
+    manifest = check_corpus(tmp_path / "data")
+    cfg = config_file(tmp_path)
+    train(cfg, manifest, tmp_path / "serial", "cpu", max_steps=2)
+    config = yaml.safe_load(cfg.read_text())
+    config["data_workers"] = 2
+    cfg.write_text(yaml.safe_dump(config))
+    train(cfg, manifest, tmp_path / "prefetch", "cpu", max_steps=2)
+    serial = torch.load(tmp_path / "serial/last.pt", weights_only=True)
+    parallel = torch.load(tmp_path / "prefetch/last.pt", weights_only=True)
+    for name, value in serial["model"].items():
+        torch.testing.assert_close(value, parallel["model"][name], rtol=0, atol=0)
+    assert serial["optimizer"]["param_groups"] == parallel["optimizer"]["param_groups"]
+
+
+def test_validation_failure_preserves_completed_optimizer_update(tmp_path, monkeypatch):
+    import importlib
+
+    module = importlib.import_module("planproof_ml.train")
+    manifest = check_corpus(tmp_path / "data")
+    cfg = config_file(tmp_path)
+    run = tmp_path / "validation-failure"
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("validation diagnostic failure")
+
+    monkeypatch.setattr(module, "evaluate", fail)
+    with pytest.raises(RuntimeError, match="diagnostic failure"):
+        train(cfg, manifest, run, "cpu", max_steps=1)
+    checkpoint = torch.load(run / "last.pt", weights_only=True)
+    assert checkpoint["step"] == 1 and checkpoint["validation_pending"]
+    assert all(float(state["step"]) == 1 for state in checkpoint["optimizer"]["state"].values())
+    assert not (run / "best.pt").exists()
+
+
 def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):
     manifest = check_corpus(tmp_path / "data")
     cfg = config_file(tmp_path)
