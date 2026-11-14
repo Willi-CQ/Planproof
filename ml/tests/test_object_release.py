@@ -14,12 +14,18 @@ from planproof_ml.schema import sha256
 
 
 def test_object_release_limits_onnx_and_cli_to_validated_outputs(tmp_path):
-    model = Detector(None).eval()
+    # Keep this release-contract fixture reproducible and its untrained box
+    # logits bounded. Arbitrary initialization can amplify CPU backend rounding
+    # near zero and sporadically fail the unchanged production parity tolerance.
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(2026)
+        model = Detector(None).eval()
     with torch.no_grad():
         model.mask_head.weight.zero_()
         model.mask_head.bias.fill_(10)
         model.center_head.weight.zero_()
         model.center_head.bias.zero_()
+        model.box_head.weight.mul_(0.1)
     image = np.full((64, 64, 3), 255, np.uint8)
     full = detect(model, image, size=64, tiled=False)
     assert {item["class"] for item in full["instances"]} == {"wall", "room", "door", "window", "stairs"}
@@ -56,6 +62,7 @@ def test_object_release_limits_onnx_and_cli_to_validated_outputs(tmp_path):
     x = np.random.default_rng(42).normal(size=(1, 3, 96, 128)).astype(np.float32)
     with torch.inference_mode():
         reference = released_model(torch.from_numpy(x))
+    assert reference["boxes"].std().item() > 1e-4  # still exercise nonconstant outputs
     for key, actual in zip(("centers", "boxes"), session.run(None, {"image": x})):
         np.testing.assert_allclose(reference[key].numpy(), actual, rtol=1e-3, atol=1e-4)
     input_path = tmp_path / "page.png"
