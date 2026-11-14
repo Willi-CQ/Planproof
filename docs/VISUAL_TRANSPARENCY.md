@@ -196,3 +196,24 @@ task to complete and preserved its 30 recorded events.
 See [Evidence experience and model-use plan](EVIDENCE_EXPERIENCE_PLAN.md) for the
 proposed correlation, delivery/usage, coverage and claim-link contracts. These
 follow-on changes are planned; the toolbar Follow toggle above is implemented.
+
+## Running-inspection white-screen regression
+
+Parallel inspection start events can contain `seconds: null` because their duration
+is not known yet. Both the live work log and Task details previously checked only
+for `undefined`, then called `toFixed()` on null. React unmounted the page while
+the server kept processing. Refresh could appear to fix the live log once worker
+results replaced the start events; Task details still contained the raw starts.
+
+Both views now share a duration formatter that accepts only finite, nonnegative
+numbers. Unknown timings have no displayed duration; measured zero stays `0.0s`.
+The public event projection omits unknown/invalid durations from new events, while
+the frontend remains compatible with existing records containing null. Neither
+tool state nor findings are changed, and no question is resubmitted.
+
+Validation: TypeScript/build and Ruff pass; 28 run-tracking/routing Python tests
+and all 18 transparency browser tests pass, including six duration cases through
+live work, Task details and completion. Two local saved-event replays reproduced
+the crash before the fix, then rendered all 60 and 63 events through completion
+and restored history without browser errors. These replays used isolated mocked
+API routes and made zero model calls; they do not measure answer accuracy.

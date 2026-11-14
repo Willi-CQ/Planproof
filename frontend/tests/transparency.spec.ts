@@ -546,6 +546,51 @@ test("pending algorithms remain honest while source inspection proceeds", async 
   await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
 });
 
+for (const timing of [
+  { name: "null", seconds: null, suffix: "" },
+  { name: "omitted", seconds: undefined, suffix: "" },
+  { name: "zero", seconds: 0, suffix: " · 0.0s" },
+  { name: "measured", seconds: 2.5, suffix: " · 2.5s" },
+  { name: "non-numeric", seconds: "pending", suffix: "" },
+  { name: "negative", seconds: -1, suffix: "" },
+]) {
+  test(`inspection duration ${timing.name} keeps the live job and task history usable`, async ({page}) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await setup(page);
+    let done = false, id = "", submissions = 0;
+    const started = {...events[2], sequence: 1, state: "running", inspection_id: "worker-1",
+      seconds: timing.seconds, advisory: undefined, citations: [], question: "Inspect this entrance."};
+    const returned = {...started, sequence: 2, state: "completed", seconds: 1.25,
+      advisory: {findings: ["The source check returned."]}};
+    const snapshot = () => ({request_id: id, status: done ? "completed" : "running", source,
+      events: done ? [started, returned] : [started], last_sequence: done ? 2 : 1,
+      result: done ? result : null});
+    await page.route("**/api/v1/documents/*/runs", r => {
+      submissions++;
+      id = r.request().postDataJSON().request_id;
+      return r.fulfill({json: snapshot()});
+    });
+    await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: snapshot()}));
+    await ask(page);
+    await expect(page.getByTestId("live-work-log").locator(".work-content > small"))
+      .toHaveText(`In progress${timing.suffix}`);
+    await expect(page.getByTestId("source-image")).toBeVisible();
+    await page.getByRole("button", {name: "Task details", exact: true}).click();
+    await expect(page.locator(".event-title small")).toHaveText(`running${timing.suffix}`);
+    done = true;
+    // The raw start event remains in history after its worker finishes.
+    await expect(page.locator(".event-title small")).toHaveText([
+      `running${timing.suffix}`, "completed · 1.3s",
+    ]);
+    await page.getByRole("button", {name: "Back to conversation", exact: true}).click();
+    await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+    await expect(page.getByLabel("Question about this drawing")).toBeEnabled();
+    expect(errors).toEqual([]);
+    expect(submissions).toBe(1);
+  });
+}
+
 test("parallel inspections keep each region and completion associated with its worker", async ({page}) => {
   await setup(page);
   const second = {...region, image_id: "crop-2", canonical_bbox: [500, 100, 800, 350]};

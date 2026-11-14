@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  durationSuffix,
   sameSource,
   stageNames,
   terminal,
@@ -282,9 +283,7 @@ export function EvidenceInspector({
                         </span>
                         <small>
                           {event.state}
-                          {event.seconds !== undefined
-                            ? ` · ${event.seconds.toFixed(1)}s`
-                            : ""}
+                          {durationSuffix(event.seconds)}
                         </small>
                       </button>
                       {event.phase && event.phase !== "normal" && (

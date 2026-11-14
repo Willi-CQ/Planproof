@@ -11,6 +11,28 @@ from run_tracking import RunStore, evidence_bundle, public_event
 SOURCE = {"raster_sha256": "raster", "page_index": 3, "width": 100, "height": 80}
 
 
+@pytest.mark.parametrize(
+    "seconds", [None, "pending", True, -1, float("nan"), float("inf")]
+)
+def test_public_event_omits_unknown_or_invalid_duration(seconds):
+    event = public_event(
+        "inspect_nemotron",
+        "running",
+        {"seconds": seconds, "inspection_id": "worker-1"},
+        SOURCE,
+    )
+    assert "seconds" not in event
+    assert event["state"] == "running"
+    assert event["inspection_id"] == "worker-1"
+    json.dumps(event, allow_nan=False)
+
+
+@pytest.mark.parametrize("seconds", [0, 1.25])
+def test_public_event_preserves_measured_duration(seconds):
+    event = public_event("inspect_nemotron", "completed", {"seconds": seconds}, SOURCE)
+    assert event["seconds"] == seconds
+
+
 def finished(store, run_id):
     for _ in range(200):
         value = store.snapshot(run_id)

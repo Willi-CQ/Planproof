@@ -130,7 +130,6 @@ def public_event(stage, state, payload, source):
     data = pick(
         payload,
         (
-            "seconds",
             "classes",
             "checks",
             "unresolved",
@@ -144,6 +143,16 @@ def public_event(stage, state, payload, source):
             "inspection_id",
         ),
     )
+    # A running inspection has no duration yet. Publish only measured values;
+    # null/non-numeric metadata must not break persistence or the activity UI.
+    seconds = payload.get("seconds")
+    if (
+        isinstance(seconds, (int, float))
+        and not isinstance(seconds, bool)
+        and math.isfinite(seconds)
+        and seconds >= 0
+    ):
+        data["seconds"] = seconds
     if "summary" in payload:
         data["summary"] = str(payload["summary"])[:2000]
     images = []

@@ -16,7 +16,8 @@ export interface EvidenceEvent {
   stage: string;
   state: string;
   elapsed: number;
-  seconds?: number;
+  // Older running events explicitly stored null before a duration was known.
+  seconds?: number | null;
   summary?: string;
   question?: string;
   inspection_id?: string;
@@ -79,6 +80,11 @@ export interface AgentRun {
 }
 export const terminal = (run: AgentRun) =>
   ["completed", "failed", "interrupted"].includes(run.status);
+export function durationSuffix(seconds: unknown): string {
+  return typeof seconds === "number" && Number.isFinite(seconds) && seconds >= 0
+    ? ` · ${seconds.toFixed(1)}s`
+    : "";
+}
 export const sameSource = (a?: SourceFrame, b?: SourceFrame) =>
   !!a &&
   !!b &&

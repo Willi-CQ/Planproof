@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, ChevronDown, Focus, LoaderCircle, CircleAlert } from "lucide-react";
 import { CropPreview } from "./EvidenceInspector";
 import { activityDetail, activityTitle, boundRegions, workSteps } from "../lib/activity";
-import { sameSource, terminal, type AgentRun, type Region } from "../lib/runs";
+import { durationSuffix, sameSource, terminal, type AgentRun, type Region } from "../lib/runs";
 import type { Drawing } from "../lib/api";
 
 interface Props { run: AgentRun; drawing: Drawing; onFocus: (region: Region) => void; connection?: string }
@@ -32,7 +32,7 @@ export function RunActivity({ run, drawing, onFocus, connection }: Props) {
             {regions.length > 0 && <div className="work-crops">{regions.slice(0, 3).map((region, j) => <button key={j} onClick={() => onFocus(region)} aria-label={`Inspect work step ${step.sequence} source ${j + 1}`}>
               <CropPreview region={region} drawing={drawing} /><span><Focus size={12} />{step.state === "running" ? "Requested view" : "Source detail"}</span>
             </button>)}</div>}
-            <small>{pending ? "Not supplied to this answer yet" : unavailable ? "No result established" : running ? "In progress" : step.state === "cached" ? "Reused evidence" : "Returned"}{step.seconds !== undefined ? ` · ${step.seconds.toFixed(1)}s` : ""}</small>
+            <small>{pending ? "Not supplied to this answer yet" : unavailable ? "No result established" : running ? "In progress" : step.state === "cached" ? "Reused evidence" : "Returned"}{durationSuffix(step.seconds)}</small>
           </div>
         </li>;
       })}
