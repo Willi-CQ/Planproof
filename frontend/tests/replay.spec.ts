@@ -50,13 +50,15 @@ test("offline replay preserves tool states, crop identity and controls without r
   await page.clock.runFor(2100);
   await page.getByRole("button", {name: "Pause", exact: true}).click();
   await expect(page.getByTestId("replay-position")).toContainText("Event 2/5");
+  await page.locator(".activity-details > summary").click();
   await page.getByRole("button", {name: "Explore raw ML + rule candidates"}).click();
   await page.getByLabel("ML detections", {exact: true}).check();
   await page.getByLabel("Deterministic evidence", {exact: true}).check();
   await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "2");
   await page.getByRole("button", {name: "Back to conversation", exact: true}).click();
   await page.getByRole("button", {name: "Nemotron", exact: true}).click();
-  await expect(page.locator(".live-region-label")).toHaveText(["Nemotron · Detail 1 · View 1", "Nemotron · Detail 1 · View 2"]);
+  await expect(page.locator(".live-region-label")).toHaveText(["Nemotron 1 · 1", "Nemotron 1 · 2"]);
+  if (!await page.locator(".activity-details").getAttribute("open")) await page.locator(".activity-details > summary").click();
   await expect(page.locator(".work-crops button small")).toHaveText(["crop-a · Sent 1 × 1 px · page 1", "crop-b · Sent 1 × 1 px · page 1"]);
   await page.getByRole("button", {name: "Recorded result", exact: true}).click();
   await expect(page.getByTestId("answer-value")).toHaveText("1 door");

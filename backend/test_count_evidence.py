@@ -8,8 +8,12 @@ from count_evidence import door_count_unit
 from app import set_answer_page
 from specialist_routing import InspectionPolicy, tile_question
 from test_question_agent import final, response
-from test_specialist_routing import orchestrator, target
+from test_specialist_routing import orchestrator, target as base_target
 from test_visual_specialist import observation, setup
+
+
+def target(*args, **kwargs):
+    return {**base_target(*args, **kwargs), "purpose": "count"}
 
 
 def counting_agent(*responses):
@@ -78,6 +82,115 @@ def test_count_workers_get_original_question_not_leading_layout_or_coordinate_cu
     assert "[200.0, 200.0, 400.0, 400.0]" in task
     assert "LOCAL" in task and "COUNT_UNIT=door_opening" in task
     assert "entire selected region: False" in task
+    assert "How many doors?" not in task
+    assert "locate ALL visible door symbols" in task
+
+
+def test_context_question_is_preserved_and_never_becomes_a_door_count():
+    value = counting_agent()
+    seen = []
+
+    def inspect(question, images, **kwargs):
+        seen.append(question)
+        if "COUNT_UNIT" in question:
+            return localized(question, images)
+        return {
+            "status": "ok",
+            "result": {
+                "status": "observed",
+                "answer": "East Wing",
+                "findings": ["Label reads East Wing"],
+                "verdict": "uncertain",
+                "citations": [{"image_id": images[0].image_id, "bbox": [1, 1, 20, 20]}],
+            },
+        }
+
+    value.specialist_factory.return_value.answer.side_effect = inspect
+    result, _ = value.execute(
+        "inspect_regions",
+        {
+            "regions": [
+                {
+                    "bbox": [500, 0, 1000, 500],
+                    "question": "Read the wing label",
+                    "purpose": "inspect",
+                },
+                target(),
+            ]
+        },
+        timeout_seconds=2,
+    )
+    assert "Read the wing label" in seen[0] and "COUNT_UNIT" not in seen[0]
+    assert "COUNT_UNIT" in seen[1] and "east appartement" not in seen[1]
+    assert result["inspections"][0]["advisory"]["citations"]
+    assert set(value.count_records) == {"crop-2"}
+    assert not value.unresolved_inspections
+    assert result["count_evidence"]["supported"] == 2
+
+
+def test_broad_context_region_does_not_starve_count_region_and_has_separate_cache_key():
+    value = counting_agent()
+    value.inspection_policy = replace(
+        InspectionPolicy(), tile_edge=40, overlap=8, max_calls=2
+    )
+    result, _ = value.execute(
+        "inspect_regions",
+        {
+            "regions": [
+                {
+                    "bbox": [0, 0, 500, 1000],
+                    "question": "Read the title",
+                    "purpose": "inspect",
+                },
+                target([500, 0, 700, 400]),
+            ]
+        },
+        timeout_seconds=2,
+    )
+    assert [row["purpose"] for row in result["inspections"][:2]] == ["inspect", "count"]
+    assert value.nemotron_calls == 2
+    assert result["count_evidence"]["supported"] == 2
+    assert all(
+        "COUNT_UNIT" not in call.args[0]
+        for call in value.specialist_factory.return_value.answer.call_args_list[:1]
+    )
+
+
+def test_legacy_label_inspection_keeps_question_and_does_not_overwrite_inventory():
+    value = counting_agent()
+    value.crop([0, 0, 100, 100])
+    value.execute(
+        "inspect_nemotron",
+        {
+            "image_ids": ["crop-1"],
+            "question": "Read the printed wing label",
+            "purpose": "inspect",
+        },
+    )
+    assert (
+        value.specialist_factory.return_value.answer.call_args.args[0]
+        == "Read the printed wing label"
+    )
+    assert not value.count_records
+
+
+def test_ambiguous_scope_can_ask_a_question_without_erasing_local_candidates():
+    proposed = {
+        **counted_answer(),
+        "status": "abstain",
+        "answer": None,
+        "clarification_question": "Do you mean the whole east wing or one room?",
+    }
+    value = counting_agent(
+        response("inspect_regions", {"regions": [target()]}),
+        response("submit_answer", proposed),
+    )
+    result = value.run()
+    assert result["completion_reason"] == "clarification_needed"
+    assert result["count_evidence"]["supported"] == 2
+    assert (
+        result["answer"]["briefing"][-1]["text"] == proposed["clarification_question"]
+    )
 
 
 def test_door_evidence_includes_room_navigation_without_a_second_algorithm_call():

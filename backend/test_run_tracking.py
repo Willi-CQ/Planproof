@@ -11,6 +11,33 @@ from run_tracking import RunStore, evidence_bundle, public_event
 SOURCE = {"raster_sha256": "raster", "page_index": 3, "width": 100, "height": 80}
 
 
+def test_transient_atomic_replace_failure_does_not_lose_terminal_result(
+    tmp_path, monkeypatch
+):
+    from pathlib import Path
+
+    store = RunStore(tmp_path)
+    original = Path.replace
+    attempts = []
+
+    def locked_once(path, target):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise PermissionError("temporary file lock")
+        return original(path, target)
+
+    monkeypatch.setattr(Path, "replace", locked_once)
+    run_id = str(uuid4())
+    store._persist(
+        {"request_id": run_id, "status": "completed", "result": {"answer": 4}}
+    )
+    assert (
+        json.loads((tmp_path / f"{run_id}.json").read_text())["result"]["answer"] == 4
+    )
+    assert len(attempts) == 2
+    store.pool.shutdown()
+
+
 @pytest.mark.parametrize(
     "seconds", [None, "pending", True, -1, float("nan"), float("inf")]
 )

@@ -99,6 +99,8 @@ def count_presentation(answer, evidence, *, complete=False):
     noun = "door openings" if evidence["unit"] == "door_opening" else "door leaves"
     if complete:
         text = f"{answer['answer']:g} {noun} were counted from individually located symbols."
+    elif not evidence["objects"]:
+        text = "No door locations were established. The inspection is incomplete; this is not a count of zero."
     else:
         text = (
             f"Inspection is incomplete. Located {supported} supported {noun} candidates "
@@ -118,6 +120,14 @@ def count_presentation(answer, evidence, *, complete=False):
         if complete
         else "Partial inspection only. Uninspected, deferred or ambiguous regions cannot be counted as empty."
     )
+    if not complete and answer.get("clarification_question"):
+        answer["briefing"].append(
+            {
+                "section": "limitation",
+                "text": answer["clarification_question"],
+                "citations": [],
+            }
+        )
     # Do not reintroduce ungrounded totals through a generated limitation paragraph.
     # Specific visible ambiguities remain attached to each candidate's reason.
     answer["uncertainties"] = [

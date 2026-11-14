@@ -207,8 +207,17 @@ class RunStore:
     def _persist(self, record):
         path = self.root / (self.valid_id(record["request_id"]) + ".json")
         temporary = path.with_suffix(".tmp")
-        temporary.write_text(json.dumps(record, allow_nan=False), encoding="utf-8")
-        temporary.replace(path)
+        payload = json.dumps(record, allow_nan=False)
+        for attempt in range(3):
+            try:
+                temporary.write_text(payload, encoding="utf-8")
+                temporary.replace(path)
+                return
+            except OSError:
+                if attempt == 2:
+                    raise
+                # Brief Windows/sync locks must not strand a completed run on disk.
+                time.sleep(0.05 * (attempt + 1))
 
     def submit(self, run_id, source, request, execute):
         run_id = self.valid_id(run_id)

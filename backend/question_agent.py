@@ -177,6 +177,7 @@ class FinalAnswer(BaseModel):
     uncertainties: list[str] = Field(max_length=20)
     measurement_id: str | None = Field(default=None, max_length=40)
     count_basis: CountBasis | None = None
+    clarification_question: str | None = Field(default=None, max_length=300)
     briefing: list[BriefingStatement] = Field(default_factory=list, max_length=8)
     citation_details: list[CitationDetail] = Field(default_factory=list, max_length=100)
 
@@ -322,6 +323,11 @@ def declarations(mode, allow_nemotron, *, orchestrated=False):
                 {
                     "image_ids": image_ids,
                     "question": {"type": "string", "maxLength": 2000},
+                    "purpose": {
+                        "type": "string",
+                        "enum": ["inspect", "count"],
+                        "description": "Use count for a door inventory, inspect for labels/context.",
+                    },
                 },
                 ("image_ids", "question"),
             )
@@ -333,6 +339,7 @@ def declarations(mode, allow_nemotron, *, orchestrated=False):
                 {
                     "image_ids": image_ids,
                     "candidate": {"type": "string", "maxLength": 4000},
+                    "purpose": {"type": "string", "enum": ["inspect", "count"]},
                 },
                 ("image_ids", "candidate"),
             )
@@ -538,7 +545,9 @@ class DrawingAgent:
         return {
             **evidence,
             "unresolved_requested_regions": [
-                r["canonical_bbox"] for r in self.unresolved_inspections.values()
+                r["canonical_bbox"]
+                for r in self.unresolved_inspections.values()
+                if r.get("purpose") == "count"
             ],
             "objects": [
                 {
@@ -556,10 +565,10 @@ class DrawingAgent:
             ],
         }
 
-    def record_inspection(self, result):
+    def record_inspection(self, result, *, counting=True):
         if result.get("status") == "ok" and isinstance(result.get("result"), dict):
             advisory = result["result"]
-            if self.count_unit:
+            if self.count_unit and counting:
                 ids = {c["image_id"] for c in advisory.get("citations", [])}
                 for image_id in ids & self.images.keys():
                     self.count_records[image_id] = advisory
@@ -573,31 +582,45 @@ class DrawingAgent:
         policy = self.inspection_policy
         regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
         planned, seen = [], set()
-        for question, parent in regions:
-            for box in tiles(parent, policy):
-                task = tile_question(
-                    question,
-                    self.request.question,
+        # Round-robin native tiles: one broad context request must not starve
+        # focused target regions later in the same batch.
+        groups = [list(tiles(parent, policy)) for _, parent, _ in regions]
+        ordered = [
+            (question, parent, purpose, group[index])
+            for index in range(max(map(len, groups), default=0))
+            for (question, parent, purpose), group in zip(regions, groups)
+            if index < len(group)
+        ]
+        for question, parent, purpose, box in ordered:
+            task = tile_question(
+                question,
+                self.request.question,
+                box,
+                parent,
+                self.page.width,
+                self.page.height,
+                self.count_unit if purpose == "count" else None,
+            )
+            # Counting scope and role are fixed by the user's question, not a
+            # coordinator's changing wording. Reuse completed tiles reliably.
+            key = json.dumps(
+                [
+                    purpose,
+                    self.request.question
+                    if self.count_unit and purpose == "count"
+                    else question,
                     box,
-                    parent,
-                    self.page.width,
-                    self.page.height,
-                    self.count_unit,
-                )
-                # Counting scope and role are fixed by the user's question, not a
-                # coordinator's changing wording. Reuse completed tiles reliably.
-                key = json.dumps(
-                    [self.request.question if self.count_unit else question, box]
-                )
-                if key not in seen:
-                    planned.append((key, task, box))
-                    seen.add(key)
+                ]
+            )
+            if key not in seen:
+                planned.append((key, task, box, purpose))
+                seen.add(key)
         deadline = time.monotonic() + (
             timeout_seconds if timeout_seconds is not None else 60
         )
         prepared, deferred = [], {}
         remaining = max(0, self.specialist_limit - self.nemotron_calls)
-        for key, question, box in planned:
+        for key, question, box, purpose in planned:
             if key in self.inspection_cache:
                 continue
             reason = None
@@ -618,21 +641,22 @@ class DrawingAgent:
                     "image_ids": [],
                     "canonical_bbox": box,
                     "error_code": reason,
+                    "purpose": purpose,
                 }
                 deferred[key] = row
                 self.unresolved_inspections[key] = row
                 continue
             _, images = self.crop(box)
-            prepared.append((key, question, images[0]))
+            prepared.append((key, question, images[0], purpose))
         if prepared and self.specialist is None:
             self.specialist = self.specialist_factory()
 
         def inspect(item, timeout):
-            _, question, image = item
+            _, question, image, _ = item
             return self.specialist.answer(question, [image], timeout_seconds=timeout)
 
         def event(index, state, result):
-            _, question, image = prepared[index]
+            _, question, image, _ = prepared[index]
             self.observe(
                 "inspect_nemotron",
                 state,
@@ -654,12 +678,14 @@ class DrawingAgent:
         )
         self.nemotron_calls += attempted
         current = {}
-        for (key, question, image), value in zip(prepared, results):
+        for (key, question, image, purpose), value in zip(prepared, results):
             if value["status"] != "not_sent":
                 self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
             advisory = value.get("result") or {}
             complete = value["status"] == "ok" and (
-                not self.count_unit or advisory.get("scope_complete") is True
+                not self.count_unit
+                or purpose != "count"
+                or advisory.get("scope_complete") is True
             )
             row = {
                 "status": value["status"],
@@ -668,6 +694,7 @@ class DrawingAgent:
                 "image": visible_metadata(image),
                 "canonical_bbox": image.metadata["canonical_bbox"],
                 "scope_complete": complete,
+                "purpose": purpose,
                 "resolution": {
                     "source_pixels": image.metadata["source_render_size"],
                     "sent_pixels": image.metadata["sent_size"],
@@ -679,7 +706,7 @@ class DrawingAgent:
                 "error_code": value.get("error_code"),
             }
             current[key] = row
-            self.record_inspection(value)
+            self.record_inspection(value, counting=purpose == "count")
             if complete:
                 self.inspection_cache[key] = row
                 self.unresolved_inspections.pop(key, None)
@@ -688,8 +715,14 @@ class DrawingAgent:
         # Smaller successful re-inspections can resolve an older failed region,
         # but only if their union covers every pixel of that requested region.
         if self.count_unit:
-            covered = [r["canonical_bbox"] for r in self.inspection_cache.values()]
+            covered = [
+                r["canonical_bbox"]
+                for r in self.inspection_cache.values()
+                if r.get("purpose") == "count"
+            ]
             for key, row in list(self.unresolved_inspections.items()):
+                if row.get("purpose") != "count":
+                    continue
                 try:
                     require_inspected_citations([row], covered)
                 except DelegationRequired:
@@ -717,7 +750,7 @@ class DrawingAgent:
             current.get(k)
             or deferred.get(k)
             or {**self.inspection_cache[k], "cached": True}
-            for k, _, _ in planned
+            for k, _, _, _ in planned
         ]
         ok = sum(row["status"] == "ok" for row in rows)
         complete = sum(row.get("scope_complete", False) for row in rows)
@@ -727,7 +760,9 @@ class DrawingAgent:
             rows = [
                 {
                     **row,
-                    "question": self.request.question,
+                    "question": "Locate visible doors in this tile"
+                    if row.get("purpose") == "count"
+                    else row["question"],
                     "advisory": {
                         k: v
                         for k, v in (row.get("advisory") or {}).items()
@@ -735,6 +770,8 @@ class DrawingAgent:
                     },
                     "canonical_citations": row.get("canonical_citations", [])[:1],
                 }
+                if row.get("purpose") == "count"
+                else row
                 for row in rows
             ]
         return {
@@ -896,7 +933,16 @@ class DrawingAgent:
             "inspect_nemotron": {"question", "image_ids"},
             "review_answer": {"candidate", "image_ids"},
         }[name]
-        if not isinstance(args, dict) or set(args) != expected:
+        optional = (
+            {"purpose"} if name in {"inspect_nemotron", "review_answer"} else set()
+        )
+        if (
+            not isinstance(args, dict)
+            or not expected <= set(args)
+            or set(args) - expected - optional
+        ):
+            raise ValueError("Invalid tool arguments")
+        if optional and args.get("purpose", "inspect") not in {"inspect", "count"}:
             raise ValueError("Invalid tool arguments")
         if name == "reflect":
             if (
@@ -1098,7 +1144,7 @@ class DrawingAgent:
                 )
                 for image in images
             )
-            if self.count_unit
+            if self.count_unit and args.get("purpose", "inspect") == "count"
             else None
         )
         if name == "review_answer":
@@ -1124,7 +1170,7 @@ class DrawingAgent:
                     ),
                 )
         else:
-            if self.count_unit:
+            if count_question:
                 # Legacy tool remains supported but cannot reintroduce leading
                 # counts or original-page restrictions into a local inspection.
                 value = count_question
@@ -1133,7 +1179,7 @@ class DrawingAgent:
                 if timeout_seconds is not None
                 else self.specialist.answer(value, images)
             )
-        self.record_inspection(result)
+        self.record_inspection(result, counting=bool(count_question))
         return {
             "status": result["status"],
             "advisory": result.get("result"),
@@ -1235,7 +1281,10 @@ class DrawingAgent:
                 and all(
                     r.get("scope_complete") is True for r in self.count_records.values()
                 )
-                and not self.unresolved_inspections
+                and not any(
+                    r.get("purpose") == "count"
+                    for r in self.unresolved_inspections.values()
+                )
             )
             if not self.count_complete:
                 result.update(status="abstain", answer=None, unit=None)
@@ -1839,7 +1888,10 @@ class DrawingAgent:
                 else None
             ),
             "completion_reason": (
-                "inspection_incomplete"
+                "clarification_needed"
+                if answer["status"] == "abstain"
+                and answer.get("clarification_question")
+                else "inspection_incomplete"
                 if answer["status"] == "abstain"
                 and (
                     self.count_unit

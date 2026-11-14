@@ -1722,3 +1722,12 @@ h1 span {
 @media (prefers-reduced-motion: reduce) { .live-region.current { animation: none; } }
 
 .briefing-limits summary { cursor: pointer; font-size: 11px; color: #6d7864; }
+
+/* Default activity stays compact; technical details are explicitly expanded. */
+.compact-activity { padding: 12px 0; }
+.compact-activity-heading { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.compact-activity-heading > span { margin-left: auto; color: #727a74; font-size: 11px; }
+.compact-inspections { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.compact-inspections button { display: inline-flex; align-items: center; gap: 5px; border: 1px dashed; background: white; border-radius: 8px; padding: 5px 9px; font-size: 11px; }
+.activity-details > summary { display: flex; align-items: center; gap: 5px; width: fit-content; cursor: pointer; font-size: 11px; color: #727a74; margin-top: 10px; list-style: none; }
+.activity-details[open] > summary { margin-bottom: 12px; }

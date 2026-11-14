@@ -55,6 +55,10 @@ Look for a wall opening with a leaf and swing arc; double arcs may belong to one
 opening. Sliding/folding doors may use different marks: describe the visible cue.
 Windows, furniture rectangles and open walkthroughs are not automatically doors.
 Check row by row so repeated modules do not hide closet/bathroom/accessible doors.
+Global scope selection belongs to the coordinator. A missing apartment/wing label
+does not make a visible door disappear: return its box. Describe uncertainty in
+its role separately; use uncertain for ambiguous candidates. Do not return only
+prose saying doors are visible while leaving objects empty.
 scope_complete=true only if you inspected this entire tile for the requested door
 role without unreadable/cut-off candidates. If a requested role is unclear, keep
 its candidate uncertain. Do not mark a fully readable empty tile uncertain merely

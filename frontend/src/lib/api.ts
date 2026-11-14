@@ -21,6 +21,7 @@ export interface AgentResult {
     answer: number | string | null;
     unit?: string | null;
     explanation: string;
+    clarification_question?: string | null;
     coverage: string;
     uncertainties: string[];
     briefing?: { section: "answer" | "basis" | "limitation"; text: string; citations: number[] }[];
@@ -29,7 +30,7 @@ export interface AgentResult {
   source?: { width: number; height: number; page_index: number; raster_sha256?: string };
   measurement?: { approximate: boolean; boundary_basis?: string; formula?: string };
   canonical_citations?: Citation[];
-  completion_reason?: "inspection_incomplete" | "source_insufficient" | "answered";
+  completion_reason?: "inspection_incomplete" | "source_insufficient" | "clarification_needed" | "answered";
   count_evidence?: {
     unit: "door_opening" | "door_leaf";
     supported: number;
@@ -145,7 +146,8 @@ export function resultText(result: AgentResult): string {
   if (result.status === "not_authorized")
     return "Planproof couldn’t start this question.";
   if (result.answer?.status === "abstain")
-    return result.completion_reason === "inspection_incomplete" || result.reliability?.recovery_used
+    return result.completion_reason === "clarification_needed" ? "Which area do you mean?"
+      : result.completion_reason === "inspection_incomplete" || result.reliability?.recovery_used
       ? "Inspection incomplete" : "Not enough evidence to answer";
   return "We couldn’t complete this question";
 }

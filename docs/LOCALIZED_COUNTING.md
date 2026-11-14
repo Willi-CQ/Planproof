@@ -9,9 +9,14 @@ not counting evidence. Other question types retain their existing tools.
 - Gemini selects regions or registered room IDs. Door algorithm requests also
   return room navigation once, without another algorithm run. Pending algorithms
   still do not block visual inspection.
-- Each native tile has an explicit local frame and original-page bounds. Generic
-  tasks receive a coordinate conversion; counting workers receive the original
-  user question instead of leading coordinator assumptions or repeated-room math.
+- Every region declares `purpose: "count"` for a door inventory or `"inspect"`
+  (default) for a focused context/label question. Legacy specialist tools accept
+  the same optional purpose. A label request must never become a counting request.
+- Each native tile has an explicit local frame and original-page bounds. Context
+  questions are preserved. Counting workers locate visible door symbols in the
+  selected tile; they do not need to rediscover a globally named apartment label.
+  Gemini owns scope selection. Unclear roles retain uncertain boxes; a missing
+  place name must not erase a visible door. No repeated-room arithmetic is supplied.
 - Workers inspect only visible symbols within their tile, not an unseen whole wing.
   Door roles still require adjacent space context. Double-leaf pairs count as one
   opening unless the user explicitly requests leaves.
@@ -34,6 +39,8 @@ all supported inventory objects. A complete total is accepted only when the valu
 matches the unique supported inventory, there are no uncertain objects or
 unresolved requested tiles, and every retained tile declares complete inspection.
 Gemini remains responsible for selecting the entire relevant drawing scope.
+An ambiguous target can produce `clarification_question` while retaining the
+localized inventory. Context inspections do not enter or supersede that inventory.
 
 Unsupported totals become an incomplete response with the available localized
 candidates. The host writes a count briefing from that inventory so unsupported
@@ -49,7 +56,7 @@ remain on the general visual-evidence path. This is not a general verified count
 
 ## Scheduling and presentation
 
-Oversized selections dispatch in the requested priority order up to the remaining
+Oversized selections dispatch one tile per requested region in rounds up to the remaining
 call/crop allowance. Every omitted tile is explicitly deferred with its bounds and
 reason; feasible work is no longer rejected as a batch. Successful tiles are reused;
 failed/incomplete tiles allow one retry. Argument repair does not consume the12

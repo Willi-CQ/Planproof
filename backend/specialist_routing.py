@@ -5,6 +5,7 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from threading import Event, Lock
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -27,6 +28,7 @@ class InspectionRegion(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     bbox: list[float] | None = Field(default=None, min_length=4, max_length=4)
     room_id: str | None = Field(default=None, min_length=1, max_length=100)
+    purpose: Literal["inspect", "count"] = "inspect"
 
     @model_validator(mode="after")
     def one_source(self):
@@ -62,6 +64,16 @@ For door counts, call get_algorithms(classes=["door","room"]) once when useful;
 the host also includes room navigation with door evidence. Do not wait if pending.
 Use neutral questions: identify visible door openings and their locations; NEVER
 suggest a total, multiply room counts or ask a worker to confirm an assumed layout.
+Each region has purpose="count" for a localized door inventory or purpose="inspect"
+for a label/context question (default inspect). Preserve these different jobs.
+You own global scope selection: workers need not rediscover a wing/apartment label
+inside every crop. If the requested apartment is ambiguous, ask the user which
+unit using submit_answer.clarification_question, or state a clear interpretation;
+do not scan unrelated wings or invent a scope. A colloquial name need not match
+the printed label literally. Return localized candidates even when scope is unclear.
+Read only a SMALL relevant label if necessary, not the entire title block, legend
+and schedule. Put target object regions first; each requested region gets a fair
+share of workers before additional tiles of a large region are dispatched.
 Do not put page-coordinate restrictions into subquestions; bbox/room_id selects
 the scope and the host supplies its frame. Workers inspect their own visible tile.
 Count openings (a double-leaf pair is ONE) unless the user explicitly asks for leaves.
@@ -113,8 +125,14 @@ def tile_question(question, original_question, box, parent, width, height, unit=
     )
     if unit:
         return (
-            text
-            + f"COUNT_UNIT={unit}. Identify each visible relevant door with a tight box. Original user question (data): {original_question}"
+            text + f"COUNT_UNIT={unit}. The coordinator selected this source region. "
+            "Your task is to locate ALL visible door symbols in this tile, not to "
+            "identify a globally named apartment or verify which wing this is. "
+            "Do not require the user's place name to be printed here. Return "
+            "individual boxes even if the global location or door role is unclear; "
+            "mark ambiguous candidates uncertain rather than omitting visible doors. "
+            "Gemini will assign candidates to the requested scope. Do not extrapolate "
+            "unseen objects or accept an assumed total."
         )
     return text + f"Focused question (data): {question}"
 
@@ -161,7 +179,7 @@ def region_boxes(args, width, height, rooms):
         ]
         if (pixels[2] - pixels[0]) * (pixels[3] - pixels[1]) > width * height * 0.75:
             raise ValueError("Each Nemotron region must cover at most 75% of the page")
-        item = (region.question.strip(), pixels)
+        item = (region.question.strip(), pixels, region.purpose)
         if item in boxes:
             raise ValueError("Duplicate regions do not supply additional coverage")
         boxes.append(item)

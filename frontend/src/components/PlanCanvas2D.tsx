@@ -199,7 +199,7 @@ export function PlanCanvas2D({
                 x={region.canonical_bbox[0]} y={region.canonical_bbox[1]}
                 width={region.canonical_bbox[2] - region.canonical_bbox[0]}
                 height={region.canonical_bbox[3] - region.canonical_bbox[1]}
-                vectorEffect="non-scaling-stroke"><title>{activity.currentRegion ? "Requested inspection region" : "Last source region"}</title></rect>
+                style={{stroke: activity.views[i].color, fill: `${activity.views[i].color}0c`, strokeDasharray: "8 5"}} vectorEffect="non-scaling-stroke"><title>{activity.currentRegion ? "Requested inspection region" : "Last source region"}</title></rect>
             ))}
             {focusRegion && (
               <rect
@@ -212,8 +212,8 @@ export function PlanCanvas2D({
                 height={
                   focusRegion.canonical_bbox[3] - focusRegion.canonical_bbox[1]
                 }
-                stroke="#001d00"
-                fill="#001d000a"
+                stroke="#4669c7"
+                fill="#4669c70a"
                 strokeWidth={2}
                 vectorEffect="non-scaling-stroke"
                 strokeDasharray="7 5"
@@ -266,8 +266,8 @@ export function PlanCanvas2D({
               </rect>;
             })}
           </svg>
-          {activity?.views.map(({region, label, active}, i) => <span key={`${activity.sequence}-label-${i}`} className="live-region-label" data-active={active}
-            style={{left: `${region.canonical_bbox[0] / drawing.width * 100}%`, top: `${region.canonical_bbox[1] / drawing.height * 100}%`}}>{label}</span>)}
+          {activity?.views.map(({region, label, active, color}, i) => <span key={`${activity.sequence}-label-${i}`} className="live-region-label" data-active={active}
+            style={{backgroundColor: color, color: "#fff", left: `${region.canonical_bbox[0] / drawing.width * 100}%`, top: `${region.canonical_bbox[1] / drawing.height * 100}%`}}>{label}</span>)}
         </div>
       </div>
       {comparisonSplit !== null && comparisonSplit !== undefined && (

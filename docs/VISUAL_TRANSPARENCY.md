@@ -1,5 +1,15 @@
 # Source-linked run inspection
 
+## Compact default (2026-11-15)
+
+Live work defaults to one short status (for example, **Calling Nemotron**) and
+numbered source-view buttons. Colored dashed boxes and matching labels identify
+active inspections; they are distinct from green supported and amber uncertain
+object markers. Prompts, timings, raw findings and tool roles remain under **Details**.
+The final answer shows two briefing paragraphs and one important warning; further
+explanation, notes and crop thumbnails are expandable. Existing replay/history
+keeps all recorded steps; no extra inference is added by presentation.
+
 The design branch exposes the existing agent's actual execution. It adds no
 mandatory tool path, model-generated narration, accuracy score or inference call.
 The old synchronous `/api/v1/documents/{id}/ask` contract remains compatible.

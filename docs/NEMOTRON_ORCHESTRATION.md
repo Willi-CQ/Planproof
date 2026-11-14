@@ -26,11 +26,13 @@ flowchart LR
 
 `inspect_regions` accepts one to six independent targets. Each needs its own focused
 question and exactly one registered `room_id` or normalized original-page `bbox`.
+Use `purpose: "count"` for a localized door inventory and `purpose: "inspect"`
+(default) for a focused context or label question. The host preserves this distinction.
 
 ```json
 {"regions":[
-  {"room_id":"R1","question":"Identify the apartment entrance connecting to the corridor. Cite each candidate and explain any ambiguity in its role."},
-  {"bbox":[450,150,650,450],"question":"Inspect this apartment and its corridor boundary for its main entrance. Cite individual door locations; distinguish internal doors."}
+  {"room_id":"R1","purpose":"count","question":"Locate the visible door symbols in this selected apartment region."},
+  {"bbox":[450,150,650,450],"purpose":"inspect","question":"Read the room and corridor labels to establish which unit this is."}
 ]}
 ```
 
@@ -92,7 +94,7 @@ These defaults are an initial engineering profile, **not a measured optimum**:
 | Interactive admission budget / finalization reserve | 120 s / 35 s | Reuse evidence and leave time for synthesis |
 
 A batch that would exceed the remaining call/crop allowance dispatches feasible tiles
-in the requested priority order and explicitly reports every deferred tile with its
+one tile per region in rounds and explicitly reports every deferred tile with its
 bounds and reason. Gemini can prioritize smaller relevant regions; the host does not
 silently skip tiles or reject feasible work. Queued work is checked
 against the deadline before sending; at the batch deadline pending work is cancelled,

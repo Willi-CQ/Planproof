@@ -89,6 +89,9 @@ export function boundRegions(event: EvidenceEvent | undefined, source?: SourceFr
       && 0 <= b[1] && b[1] < b[3] && b[3] <= source.height;
   });
 }
+export function inspectionColor(number = 1) {
+  return ["#4669c7", "#8957b8", "#157c88", "#b75677"][(Math.max(1, number) - 1) % 4];
+}
 export function liveActivity(run: AgentRun | undefined, frame?: SourceFrame) {
   if (!run || terminal(run)) return null;
   const steps = workSteps(run);
@@ -98,10 +101,10 @@ export function liveActivity(run: AgentRun | undefined, frame?: SourceFrame) {
   const views = inspections.flatMap(e => {
     const regions = boundRegions(e, frame);
     return regions.map((region, i) => ({region,
-      label: `Nemotron · Detail ${e.detailNumber}${regions.length > 1 ? ` · View ${i + 1}` : ""}`, active: true}));
+      label: `Nemotron ${e.detailNumber}${regions.length > 1 ? ` · ${i + 1}` : ""}`, color: inspectionColor(e.detailNumber), active: true}));
   });
   const fallback = boundRegions(spatial, frame).map(region => ({region,
-    label: spatial?.state === "running" ? "Requested source view" : "Last source view", active: spatial?.state === "running"}));
+    label: spatial?.state === "running" ? "Inspection view" : "Last inspection", color: "#69758a", active: spatial?.state === "running"}));
   const visible = sameSource(run.source, frame) ? views.length ? views : fallback : [];
   return {
     event,

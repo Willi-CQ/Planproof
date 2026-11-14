@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Focus, LoaderCircle, CircleAlert, ScanSearch, Layers, Crop, Calculator, Workflow, ArrowDownLeft, Clock3 } from "lucide-react";
 import { CropPreview } from "./EvidenceInspector";
-import { activityDetail, activityTitle, boundRegions, eventTime, needsAttention, toolFamily, toolLabels, workSteps, type WorkStep } from "../lib/activity";
+import { activityDetail, activityTitle, boundRegions, eventTime, needsAttention, toolFamily, toolLabels, workSteps, inspectionColor, type WorkStep } from "../lib/activity";
 import { durationSuffix, sameSource, terminal, type AgentRun, type Region } from "../lib/runs";
 import type { Drawing } from "../lib/api";
 
@@ -70,26 +70,42 @@ function StepCard({step, done, drawing, bound, onFocus, onInspectCandidates}: {s
 interface Props { run: AgentRun; drawing: Drawing; onFocus: (region: Region) => void; onInspectCandidates: () => void; connection?: string }
 export function RunActivity({ run, drawing, onFocus, onInspectCandidates, connection }: Props) {
   const done = terminal(run), steps = workSteps(run);
-  const [expanded, setExpanded] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const active = steps.filter(s => s.state === "running" && !done);
-  const returned = steps.filter(s => ["completed", "cached"].includes(s.state)).length;
+  const inspections = active.filter(s => toolFamily(s.stage) === "nemotron");
   const attention = steps.filter(s => needsAttention(s, done)).length;
-  const recent = new Set(steps.slice(-3).map(s => s.startSequence));
-  const shown = expanded || done ? steps : steps.filter(s => recent.has(s.startSequence) || s.state === "running" || needsAttention(s, done) || s.state === "pending" || s.state === "busy");
-  const families = [...new Set(steps.map(s => toolFamily(s.stage)))];
-  const content = <>
-    {!done && <div className="work-heading"><span className="live-dot" /><strong>{connection || "Agent activity"}</strong><span>{active.length} active steps · {returned} returned</span></div>}
-    {!steps.length && <p className="work-empty">Question queued. Waiting for the first execution event.</p>}
-    {families.length > 0 && <div className="work-families" aria-label="Tools used in this task">{families.map(family => {
-      const Icon = icons[family];
-      const count = active.filter(s => toolFamily(s.stage) === family).length;
-      return <span key={family} data-active={count > 0}><Icon size={12} />{toolLabels[family]}{count > 0 && <b>{count} active</b>}</span>;
-    })}</div>}
-    {!done && steps.length > shown.length && <button className="text-button earlier-steps" onClick={() => setExpanded(true)}>Show {steps.length - shown.length} earlier steps</button>}
-    {!done && expanded && steps.length > 3 && <button className="text-button earlier-steps" onClick={() => setExpanded(false)}>Show active and recent steps</button>}
-    <ol className="work-log" aria-label="Work on this question">{shown.map(step => <StepCard key={`${step.stage}-${step.startSequence}`} step={step} done={done} drawing={drawing} bound={sameSource(run.source, drawing.source)} onFocus={onFocus} onInspectCandidates={onInspectCandidates} />)}</ol>
-    <p className="work-footnote">Times are relative to this task. A returned tool result is evidence to assess, not a verified answer.</p>
-  </>;
-  if (done) return <details className="work-recap"><summary><Workflow size={14} />Tools and source checks<span>{steps.length} steps{attention > 0 ? ` · ${attention} need attention` : ""}</span><ChevronDown size={14} /></summary>{content}</details>;
-  return <div className="run-activity" data-testid="live-work-log">{content}</div>;
+  const bound = sameSource(run.source, drawing.source);
+  const label = inspections.length ? "Calling Nemotron"
+    : active.some(s => s.stage === "get_algorithms") ? "Finding rooms"
+    : active.some(s => s.stage === "inspect_regions") ? "Preparing detail checks"
+    : active.some(s => toolFamily(s.stage) === "source") ? "Opening a detail"
+    : active.some(s => toolFamily(s.stage) === "measurement") ? "Measuring"
+    : steps.length ? "Reviewing results" : "Starting";
+  const details = <details className={done ? "work-recap" : "activity-details"}
+    onToggle={e => setDetailsOpen(e.currentTarget.open)}>
+    <summary>{done ? <Workflow size={13} /> : null}{done ? "Activity" : "Details"}
+      {done && attention > 0 && <span>{attention} checks need attention</span>}<ChevronDown size={13} />
+    </summary>
+    {detailsOpen && <>
+      <ol className="work-log" aria-label="Work on this question">{steps.map(step => <StepCard
+        key={`${step.stage}-${step.startSequence}`} step={step} done={done} drawing={drawing}
+        bound={bound} onFocus={onFocus} onInspectCandidates={onInspectCandidates} />)}</ol>
+      <p className="work-footnote">Inspection views are not detections. Returned observations may need verification.</p>
+    </>}
+  </details>;
+  if (done) return details;
+  return <div className="run-activity compact-activity" data-testid="live-work-log">
+    <div className="compact-activity-heading" role="status"><LoaderCircle size={14} className="spinning" />
+      <strong>{connection || label}</strong>{inspections.length > 1 && <span>{inspections.length} regions</span>}
+    </div>
+    {inspections.length > 0 && <div className="compact-inspections" aria-label="Active inspections">
+      {inspections.flatMap(step => bound ? boundRegions(step, drawing.source).map((region, i) =>
+        <button key={`${step.startSequence}-${i}`} onClick={() => onFocus(region)}
+          style={{borderColor: inspectionColor(step.detailNumber), color: inspectionColor(step.detailNumber)}}
+          aria-label={`Show Nemotron ${step.detailNumber} view ${i + 1}`}>
+          <Focus size={12} />{step.detailNumber}{boundRegions(step, drawing.source).length > 1 ? `.${i + 1}` : ""}
+        </button>) : [])}
+    </div>}
+    {details}
+  </div>;
 }
