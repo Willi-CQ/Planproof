@@ -64,6 +64,11 @@ def parser():
     q.add_argument("--device", default="cuda")
     q.add_argument("--resume", type=Path)
     q.add_argument(
+        "--init-weights",
+        type=Path,
+        help="Initialize a new dataset/run from compatible model weights; reset optimizer and schedule",
+    )
+    q.add_argument(
         "--max-minutes",
         type=float,
         help="Soft session time cap; finish update, validate and save before exiting",
@@ -177,7 +182,14 @@ def execute(args):
         from .train import train
 
         return train(
-            args.config, args.manifest, args.run, args.device, args.resume, args.max_steps, args.max_minutes
+            args.config,
+            args.manifest,
+            args.run,
+            args.device,
+            args.resume,
+            args.max_steps,
+            args.max_minutes,
+            args.init_weights,
         )
     if command == "smoke":
         from .checks import smoke

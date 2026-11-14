@@ -34,10 +34,12 @@ ROOM_KEYS = {
 }
 
 
-def load_image(path):
+def load_image(path, max_pixels=64_000_000, max_size=None):
     with Image.open(path) as im:
-        if im.width * im.height > 64_000_000:
-            raise ValueError(f"Image exceeds 64 million pixels: {path}")
+        if im.width * im.height > max_pixels:
+            raise ValueError(f"Image exceeds {max_pixels} pixels: {path}")
+        if max_size is not None:
+            im.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
         # White compositing preserves transparent line drawings.
         rgba = im.convert("RGBA")
         background = Image.new("RGBA", rgba.size, "white")
@@ -181,9 +183,17 @@ def publisher_splits(source, raw):
     return split_lookup
 
 
-def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
+def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None, raster_max_size=4096):
     if svg_paths is None:
         svg_paths = sorted(raw.rglob("model.svg")) if source == "cubicasa5k" else sorted(raw.rglob("*.svg"))
+        if source == "floorplancad":
+            partitioned = [
+                p
+                for p in svg_paths
+                if any(part.startswith(("train-", "test-")) for part in p.relative_to(raw).parts)
+            ]
+            if partitioned:
+                svg_paths = partitioned
     if not svg_paths:
         raise ValueError(f"No annotated SVG files under {raw}")
     if split_lookup is None:
@@ -203,8 +213,15 @@ def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
         if source == "cubicasa5k":
             candidates = [path.parent / "F1_scaled.png"]
         image_path = next((p for p in candidates if p.is_file()), None)
+        raster_size = None
         if image_path:
-            image = load_image(image_path)
+            with Image.open(image_path) as original:
+                raster_size = original.size
+            image = load_image(
+                image_path,
+                max_pixels=128_000_000 if source == "cubicasa5k" else 64_000_000,
+                max_size=raster_max_size if source == "cubicasa5k" else None,
+            )
             size = (image.shape[1], image.shape[0])
         elif source == "floorplancad":
             import xml.etree.ElementTree as ET
@@ -219,8 +236,17 @@ def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
         else:
             raise ValueError(f"Missing paired image for {path}")
         features, ignored, strokes, info = read_svg(
-            path, size, class_map, coordinate_space="pixels" if source == "cubicasa5k" else "viewport"
+            path,
+            size,
+            class_map,
+            coordinate_space="pixels" if source == "cubicasa5k" else "viewport",
+            pixel_scale=(size[0] / raster_size[0], size[1] / raster_size[1])
+            if source == "cubicasa5k"
+            else (1, 1),
+            collect_strokes=source != "cubicasa5k",
         )
+        if raster_size is not None:
+            info["original_raster_size"] = list(raster_size)
         if image is None:
             image = render_strokes(size, strokes)
         key = (
@@ -235,11 +261,11 @@ def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
         if source == "cubicasa5k" and not publisher_split:
             raise ValueError(f"Missing publisher split for {key}; use original split files")
         if source != "cubicasa5k":
-            if "test" in path.parts:
+            if any(part == "test" or part.startswith("test-") for part in path.parts):
                 publisher_split = "test"
             elif "val" in path.parts:
                 publisher_split = "val"
-            elif "train" in path.parts:
+            elif any(part == "train" or part.startswith("train-") for part in path.parts):
                 publisher_split = "train"
         complete = (
             list(MASK_CLASSES)
@@ -248,7 +274,7 @@ def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
         )
         yield {
             "key": key,
-            "group": key,
+            "group": "cad-family:" + path.stem.split("-")[0] if source == "floorplancad" else key,
             "image": image,
             "features": features,
             "ignore": ignored,

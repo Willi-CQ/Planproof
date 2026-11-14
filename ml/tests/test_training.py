@@ -129,6 +129,36 @@ def test_session_time_cap_checkpoints_and_resumes_without_changing_recipe(tmp_pa
             train(cfg, manifest, tmp_path / "invalid", "cpu", max_minutes=minutes)
 
 
+def test_transfer_initialization_allows_new_data_and_resets_optimizer(tmp_path):
+    manifest = check_corpus(tmp_path / "data")
+    cfg = config_file(tmp_path)
+    train(cfg, manifest, tmp_path / "base", "cpu", max_steps=2)
+    source = tmp_path / "base/last.pt"
+    before = torch.load(source, weights_only=True)
+    rows = [json.loads(line) for line in manifest.read_text().splitlines()]
+    rows[0]["source_key"] = "new-dataset-version"
+    manifest.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    config = yaml.safe_load(cfg.read_text())
+    config.update(seed=71, name="transfer", head_lr=0.0, encoder_lr=0.0)
+    cfg.write_text(yaml.safe_dump(config))
+    result = train(cfg, manifest, tmp_path / "transfer", "cpu", max_steps=1, init_weights=source)
+    after = torch.load(tmp_path / "transfer/last.pt", weights_only=True)
+    assert result["steps"] == 1 and after["step"] == 1
+    assert after["manifest_fingerprint"] != before["manifest_fingerprint"]
+    assert after["initialization"]["source_step"] == 2
+    assert after["initialization"]["optimizer_reset"]
+    for name in ("encoder.conv1.weight", "mask_head.weight"):
+        torch.testing.assert_close(after["model"][name], before["model"][name], rtol=0, atol=0)
+    assert all(float(state["step"]) == 1 for state in after["optimizer"]["state"].values())
+    with pytest.raises(ValueError, match="not both"):
+        train(cfg, manifest, tmp_path / "invalid", "cpu", resume=source, init_weights=source)
+    before["model_metadata"]["schema_digest"] = "incompatible"
+    bad = tmp_path / "bad.pt"
+    torch.save(before, bad)
+    with pytest.raises(ValueError, match="incompatible"):
+        train(cfg, manifest, tmp_path / "bad-run", "cpu", init_weights=bad)
+
+
 def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):
     manifest = check_corpus(tmp_path / "data")
     cfg = config_file(tmp_path)

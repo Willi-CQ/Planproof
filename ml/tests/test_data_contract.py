@@ -11,6 +11,7 @@ from planproof_ml.prepare import prepare
 from planproof_ml.svg import read_svg
 from planproof_ml.dataset import sample, transform_boxes
 from planproof_ml.checks import check_corpus
+from planproof_ml.adapters import svg_samples
 
 
 def test_unknown_and_elevators_never_become_walls_or_stairs():
@@ -181,9 +182,30 @@ def test_cubicasa_uses_scaled_raster_pixels_when_svg_viewport_differs(tmp_path):
         yy, xx = np.where(labels["masks"][0])
     assert (xx.min(), xx.max(), yy.min(), yy.max()) == (10, 40, 20, 25)
     assert record["metadata"]["svg"]["coordinate_space"] == "pixels"
+    capped = next(svg_samples("cubicasa5k", raw, raster_max_size=60))
+    assert capped["image"].shape[:2] == (50, 60)
+    assert capped["features"][0]["outer"][0] == [5.0, 10.0]
+    assert capped["metadata"]["svg"]["original_raster_size"] == [120, 100]
     (drawing / "F1_scaled.png").rename(drawing / "F1_original.png")
     with pytest.raises(ValueError, match="Missing paired image"):
         prepare("cubicasa5k", raw, tmp_path / "other")
+
+
+def test_decorative_malformed_paths_do_not_discard_valid_semantic_targets(tmp_path):
+    path = tmp_path / "model.svg"
+    path.write_text(
+        '<svg viewBox="0 0 64 64"><g class="FixedFurniture Misc">'
+        '<path d="M0,0 L46,90 LNaN,NaN"/></g><g id="Wall">'
+        '<polygon points="2,2 20,2 20,8 2,8"/></g></svg>'
+    )
+    features, _, _, info = read_svg(path, (64, 64), collect_strokes=False)
+    assert len(features) == 1 and features[0]["class"] == "wall"
+    assert info["unlabeled_primitives_skipped"] == 1
+    with pytest.raises(ValueError):
+        read_svg(path, (64, 64))
+    path.write_text('<svg viewBox="0 0 64 64"><g id="Wall"><path d="M0,0 LNaN,NaN"/></g></svg>')
+    with pytest.raises(ValueError):
+        read_svg(path, (64, 64), collect_strokes=False)
 
 
 def test_padding_is_not_supervised_background(tmp_path):

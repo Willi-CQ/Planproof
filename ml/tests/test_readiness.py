@@ -126,6 +126,33 @@ def test_cubicasa_fetch_uses_embedded_publisher_splits(tmp_path, monkeypatch):
         assert path.read_text() == f"high_quality/{split}/\n"
 
 
+def test_floorplancad_flat_archives_preserve_train_test_partitions(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        acquire,
+        "sources",
+        lambda: {
+            "floorplancad": {
+                "source_url": "https://publisher/",
+                "access": "fixture",
+                "artifacts": [
+                    {"name": n, "url": "https://publisher/" + n} for n in ("train-00.zip", "test-00.zip")
+                ],
+            }
+        },
+    )
+
+    def fake_download(url, destination, *args):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(destination, "w") as archive:
+            archive.writestr("same-name.svg", destination.name)
+        return "fixture-digest"
+
+    monkeypatch.setattr(acquire, "download", fake_download)
+    acquire.fetch("floorplancad", tmp_path, extract=True)
+    for split in ("train-00", "test-00"):
+        assert (tmp_path / "extracted/floorplancad" / split / "same-name.svg").read_text() == split + ".zip"
+
+
 def test_unknown_room_category_counts_as_false_negative_and_missing_objects_fail_gate():
     targets = encode(
         (32, 32),

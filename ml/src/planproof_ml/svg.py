@@ -75,9 +75,13 @@ def primitive_points(node):
     return np.empty((0, 2)), False
 
 
-def read_svg(path, image_size, class_map=None, coordinate_space="viewport"):
+def read_svg(
+    path, image_size, class_map=None, coordinate_space="viewport", pixel_scale=(1, 1), collect_strokes=True
+):
     if coordinate_space not in {"viewport", "pixels"}:
         raise ValueError("SVG coordinate space must be viewport or pixels")
+    if len(pixel_scale) != 2 or not all(math.isfinite(x) and x > 0 for x in pixel_scale):
+        raise ValueError("Pixel scale must contain two finite positive values")
     content = path.read_text(encoding="utf-8-sig")
     if "<!ENTITY" in content.upper():
         raise ValueError("SVG entity declarations are not supported")
@@ -101,14 +105,15 @@ def read_svg(path, image_size, class_map=None, coordinate_space="viewport"):
     if coordinate_space == "pixels":
         # CubiCasa polygons already use F1_scaled raster pixels. Its SVG viewport
         # can be smaller than the raster and must not rescale/center annotations.
-        base = np.eye(3)
+        base = np.diag([*pixel_scale, 1.0])
     groups, ignored = defaultdict(list), defaultdict(list)
     strokes = []
     mapping = class_map["mapping"] if class_map else {}
     numeric = 0
+    skipped = 0
 
     def walk(node, parent, owner=None, label=None, rtype=None, ignore=False):
-        nonlocal numeric
+        nonlocal numeric, skipped
         matrix = parent @ transform(node.attrib.get("transform", ""))
         tag = node.tag.split("}")[-1]
         if tag in {"text", "defs", "clipPath", "metadata", "title", "desc"}:
@@ -144,10 +149,14 @@ def read_svg(path, image_size, class_map=None, coordinate_space="viewport"):
         elif new_label or new_ignore:
             owner, label, rtype, ignore = str(id(node)), new_label, new_type, new_ignore
         if tag in PRIMITIVES:
+            if not collect_strokes and not (owner and (label or ignore)):
+                skipped += 1
+                return
             points, closed = primitive_points(node)
             if len(points):
                 points = (matrix @ np.column_stack((points, np.ones(len(points)))).T).T[:, :2]
-                strokes.append((points, closed))
+                if collect_strokes:
+                    strokes.append((points, closed))
                 if owner and ignore:
                     ignored[owner].append((points, closed))
                 elif owner and label:
@@ -190,7 +199,13 @@ def read_svg(path, image_size, class_map=None, coordinate_space="viewport"):
         features,
         ignore_regions,
         strokes,
-        {"recognized": len(features), "numeric": numeric, "coordinate_space": coordinate_space},
+        {
+            "recognized": len(features),
+            "numeric": numeric,
+            "coordinate_space": coordinate_space,
+            "pixel_scale": list(pixel_scale),
+            "unlabeled_primitives_skipped": skipped,
+        },
     )
 
 

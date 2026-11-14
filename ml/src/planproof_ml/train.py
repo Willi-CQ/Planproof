@@ -21,7 +21,7 @@ from .evaluate import evaluate
 from .losses import detection_loss
 from .manifest import fingerprint, load_manifest
 from .model import Detector
-from .schema import schema_digest, write_json
+from .schema import schema_digest, write_json, sha256
 from .storage import ensure_artifact_directory
 
 
@@ -79,8 +79,11 @@ def train(
     resume: Path | None = None,
     max_steps=None,
     max_minutes=None,
+    init_weights: Path | None = None,
 ):
     started = time.monotonic()
+    if resume and init_weights:
+        raise ValueError("Choose exact --resume or new-run --init-weights, not both")
     if max_minutes is not None and (not math.isfinite(max_minutes) or max_minutes <= 0):
         raise ValueError("max_minutes must be finite and positive")
     cfg = load_config(config)
@@ -128,7 +131,28 @@ def train(
     if not device.startswith("cuda"):
         torch.set_num_threads(min(4, os.cpu_count() or 1))
     # Resumed runs never re-download encoder initialization weights.
-    model = Detector(None if resume else cfg.get("encoder_weights", "imagenet")).to(device)
+    model = Detector(None if resume or init_weights else cfg.get("encoder_weights", "imagenet")).to(device)
+    initialization = {"mode": "encoder", "encoder_weights": cfg.get("encoder_weights", "imagenet")}
+    if init_weights:
+        initial = torch.load(init_weights, map_location="cpu", weights_only=True)
+        metadata = initial.get("model_metadata", {})
+        if (
+            metadata.get("schema_digest") != schema_digest()
+            or metadata.get("architecture") != model.metadata()["architecture"]
+        ):
+            raise ValueError("Initialization checkpoint architecture or class schema is incompatible")
+        model.load_state_dict(initial["model"], strict=True)
+        initialization = {
+            "mode": "checkpoint_transfer",
+            "checkpoint": str(init_weights.resolve()),
+            "checkpoint_sha256": sha256(init_weights),
+            "source_step": initial["step"],
+            "source_manifest_fingerprint": initial["manifest_fingerprint"],
+            "source_config_digest": initial["config_digest"],
+            "optimizer_reset": True,
+            "schedule_reset": True,
+        }
+        del initial
     optimizer = torch.optim.AdamW(
         [
             {"params": model.encoder.parameters(), "base_lr": cfg.get("encoder_lr", 1e-4)},
@@ -147,6 +171,7 @@ def train(
     best = -1.0
     if resume:
         saved = torch.load(resume, map_location=device, weights_only=True)
+        initialization = saved.get("initialization", {"mode": "legacy_resume"})
         if saved["manifest_fingerprint"] != inventory["fingerprint"]:
             raise ValueError("Dataset changed since checkpoint; resume refused")
         if (
@@ -186,6 +211,7 @@ def train(
                 "git_commit": commit,
                 "manifest": str(manifest.resolve()),
                 "config_digest": config_digest(cfg),
+                "initialization": initialization,
                 "determinism": "deterministic algorithms warn-only; per-step seeded source/crop sampling",
             },
         )
@@ -305,6 +331,7 @@ def train(
                     "config_digest": config_digest(cfg),
                     "manifest_fingerprint": inventory["fingerprint"],
                     "model_metadata": plain.metadata(),
+                    "initialization": initialization,
                     "world_size": world,
                     "rng_cpu": torch.get_rng_state(),
                     "rng_cuda": torch.cuda.get_rng_state_all() if amp else [],

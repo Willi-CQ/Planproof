@@ -104,3 +104,23 @@ spending. Never send private SSH keys in chat.
 Default-threshold export can unblock first integration. Do bounded calibration
 later rather than blocking on an exhaustive sweep or full-corpus benchmark.
 Test/Stoa questions never select thresholds or models.
+
+## Continuing into other datasets
+
+Use `train --init-weights /data/planproof/runs/previous/best.pt` for a new run
+on a new immutable manifest and a transfer recipe. This loads compatible model
+parameters, resets the optimizer/schedule/best score, and records the source
+checkpoint SHA-256 and source dataset/config fingerprints. `--resume` retains
+the strict same-manifest/config/world-size contract; the two options are exclusive.
+
+`transfer-resplan.yaml` keeps 70% CubiCasa replay. The subsequent
+`transfer-floorplancad.yaml` keeps 65% CubiCasa and 15% ResPlan replay. These are
+initial bounded experiments, not measured claims of improvement. Run a short
+probe and inspect matching validation cohorts before extending either stage.
+Keep the previous best weights and reject material original-source regressions.
+
+Freeze a baseline manifest next to its prepared files before adding sources.
+Separate release partitions during FloorPlanCAD extraction and group related
+filename prefixes conservatively to keep cropped drawing families together.
+Audit new data against prior-stage training groups before selecting checkpoints.
+Do not mix Stoa into any stage.

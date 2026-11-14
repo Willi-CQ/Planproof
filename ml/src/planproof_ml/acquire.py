@@ -158,7 +158,12 @@ def fetch(source: str, data_root: Path, urls: list[str] | None = None, extract=F
         }
         write_json(target.with_suffix(target.suffix + ".source.json"), receipt)
         if extract and (zipfile.is_zipfile(target) or tarfile.is_tarfile(target)):
-            extract_archive(target, data_root / "extracted" / source)
+            extraction = data_root / "extracted" / source
+            if source == "floorplancad":
+                # Release archives contain flat paths. Keep train/test archives
+                # separate so duplicate names cannot overwrite held-out records.
+                extraction = extraction / target.name.split(".")[0]
+            extract_archive(target, extraction)
         elif extract:
             sidecar = data_root / "extracted" / source / target.name
             sidecar.parent.mkdir(parents=True, exist_ok=True)
