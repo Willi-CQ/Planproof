@@ -103,6 +103,8 @@ before turns/tools; the last 120 seconds are reserved for finalization. Gemini
 has cancellable 90-second attempts, at most three attempts per normal turn and
 twelve per question. One evidence-preserving final-answer recovery turn can
 follow an interruption, with at most two attempts and no new observation tools.
+Non-direct recovery may still use up to two local area calculation attempts on
+existing images, followed by finalization within the shared request/time caps.
 Backoff, Retry-After and process-local cooldown prevent unbounded retries.
 Nemotron retains 90 seconds without retry, algorithm workers 240 each; in-flight
 tools can finish after the admission deadline. See

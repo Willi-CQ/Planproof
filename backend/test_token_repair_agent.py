@@ -27,7 +27,7 @@ def phases(value):
     return [call.kwargs["phase"] for call in value.transport.generate.call_args_list]
 
 
-def test_max_tokens_gets_distinct_final_only_repair_and_telemetry():
+def test_max_tokens_gets_distinct_bounded_repair_and_telemetry():
     value = agent(exhausted(), response("submit_answer", final()))
     result = value.run()
     assert phases(value) == ["normal", "token_repair"]
@@ -40,7 +40,11 @@ def test_max_tokens_gets_distinct_final_only_repair_and_telemetry():
     assert reliability["last_error"]["finish_reason"] == "MAX_TOKENS"
     assert reliability["retryable"] is False
     repair = value.transport.generate.call_args_list[-1]
-    assert [tool.name for tool in repair.args[1]] == ["submit_answer"]
+    assert [tool.name for tool in repair.args[1]] == [
+        "submit_answer",
+        "calculate_area",
+        "measure_polygon",
+    ]
     context = json.loads(repair.args[0][0].parts[0].text)
     assert context["token_repair"] is True
     assert context["observations"]["coverage"] == "unknown"

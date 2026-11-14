@@ -224,7 +224,12 @@ def test_recovery_reuses_evidence_without_replaying_algorithms_or_specialist(tmp
     a.algorithm_factory.assert_called_once()
     a.specialist_factory.assert_not_called()
     history, tools = a.transport.generate.call_args.args
-    assert [t.name for t in tools] == ["submit_answer"] and len(history) == 3
+    assert [t.name for t in tools] == [
+        "submit_answer",
+        "calculate_area",
+        "measure_polygon",
+    ]
+    assert len(history) == 2
     assert "observations" in history[0].parts[0].text and "crop-1" in str(history[0])
     assert a.transport.generate.call_args.kwargs["phase"] == "recovery"
     assert json.loads(a.out.read_text())["answer"]["answer"] == 2

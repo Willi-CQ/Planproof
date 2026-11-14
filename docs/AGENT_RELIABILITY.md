@@ -16,6 +16,8 @@ are disabled so all attempts share one budget and appear in telemetry.
   final-answer recovery turn can follow an interrupted turn. A distinct, single
   token-repair turn may follow `MAX_TOKENS`, including during outage recovery.
   Both recovery phases share the twelve-request and remaining-time budgets.
+  They may use up to two local measurement attempts and their response follow-ups
+  across both phases; total coordinator turns are capped at twelve.
 - A cancellable async request limits each generation attempt to 90 seconds;
   queueing, retry delays and attempts share a 240-second turn budget and the
   remaining question budget. Each attempt opens a fresh connection and closes
@@ -38,8 +40,14 @@ are disabled so all attempts share one budget and appear in telemetry.
 The agent reserves the last 120 seconds of its 600-second admission budget for
 finalization. After a recoverable interruption it can rebuild a fresh transcript
 from the question, original page, registered crops and already observed tool
-results. Only `submit_answer` is available in this recovery turn: algorithms and
-Nemotron calls are not replayed in ordinary outage recovery. The same answer schema, citation identities and
+results. `submit_answer` plus bounded `calculate_area`/`measure_polygon` calls are
+available in non-direct recovery. The local tools use already registered images;
+no new crops, algorithms or Nemotron calls are allowed in ordinary outage recovery.
+At most two calculation attempts (including invalid inputs/cache hits) consume
+the existing twelve-tool cap. They require over30 seconds and two provider
+requests remaining at admission; generation retries reserve one request for
+finalization. Follow-up turns retain the tool responses and model signatures.
+Direct mode remains final-answer-only. The same answer schema, citation identities and
 coordinate checks still apply. Invalid recovery answers yield explicit abstention.
 A recovered answer is not independently verified merely because recovery worked.
 
@@ -98,6 +106,9 @@ Existing answer fields remain compatible. The new `reliability` object contains:
   exception bodies, headers or credentials.
 - `recovery_used`, `recovery_succeeded`: whether finalization was attempted and
   produced a validated non-abstaining answer.
+- `recovery_measurement_calls`: local calculation attempts during recovery.
+  A recovered abstention explicitly notes that a provider interruption can leave
+  processing incomplete; it does not prove information is absent from the plan.
 - `token_repair_used`, `token_repair_succeeded`, `delegated_recovery_calls`,
   `token_repair_notes`: bounded token recovery and skipped-delegation reasons.
 - `last_error`, `retryable`, `retry_after_seconds`: failure details and retry
