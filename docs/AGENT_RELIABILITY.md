@@ -87,6 +87,33 @@ endpoints sequentially and never opens evaluator labels or retries completed
 requests. Existing 50-case results and source data remain frozen. A small
 time-separated rerun cannot isolate provider variability from code changes.
 
+### Completed development checks, 14 November 2026
+
+The final local source passed 174 Python tests and eight browser checks. Four
+previously observed questions were run through the old and repaired live HTTP
+pipelines, including actual algorithm and specialist calls when requested:
+
+| Condition | Returned answers | Correct | Execution failures | Summed HTTP time |
+| --- | ---: | ---: | ---: | ---: |
+| Original transport | 1/4 | 1/4 | 3/4 | 1,113.6s |
+| Recovery implementation | 3/4 | 2/4 | 1/4 | 959.3s |
+
+One natural interruption involved two HTTP 504 responses and a local timeout.
+Finalization reused the two crops and Nemotron feedback and produced an answer,
+but the count disagreed with the frozen reference. This verifies recovery, not
+correctness. Another question exhausted recovery with `MAX_TOKENS` after two
+504s and a local timeout; the partial answer was rejected. The other new success
+did not need retry, so provider variability cannot be separated from code changes.
+All original 50-case scores remain unchanged.
+
+A separate, explicitly injected first-turn connection failure followed by real
+Gemini finalization succeeded in 13 seconds on a simple control. It is not evidence
+of a natural outage. The four-case run used the first recovery revision; final
+budget-edge, checkpoint and blocked-response refinements passed regression tests,
+and the final code is active locally. Raw labels, drawings and probe traces stay
+in ignored private artifacts. No broad accuracy or availability guarantee follows
+from these small development checks.
+
 ## Sources checked 14 November 2026
 
 Google recommends bounded exponential backoff with jitter for transient errors,
