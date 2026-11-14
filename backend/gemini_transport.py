@@ -192,10 +192,25 @@ class ResilientGeminiTransport:
         self.request_count = 0
         self.last_attempts = 0
         self.on_attempt = None
+        self.phase = "normal"
+
+    def generation_profile(self):
+        # Capability checked against this configured event model. Unknown models
+        # retain the existing settings rather than receiving unsupported parameters.
+        bounded_synthesis = self.model.removeprefix(
+            "models/"
+        ) == "gemini-4-carbon" and self.phase in ("recovery", "token_repair")
+        return {
+            "max_output_tokens": 16384
+            if bounded_synthesis and self.phase == "token_repair"
+            else 8192,
+            "thinking_level": "LOW" if bounded_synthesis else None,
+        }
 
     async def _generate_async(self, history, tools, seconds):
         # One event loop/connection per attempt: broken pools are never reused.
         # Explicit httpx selects a single SDK transport, without aiohttp's own retries.
+        profile = self.generation_profile()
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(seconds, connect=min(10, seconds))
         ) as http:
@@ -219,7 +234,12 @@ class ResilientGeminiTransport:
                             automatic_function_calling=types.AutomaticFunctionCallingConfig(
                                 disable=True
                             ),
-                            max_output_tokens=8192,
+                            max_output_tokens=profile["max_output_tokens"],
+                            thinking_config=types.ThinkingConfig(
+                                thinking_level=profile["thinking_level"]
+                            )
+                            if profile["thinking_level"]
+                            else None,
                         ),
                     )
             finally:
@@ -233,6 +253,7 @@ class ResilientGeminiTransport:
         self, history, tools, *, deadline=None, phase="normal", max_attempts=None
     ):
         started = time.monotonic()
+        self.phase = phase
         deadline = min(
             started + self.policy.turn_seconds if deadline is None else deadline,
             started + self.policy.turn_seconds,
@@ -279,6 +300,7 @@ class ResilientGeminiTransport:
                     "attempt": self.request_count,
                     "phase": phase,
                     "timeout_seconds": round(seconds, 3),
+                    **self.generation_profile(),
                 }
                 try:
                     response = self._generate(history, tools, seconds)

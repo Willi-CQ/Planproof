@@ -320,7 +320,8 @@ $('#reasonButton').addEventListener('click', async () => {
     $('#reasonStatus').textContent = result.status === 'ok'
       ? `Answer ready · ${result.algorithm_used ? 'structural evidence used' : 'visual reasoning'} · ${result.nemotron_calls} Nemotron calls · ${result.seconds}s`
       : result.status === 'not_configured' ? 'Gemini key/model are not configured on the server yet.' : `The agent could not produce a validated answer (${result.status}).`;
-    if (result.reliability?.recovery_succeeded) $('#reasonStatus').textContent += ' · Recovered after an interrupted model response.';
+    if (result.reliability?.token_repair_succeeded) $('#reasonStatus').textContent += ' · Recovered after the model reached its response limit.';
+    else if (result.reliability?.recovery_succeeded) $('#reasonStatus').textContent += ' · Recovered after an interrupted model response.';
     if (result.status !== 'ok' && result.reliability?.last_error) {
       const issue = result.reliability.last_error;
       const wait = result.reliability.retry_after_seconds;

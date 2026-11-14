@@ -4,6 +4,7 @@ The host retains canonical transforms. Nemotron never receives page offsets.
 """
 
 import json
+import copy
 from dataclasses import replace
 
 from planproof_feedback.images import validate_citations
@@ -36,13 +37,13 @@ class VisualSpecialist:
     def __init__(self, service):
         self.service = service
 
-    def answer(self, question, images):
-        return self.inspect(question, images)
+    def answer(self, question, images, *, timeout_seconds=None):
+        return self.inspect(question, images, timeout_seconds=timeout_seconds)
 
     def review(self, question, images, *, candidate, evidence=None):
         return self.inspect(question, images, candidate=candidate)
 
-    def inspect(self, question, images, candidate=None):
+    def inspect(self, question, images, candidate=None, timeout_seconds=None):
         payload = {
             "question": question,
             "draft_to_review": candidate,
@@ -55,7 +56,17 @@ class VisualSpecialist:
                 for i in images
             ],
         }
-        completion = self.service.backends["feedback"].complete(
+        backend = self.service.backends["feedback"]
+        if timeout_seconds is not None:
+            # Request-local copy: never mutate a shared provider configuration.
+            backend = copy.copy(backend)
+            backend.settings = {
+                **backend.settings,
+                "timeout_seconds": max(1, min(30, timeout_seconds)),
+                "retries": 0,
+                "max_tokens": 2048,
+            }
+        completion = backend.complete(
             [
                 {"role": "system", "content": PROMPT},
                 {

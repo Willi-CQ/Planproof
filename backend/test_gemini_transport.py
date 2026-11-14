@@ -334,7 +334,18 @@ def test_empty_blocked_response_does_not_start_recovery():
     assert not result["reliability"]["recovery_used"]
 
 
-def test_actual_sdk_has_no_hidden_retries_and_keeps_http_status():
+@pytest.mark.parametrize(
+    "model,phase,limit,thinking",
+    [
+        ("test-model", "token_repair", 8192, None),
+        ("gemini-4-carbon", "normal", 8192, None),
+        ("gemini-4-carbon", "recovery", 8192, "LOW"),
+        ("models/gemini-4-carbon", "token_repair", 16384, "LOW"),
+    ],
+)
+def test_actual_sdk_has_no_hidden_retries_and_keeps_http_status(
+    model, phase, limit, thinking
+):
     original_client = httpx.AsyncClient
     calls = []
 
@@ -377,7 +388,7 @@ def test_actual_sdk_has_no_hidden_retries_and_keeps_http_status():
         return original_client(**kwargs, transport=httpx.MockTransport(handler))
 
     t = ResilientGeminiTransport(
-        "test-key", "test-model", instruction="test", gate=ProviderGate()
+        "test-key", model, instruction="test", gate=ProviderGate()
     )
     from question_agent import declarations
     from google.genai import types
@@ -391,7 +402,7 @@ def test_actual_sdk_has_no_hidden_retries_and_keeps_http_status():
         patch("gemini_transport.httpx.AsyncClient", side_effect=factory),
         patch("gemini_transport.time.sleep"),
     ):
-        result = t.generate(history, declarations("direct", False))
+        result = t.generate(history, declarations("direct", False), phase=phase)
     assert len(calls) == 2 and len(t.events) == 2
     assert t.events[0]["http_status"] == 503 and t.events[1]["status"] == "ok"
     assert (
@@ -399,4 +410,15 @@ def test_actual_sdk_has_no_hidden_retries_and_keeps_http_status():
         == "submit_answer"
     )
     assert "temperature" not in calls[0].get("generationConfig", {})
+    for call in calls:
+        config = call["generationConfig"]
+        assert config["maxOutputTokens"] == limit
+        thinking_config = config.get("thinkingConfig") or {}
+        assert (
+            thinking_config.get("thinkingLevel", thinking_config.get("thinking_level"))
+            == thinking
+        )
+        assert not {"thinkingBudget", "thinking_budget"} & thinking_config.keys()
+    assert t.events[0]["max_output_tokens"] == limit
+    assert t.events[0]["thinking_level"] == thinking
     assert "private-provider-body" not in json.dumps(t.events)

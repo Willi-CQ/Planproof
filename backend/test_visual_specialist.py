@@ -70,3 +70,39 @@ def test_review_sends_draft_but_keeps_local_frame():
     specialist.review("Windows?", [image], candidate="2 windows")
     text = json.loads(backend.complete.call_args.args[0][1]["content"][0]["text"])
     assert text["draft_to_review"] == "2 windows"
+
+
+def test_recovery_settings_are_bounded_and_request_local():
+    specialist, backend, image = setup(observation())
+    original = {"timeout_seconds": 90, "retries": 2, "max_tokens": 8192}
+    backend.settings = original.copy()
+    from unittest.mock import patch
+
+    with patch("visual_specialist.copy.copy", wraps=__import__("copy").copy) as clone:
+        result = specialist.answer("Inspect locally", [image], timeout_seconds=20)
+    assert result["status"] == "ok"
+    assert backend.settings == original
+    clone.assert_called_once_with(backend)
+
+    # A real small backend records its own settings, avoiding Mock bound-method
+    # behavior when shallow copied.
+    captured = []
+
+    class Backend:
+        settings = original.copy()
+
+        def complete(self, messages):
+            captured.append(self.settings.copy())
+            return {"content": json.dumps(observation())}
+
+    real = Backend()
+    specialist.service.backends["feedback"] = real
+    specialist.answer("Inspect locally", [image], timeout_seconds=20)
+    specialist.answer("Inspect locally", [image], timeout_seconds=100)
+    specialist.answer("Inspect normally", [image])
+    assert captured == [
+        {"timeout_seconds": 20, "retries": 0, "max_tokens": 2048},
+        {"timeout_seconds": 30, "retries": 0, "max_tokens": 2048},
+        original,
+    ]
+    assert real.settings == original

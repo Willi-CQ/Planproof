@@ -52,6 +52,9 @@ try{
   await evaluate(`window.fetch=async(url,options)=>{const r=await window.__uiFetch(url,options);if(!String(url).endsWith('/ask'))return r;const result=await r.json();result.reliability={recovery_succeeded:true,provider_attempts:[]};return new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json'}});};document.getElementById('reasonButton').click();`);
   await until(()=>evaluate("document.getElementById('reasonStatus').textContent.includes('Recovered after an interrupted')"));
   checks.push('Successful recovery is visibly distinguished from an uninterrupted answer');
+  await evaluate(`window.fetch=async(url,options)=>{const r=await window.__uiFetch(url,options);if(!String(url).endsWith('/ask'))return r;const result=await r.json();result.reliability={recovery_succeeded:true,token_repair_succeeded:true,delegated_recovery_calls:1,provider_attempts:[]};return new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json'}});};document.getElementById('reasonButton').click();`);
+  await until(()=>evaluate("document.getElementById('reasonStatus').textContent.includes('reached its response limit')"));
+  checks.push('Token-limit recovery is distinguished from connection recovery');
   await evaluate("document.querySelector('.reasoning-panel').scrollIntoView()");
   const screenshot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'desktop.png'),Buffer.from(screenshot.data,'base64'));
   await rpc('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});

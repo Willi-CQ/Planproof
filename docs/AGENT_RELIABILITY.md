@@ -13,7 +13,9 @@ are disabled so all attempts share one budget and appear in telemetry.
 
 - At most three HTTP attempts per normal turn, two in final-answer recovery and
   twelve total per question. The existing eight normal agent turns remain; one
-  final-answer recovery turn can follow an interrupted turn.
+  final-answer recovery turn can follow an interrupted turn. A distinct, single
+  token-repair turn may follow `MAX_TOKENS`, including during outage recovery.
+  Both recovery phases share the twelve-request and remaining-time budgets.
 - A cancellable async request limits each generation attempt to 90 seconds;
   queueing, retry delays and attempts share a 240-second turn budget and the
   remaining question budget. Each attempt opens a fresh connection and closes
@@ -37,9 +39,47 @@ The agent reserves the last 120 seconds of its 600-second admission budget for
 finalization. After a recoverable interruption it can rebuild a fresh transcript
 from the question, original page, registered crops and already observed tool
 results. Only `submit_answer` is available in this recovery turn: algorithms and
-Nemotron calls are not replayed. The same answer schema, citation identities and
+Nemotron calls are not replayed in ordinary outage recovery. The same answer schema, citation identities and
 coordinate checks still apply. Invalid recovery answers yield explicit abstention.
 A recovered answer is not independently verified merely because recovery worked.
+
+### Token exhaustion and bounded specialist delegation
+
+One failed live trace consumed 8,189 thinking tokens and only three candidate
+tokens under an 8,192-output-token cap. `MAX_TOKENS` reports a generation limit;
+it does not establish exhausted API credits or an invalid key.
+
+For the verified `gemini-4-carbon` model, ordinary finalization uses `LOW` thinking
+with the existing 8,192 output limit. The distinct token-repair phase uses `LOW`
+and a 16,384 output allowance. A live capability check confirmed that combination
+is accepted and the model advertises a 32,768 output limit. Normal routing keeps
+its previous settings. Unknown model IDs retain their existing settings; do not
+apply an unverified model profile automatically. Numeric `thinking_budget` is
+not sent. See Google's [thinking configuration](https://ai.google.dev/gemini-api/docs/thinking).
+
+Token repair rebuilds a compact evidence transcript (12,000 JSON characters for
+tool observations), with explicit omissions and unknown coverage. It preserves
+the original question, units, available native text, full-page image and all
+registered crops. Reflection and incomplete drafts are excluded from evidence.
+Specialist observations remain atomic with their citations; truncated algorithm
+candidate lists report additional omissions. No missing evidence becomes zero.
+
+When the mode and user permissions allow Nemotron, the host can delegate up to
+two local inspections before finalization. These are subquestions about the
+original question, using existing, previously uninspected crops only. They do
+not start another unrestricted Gemini agent or rerun algorithms. Each crop is
+at most 75% of the page, uses the original canonical frame, and overlaps another
+selected crop by at most 20% of the smaller area. These scheduling rules do not
+prove complete coverage or that physical objects are disjoint. Gemini must
+resolve overlap, scope and ambiguity; it must never blindly sum local counts.
+
+Delegation consumes the existing three-specialist/twelve-tool budgets. Each call
+uses request-local settings: 20-second network timeout, zero retries, 2,048 output
+tokens. It is admitted only with at least 115 seconds remaining to reserve time
+for finalization. The synchronous specialist timeout is an I/O timeout, not a
+hard cancellation guarantee. No delegation occurs without an available Gemini
+request or during its cooldown. Direct mode never delegates. Repeated token
+exhaustion terminates with explicit unavailability; no partial answer is accepted.
 
 Local algorithm and specialist operations retain their existing own timeouts.
 The 600-second value is **not** a hard end-to-end deadline for the whole synchronous
@@ -52,11 +92,14 @@ host workflow.
 
 Existing answer fields remain compatible. The new `reliability` object contains:
 
-- `provider_attempts`: attempt number, normal/recovery phase, duration, timeout,
+- `provider_attempts`: attempt number, normal/recovery/token_repair phase, duration, timeout,
   safe error class/category, HTTP status or finish reason where available, retry
-  delay and provider-reported usage. No exception bodies, headers or credentials.
+  delay, output allowance, thinking profile and provider-reported usage. No
+  exception bodies, headers or credentials.
 - `recovery_used`, `recovery_succeeded`: whether finalization was attempted and
   produced a validated non-abstaining answer.
+- `token_repair_used`, `token_repair_succeeded`, `delegated_recovery_calls`,
+  `token_repair_notes`: bounded token recovery and skipped-delegation reasons.
 - `last_error`, `retryable`, `retry_after_seconds`: failure details and retry
   guidance. A successful answer may retain the error it recovered from.
 
@@ -89,7 +132,7 @@ time-separated rerun cannot isolate provider variability from code changes.
 
 ### Completed development checks, 14 November 2026
 
-The final local source passed 174 Python tests and eight browser checks. Four
+The earlier outage-only revision passed 174 Python tests and eight browser checks. Four
 previously observed questions were run through the old and repaired live HTTP
 pipelines, including actual algorithm and specialist calls when requested:
 
@@ -114,6 +157,23 @@ and the final code is active locally. Raw labels, drawings and probe traces stay
 in ignored private artifacts. No broad accuracy or availability guarantee follows
 from these small development checks.
 
+### Token-repair development check
+
+The token-repair revision passes 211 Python tests, nine browser checks and Ruff.
+The local app was restarted with the tested implementation. A controlled replay used the
+actual failed door-count drawing, its registered crops and previously observed
+tool evidence, with a synthetic `MAX_TOKENS` trigger. It retained the remaining
+171-second budget and seven already consumed Gemini requests. Evaluator answers
+were not loaded during inference. This is not a fresh end-to-end benchmark.
+
+One new crop-local Nemotron inspection and real Gemini finalization completed in
+20.2 seconds. Gemini returned a complete cited answer using 897 candidate tokens;
+thinking usage was not separately reported. The count was **13 versus the frozen
+reference's 10**, so execution recovery succeeded but semantic accuracy did not.
+The model included adjacent partial units and acknowledged clipped symbols;
+resolving scope and recognition belongs to the separate hard-drawing review.
+The original failed trace and original 50-case scores are preserved unchanged.
+
 ## Sources checked 14 November 2026
 
 Google recommends bounded exponential backoff with jitter for transient errors,
@@ -124,4 +184,5 @@ SDK client lifecycle and async generation:
 Implementation was checked against the locally installed `google-genai 2.34.0`.
 The transport omits `temperature`; current Google documentation states Gemini 4
 ignores custom sampling values and warns they may become invalid. Model, tools,
-image encoding, token limit and evidence validation remain otherwise unchanged.
+image encoding and evidence validation remain unchanged. The token-repair profile
+above is the only increased output allowance.

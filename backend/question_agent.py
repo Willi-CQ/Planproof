@@ -18,6 +18,7 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
 from gemini_transport import ResilientGeminiTransport, failure_info, response_candidate
+from token_recovery import compact_observations, select_detail_images
 
 from planproof_feedback.artifacts import write_json
 from planproof_feedback.config import read_env
@@ -260,7 +261,7 @@ class GeminiTransport(ResilientGeminiTransport):
 
 
 class DrawingAgent:
-    """No algorithms or Nemotron are initialized until Gemini explicitly requests them."""
+    """Question-driven tools, with bounded crop delegation during token recovery."""
 
     def __init__(
         self,
@@ -290,6 +291,9 @@ class DrawingAgent:
         self.crop_cache = {}
         self.tool_cache = {}
         self.recovery_used = False
+        self.token_repair_used = False
+        self.delegated_recovery_calls = 0
+        self.token_repair_notes = []
         self.last_failure = None
         self.allowed = {
             x.name for x in declarations(request.mode, request.allow_nemotron)
@@ -348,7 +352,7 @@ class DrawingAgent:
             "scope": "This crop only; overlapping views are not additional objects.",
         }, [image]
 
-    def execute(self, name, args):
+    def execute(self, name, args, *, timeout_seconds=None):
         if name not in self.allowed or name == "submit_answer":
             raise ValueError("Unknown or disabled tool")
         expected = {
@@ -542,7 +546,11 @@ class DrawingAgent:
                 },
             )
         else:
-            result = self.specialist.answer(value, images)
+            result = (
+                self.specialist.answer(value, images, timeout_seconds=timeout_seconds)
+                if timeout_seconds is not None
+                else self.specialist.answer(value, images)
+            )
         return {
             "status": result["status"],
             "advisory": result.get("result"),
@@ -576,9 +584,69 @@ class DrawingAgent:
                 },
             )
 
-    def recovery_history(self):
-        # A fresh, smaller transcript: no incomplete generation or model draft is
-        # promoted to evidence. Retain every observed tool result and registered image.
+    def delegate_token_work(self, deadline):
+        """Bounded, crop-local subquestions; never sum or promote their answers."""
+        if self.request.mode == "direct" or not self.request.allow_nemotron:
+            self.token_repair_notes.append("specialist_not_authorized_for_this_mode")
+            return
+        if isinstance(self.transport, ResilientGeminiTransport):
+            if self.transport.request_count >= self.transport.policy.max_requests:
+                self.token_repair_notes.append("no_finalization_request_budget")
+                return
+            try:
+                self.transport.gate.check()
+            except Exception:
+                self.token_repair_notes.append("provider_cooldown_skip_delegation")
+                return
+        question = (
+            "Inspect only this crop to help answer the original question: "
+            + self.request.question
+            + " Give a short inventory of relevant visible objects or printed values with their locations/citations. Identify partial objects at crop edges and ambiguity. Do not answer for the whole page or infer unseen objects. Overlapping crops may contain the same object. No previous draft count is supplied."
+        )
+        if len(question) > 2000:
+            self.token_repair_notes.append("question_too_long_for_focused_delegation")
+            return
+        ids = select_detail_images(self.images, self.tool_log, max_count=2)
+        if not ids:
+            self.token_repair_notes.append("no_uninspected_detail_crops")
+        for image_id in ids:
+            # Keep at least90s for synthesis; specialist gets at most20s and no retries.
+            if (
+                deadline - time.monotonic() < 115
+                or self.nemotron_calls >= 3
+                or len(self.tool_log) >= 12
+            ):
+                self.token_repair_notes.append(
+                    "delegation_budget_reserved_for_finalization"
+                )
+                break
+            args = {"image_ids": [image_id], "question": question}
+            started = time.monotonic()
+            try:
+                result, _ = self.execute("inspect_nemotron", args, timeout_seconds=20)
+            except Exception as exc:
+                result = {
+                    "status": "unavailable",
+                    "error_code": type(exc).__name__,
+                    "instruction": "Missing local evidence; never infer zero.",
+                }
+            self.delegated_recovery_calls += 1
+            self.tool_log.append(
+                {
+                    "name": "inspect_nemotron",
+                    "args": args,
+                    "result": result,
+                    "seconds": round(time.monotonic() - started, 3),
+                    "role": "token_recovery_subagent",
+                    "scope": "crop_local_only",
+                }
+            )
+            self.checkpoint()
+
+    def recovery_history(self, *, compact=False):
+        # No incomplete generation or model draft is promoted to evidence.
+        # Token repair bounds observations with explicit omissions; all registered
+        # images remain available so citation IDs and page scope are preserved.
         return [
             types.Content(
                 role="user",
@@ -592,7 +660,11 @@ class DrawingAgent:
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
-                                "observations": self.tool_log,
+                                "observations": compact_observations(self.tool_log)
+                                if compact
+                                else self.tool_log,
+                                "token_repair": compact,
+                                "delegation_notes": self.token_repair_notes,
                                 "instruction": "Final-answer recovery after an interrupted or incomplete turn. No more observation tools are available. Use only the supplied page, crops and recorded observations; they may be incomplete or wrong. Submit a concise answer with valid citations only if supported, otherwise abstain. A partial draft or reflection is not a verified answer. Do not claim complete coverage unless it is supported.",
                             },
                             ensure_ascii=False,
@@ -640,22 +712,28 @@ class DrawingAgent:
         ]
         answer, stop = None, "turn_budget"
         deadline = started + 600
-        pending_recovery = False
+        pending_phase = None
         self.checkpoint()
-        for turn in range(9):
-            if turn == 8 and not pending_recovery:
+        for turn in range(10):
+            if turn >= 8 and not pending_phase:
                 break
             if time.monotonic() >= deadline:
                 stop = "time_budget"
                 break
-            if time.monotonic() >= deadline - 120:
-                pending_recovery = True
-            recovery = pending_recovery
+            if time.monotonic() >= deadline - 120 and pending_phase is None:
+                pending_phase = "recovery"
+            phase = pending_phase or "normal"
+            recovery = phase != "normal"
             if recovery:
-                if self.recovery_used:
+                if phase == "token_repair":
+                    if self.token_repair_used:
+                        break
+                    self.token_repair_used = True
+                    self.delegate_token_work(deadline)
+                elif self.recovery_used:
                     break
                 self.recovery_used = True
-                history = self.recovery_history()
+                history = self.recovery_history(compact=phase == "token_repair")
             available = declarations(self.request.mode, self.request.allow_nemotron)
             if recovery or turn == 7 or len(self.tool_log) >= 12:
                 available = [available[0]]
@@ -674,7 +752,7 @@ class DrawingAgent:
                     history,
                     available,
                     deadline=deadline if recovery else deadline - 120,
-                    phase="recovery" if recovery else "normal",
+                    phase=phase,
                     max_attempts=2 if recovery else 3,
                 )
                 candidate = response_candidate(response)
@@ -684,12 +762,19 @@ class DrawingAgent:
                 self.calls.append(
                     {
                         "turn": turn,
-                        "phase": "recovery" if recovery else "normal",
+                        "phase": phase,
                         **self.last_failure,
                     }
                 )
                 stop = "provider_error"
                 self.checkpoint()
+                if (
+                    self.last_failure.get("finish_reason") == "MAX_TOKENS"
+                    and not self.token_repair_used
+                    and time.monotonic() < deadline - 1
+                ):
+                    pending_phase = "token_repair"
+                    continue
                 if (
                     not recovery
                     and (
@@ -706,13 +791,13 @@ class DrawingAgent:
                     )
                     and time.monotonic() < deadline - 1
                 ):
-                    pending_recovery = True
+                    pending_phase = "recovery"
                     continue
                 break
             self.calls.append(
                 {
                     "turn": turn,
-                    "phase": "recovery" if recovery else "normal",
+                    "phase": phase,
                     "usage": response.usage_metadata.model_dump(mode="json")
                     if response.usage_metadata
                     else {},
@@ -855,6 +940,12 @@ class DrawingAgent:
             "citation_verification": "Image identity and bounds validated; semantic support is model proposed.",
             "reliability": {
                 "recovery_used": self.recovery_used,
+                "token_repair_used": self.token_repair_used,
+                "token_repair_succeeded": self.token_repair_used
+                and stop == "answered"
+                and answer["status"] == "answered",
+                "delegated_recovery_calls": self.delegated_recovery_calls,
+                "token_repair_notes": self.token_repair_notes,
                 "recovery_succeeded": self.recovery_used
                 and stop == "answered"
                 and answer["status"] == "answered",
