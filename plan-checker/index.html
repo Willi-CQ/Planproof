@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=stoa-plan-review" />
   </head>
   <body>
     <div class="app-shell">
@@ -105,8 +105,13 @@
                       </g>
                     </svg>
                   </div>
-                  <div class="preview-foot"><span><span class="legend-dot"></span> Murs détectés</span><span><span class="legend-dot window-legend"></span> Ouvertures</span><span class="scale-label">Aperçu vectoriel</span></div>
+                  <div class="preview-foot" id="planLegend" hidden>
+                    <span><i class="zone-dot zone-dot--deterministic"></i> Déterministe</span>
+                    <span><i class="zone-dot zone-dot--ml"></i> Modèle ML</span>
+                    <span class="scale-label">Cadres des propositions</span>
+                  </div>
                 </div>
+                <p class="plan-scope">Le comptage de portes est prévu pour les plans d’étage vus de dessus. Sur une coupe ou une façade, les propositions peuvent être trompeuses.</p>
                 <div class="analysis-options">
                   <label>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label>
                   <div>
@@ -143,7 +148,16 @@
                 <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Stoa</b><small><span class="online-dot"></span> Explication de l’analyse</small></div></div>
                 <div class="assistant-context"><span class="context-icon">▧</span><span><b id="assistantContextTitle">Aucun plan analysé</b><small id="assistantPage"></small></span></div>
                 <div class="chat-body" id="chatBody" aria-live="polite">
-                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><p id="reviewMessage">Activez l’assistant pour obtenir une explication du résultat.</p></div></div>
+                  <figure class="zone-inspection" id="zoneInspection" hidden>
+                    <figcaption><strong id="zoneTitle"></strong><span id="zoneStatus"></span></figcaption>
+                    <canvas id="zoneCrop" role="img"></canvas>
+                    <div class="zone-navigation">
+                      <button type="button" id="previousZone" aria-label="Zone précédente">←</button>
+                      <span id="zonePosition"></span>
+                      <button type="button" id="nextZone" aria-label="Zone suivante">→</button>
+                    </div>
+                  </figure>
+                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><p id="reviewMessage">Activez l’assistant pour obtenir une explication du résultat.</p><div id="assistantReferences"></div></div></div>
                 </div>
                 <div class="assistant-disclaimer">Les résultats doivent être validés par un professionnel.</div>
               </div>
@@ -166,6 +180,6 @@
       </main>
     </div>
     <div class="toast" id="toast" role="status"></div>
-    <script src="app.js?v=stoa-zone-review" type="module"></script>
+    <script src="app.js?v=stoa-plan-review" type="module"></script>
   </body>
 </html>

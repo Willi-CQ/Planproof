@@ -59,6 +59,9 @@ function resetResult() {
   $('#assistantContextTitle').textContent = selectedFile?.name || 'Aucun plan analysé';
   $('#assistantPage').textContent = '';
   $('#reviewMessage').textContent = 'Activez l’assistant pour obtenir une explication du résultat.';
+  $('#assistantReferences').replaceChildren();
+  $('#zoneInspection').hidden = true;
+  $('#planLegend').hidden = true;
   $('#evidenceList').replaceChildren();
   $('#jsonPanel').hidden = true;
   $('#jsonButton').disabled = true;
@@ -104,12 +107,30 @@ function setPreviewLabel(label, details) {
   line.querySelector('span:last-child').textContent = details;
 }
 
+function paintZone(image, item, width, height) {
+  const canvas = $('#zoneCrop');
+  const [left, top, right, bottom] = item.bbox_xyxy;
+  const margin = Math.max(20, Math.max(right - left, bottom - top) * 0.9);
+  const x = Math.max(0, left - margin);
+  const y = Math.max(0, top - margin);
+  const w = Math.min(width, right + margin) - x;
+  const h = Math.min(height, bottom + margin) - y;
+  const scale = Math.min(640 / w, 370 / h);
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+  const context = canvas.getContext('2d');
+  context.drawImage(image, x, y, w, h, 0, 0, canvas.width, canvas.height);
+  context.strokeStyle = item.provider === 'ml' ? '#256487' : '#a45424';
+  context.lineWidth = 3;
+  context.strokeRect((left - x) * scale, (top - y) * scale, (right - left) * scale, (bottom - top) * scale);
+}
+
 function renderEvidence(result) {
   const { width, height, page_index: index } = result.source;
   const wrapper = document.createElement('div');
   wrapper.className = 'evidence-canvas';
   wrapper.style.aspectRatio = `${width} / ${height}`;
-  wrapper.style.width = `min(100%, ${220 * width / height}px)`;
+  wrapper.style.width = `min(100%, ${330 * width / height}px)`;
   const image = document.createElement('img');
   image.src = result.image_url;
   image.alt = `Plan source, page ${index + 1}`;
@@ -121,19 +142,40 @@ function renderEvidence(result) {
   evidence.sort((a, b) => Number(cited.has(b.id)) - Number(cited.has(a.id)));
   const list = $('#evidenceList');
   list.replaceChildren();
+  const references = $('#assistantReferences');
+  references.replaceChildren();
+  $('#planLegend').hidden = evidence.length === 0;
+  $('#zoneInspection').hidden = true;
   const markers = [];
   const buttons = [];
   const largeList = evidence.length > 8;
   const selector = document.createElement('select');
   selector.id = 'evidenceZone';
+  let currentZone = 0;
   function showZone(position) {
+    const item = evidence[position];
+    if (!item) return;
+    currentZone = position;
     markers.forEach((marker, index) => { marker.hidden = index !== position; });
     buttons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === position)));
+    selector.value = String(position);
+    const label = `Zone ${position + 1} · ${counts[item.provider]}`;
+    $('#zoneTitle').textContent = label;
+    $('#zoneStatus').textContent = cited.has(item.id) ? 'Citée par Stoa'
+      : primary.length ? 'À vérifier' : 'Détections concordantes';
+    $('#zoneCrop').setAttribute('aria-label', `Agrandissement de la zone ${position + 1} du plan, proposition ${counts[item.provider]}`);
+    $('#zonePosition').textContent = `${position + 1} / ${evidence.length}`;
+    $('#previousZone').disabled = position === 0;
+    $('#nextZone').disabled = position === evidence.length - 1;
+    if (image.complete && image.naturalWidth) {
+      paintZone(image, item, width, height);
+      $('#zoneInspection').hidden = false;
+    }
   }
   for (const [position, item] of evidence.entries()) {
     const [left, top, right, bottom] = item.bbox_xyxy;
     const marker = document.createElement('span');
-    marker.className = 'evidence-marker';
+    marker.className = `evidence-marker evidence-marker--${item.provider}`;
     marker.hidden = position !== 0;
     Object.assign(marker.style, {
       left: `${left / width * 100}%`, top: `${top / height * 100}%`,
@@ -142,6 +184,13 @@ function renderEvidence(result) {
     wrapper.append(marker);
     markers.push(marker);
     const label = `Zone ${position + 1} · ${counts[item.provider]}${cited.has(item.id) ? ' · citée' : ''}`;
+    if (cited.has(item.id)) {
+      const reference = document.createElement('button');
+      reference.type = 'button';
+      reference.textContent = `Voir la zone ${position + 1}`;
+      reference.addEventListener('click', () => showZone(position));
+      references.append(reference);
+    }
     if (largeList) {
       selector.add(new Option(label, String(position)));
       continue;
@@ -163,6 +212,12 @@ function renderEvidence(result) {
     list.append(label, selector);
   }
   drawing.replaceChildren(wrapper);
+  image.addEventListener('load', () => {
+    if (analysis === result) showZone(currentZone);
+  });
+  $('#previousZone').onclick = () => showZone(currentZone - 1);
+  $('#nextZone').onclick = () => showZone(currentZone + 1);
+  showZone(0);
   const link = document.createElement('a');
   link.href = result.image_url;
   link.target = '_blank';
@@ -201,12 +256,14 @@ function render(result, fileName) {
     ? 'Aucune proposition de porte n’a pu être appariée. Sélectionnez une zone pour inspecter le plan.'
     : result.reasons.map((reason) => reasons[reason] || reason).join(' ')
       || 'Les deux moteurs couvrent la page et les positions correspondent.';
-  $('#metricRooms').textContent = result.answer ?? '—';
+  $('#metricRooms').textContent = result.answer ?? 'À vérifier';
   $('#metricArea').textContent = result.matched_pairs.length;
   $('#metricIssues').textContent = result.disputed_evidence.length + result.unverified_evidence.length;
   for (const [key, id] of [['deterministic', 'detValue'], ['ml', 'mlValue']]) {
     const number = result[key].detected_count;
-    $(`#${id}`).textContent = number == null ? 'Indisponible' : `${number} ${number === 1 ? 'proposition' : 'propositions'}`;
+    $(`#${id}`).textContent = number == null ? 'Moteur indisponible'
+      : number === 0 ? 'Aucune proposition détectée'
+      : `${number} ${number === 1 ? 'proposition' : 'propositions'}`;
   }
   $('#assistantContextTitle').textContent = fileName;
   $('#assistantPage').textContent = `Page ${result.source.page_index + 1}`;
@@ -216,9 +273,7 @@ function render(result, fileName) {
     not_authorized: 'Activez l’assistant si vous souhaitez une explication.',
     unavailable: 'L’assistant est indisponible. Vous pouvez toujours consulter le résultat et les zones.',
   };
-  const references = assistant?.evidence_ids?.join(', ');
-  const message = assistant?.message || assistantStates[assistant?.status] || assistantStates.unavailable;
-  $('#reviewMessage').textContent = references ? `${message} Références ${references}.` : message;
+  $('#reviewMessage').textContent = assistant?.message || assistantStates[assistant?.status] || assistantStates.unavailable;
   renderEvidence(result);
   $('#jsonOutput').textContent = JSON.stringify(jsonForTab(), null, 2);
   $('#jsonButton').disabled = false;

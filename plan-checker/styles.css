@@ -23,3 +23,20 @@
 .topbar{background:rgba(255,255,255,.86);border-bottom-color:var(--line)}
 [hidden]{display:none!important}
 .file-row[hidden],.dropzone[hidden],.json-panel[hidden]{display:none!important}
+
+.drawing-wrap:has(.evidence-canvas) { height: auto; min-height: 180px; padding: 14px 0; }
+.evidence-canvas { max-height: none; }
+.evidence-marker--ml { border-color: #256487; background: #66b8dc50; }
+.plan-scope { margin: 10px 0 0; color: #5e6c63; line-height: 1.5; font-size: 11px; }
+.zone-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+.zone-dot--deterministic { background: #a45424; }
+.zone-dot--ml { background: #256487; }
+.zone-inspection { margin: 0 0 16px; border: 1px solid #e4e8df; border-radius: 8px; overflow: hidden; }
+.zone-inspection figcaption, .zone-navigation { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 9px; background: #f4f3ef; font-size: 10px; }
+.zone-inspection figcaption span { color: #516355; }
+.zone-inspection canvas { display: block; width: 100%; max-height: 220px; object-fit: contain; background: #fff; }
+.zone-navigation button, #assistantReferences button { border: 1px solid #d6e0d3; border-radius: 6px; padding: 4px 9px; color: #264c30; background: white; }
+.zone-navigation button:disabled { opacity: .4; cursor: default; }
+#assistantReferences { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; font-size: 10px; }
+.assistant-context > span:nth-child(2) { min-width: 0; }
+#assistantContextTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
