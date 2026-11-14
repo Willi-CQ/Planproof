@@ -55,10 +55,20 @@ def discover_model(client: httpx.Client) -> str:
 def ask_nemotron(client: httpx.Client, model: str, crop: bytes, prompt: str, comparison: Comparison) -> Advisory:
     encoded_crop = base64.b64encode(crop).decode("ascii")
     schema = json.dumps(Advisory.model_json_schema(), ensure_ascii=False)
+    providers = {item.provider for item in comparison.disputed_evidence}
+    local_instruction = (
+        " Favor an analyzer only if it has a supplied candidate ID and the visible marking supports it. "
+        "Return UNRESOLVED if the crop shows only an opening or the visible marking is ambiguous. "
+        "For UNRESOLVED, cite any supplied candidate IDs whose markings you specifically describe."
+    )
+    if providers == {"ml"}:
+        local_instruction += " The only possible supported verdict in this crop is SUPPORTS_ML."
+    elif providers == {"deterministic"}:
+        local_instruction += " The only possible supported verdict in this crop is SUPPORTS_DETERMINISTIC."
     response = client.post("/v1/chat/completions", json={
         "model": model,
         "messages": [
-            {"role": "system", "content": f"{INSTRUCTION} Respond with a JSON object of this schema: {schema}"},
+            {"role": "system", "content": f"{INSTRUCTION}{local_instruction} Respond with a JSON object of this schema: {schema}"},
             {"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{encoded_crop}"}},
                 {"type": "text", "text": prompt},

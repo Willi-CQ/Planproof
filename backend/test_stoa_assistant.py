@@ -49,6 +49,13 @@ class StoaAssistantTests(unittest.TestCase):
         self.assertEqual(context, {
             "status": "NEEDS_REVIEW",
             "reasons": ["unmatched_detections"],
+            "comparison": {
+                "deterministic_proposals": self.comparison.deterministic.detected_count,
+                "ml_proposals": self.comparison.ml.detected_count,
+                "matched_pairs": len(self.comparison.matched_pairs),
+                "disputed_proposals": len(self.comparison.disputed_evidence),
+                "visual_sample_proposals": None,
+            },
             "visual_review": {
                 "resolution": "SUPPORTS_DETERMINISTIC",
                 "observation": "A door swing is visible.",

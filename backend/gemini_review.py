@@ -38,6 +38,7 @@ class Review(Contract):
     crop_bbox_xyxy: list[int] | None = None
     model: str | None = None
     detail: str | None = None
+    sampled_candidates: int | None = Field(default=None, exclude=True)
     error_code: Literal[
         "request_rejected", "access_denied", "model_unavailable", "quota",
         "provider_error", "connection", "timeout", "invalid_response",

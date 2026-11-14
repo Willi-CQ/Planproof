@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app import app
 from gemini_review import Advisory, Review
 from stoa_assistant import AssistantResponse
+from verification import AnalyzerResult, PageFrame
 
 
 class StoaPipelineTests(unittest.TestCase):
@@ -91,3 +92,42 @@ class StoaPipelineTests(unittest.TestCase):
         self.assertEqual(payload["assistant"]["status"], "unavailable")
         self.assertEqual(payload["status"], "NEEDS_REVIEW")
         coordinator.assert_not_called()
+
+    def test_many_disputes_review_a_local_subset(self):
+        demo = self.client.post("/api/v1/demo/door-count").json()
+        source = PageFrame.model_validate(demo["source"])
+        fixture = {
+            "schema_version": "planproof-door-result-v1", "source": source, "version": "test",
+            "mode": "independent", "status": "ok", "complete": False,
+        }
+        deterministic = AnalyzerResult(**fixture)
+        ml = AnalyzerResult(**fixture, detections=[
+            {"id": str(index), "bbox": [index * 80.0, 390.0, index * 80.0 + 25, 420.0]}
+            for index in range(16)
+        ])
+
+        def coordinate(crop, bounds, page, localized, *config):
+            self.assertEqual(len(localized.disputed_evidence), 4)
+            self.assertLess(bounds[2] - bounds[0], source.width / 2)
+            self.assertEqual(localized.ml.detected_count, 16)
+            return Review(status="reviewed", advisory=Advisory(
+                resolution="UNRESOLVED", reason="Seule une ouverture est visible.", evidence_ids=[],
+            ))
+
+        with patch("app.run_engines", return_value={"deterministic": deterministic, "ml": ml}), patch(
+            "app.review_with_nemotron", side_effect=coordinate,
+        ) as coordinator, patch(
+            "app.synthesize_assistant", return_value=AssistantResponse(status="answered", message="Échantillon."),
+        ) as answer:
+            result = self.client.post(
+                f"/api/v1/documents/{source.document_id}/analyze-doors",
+                params={"allow_assistant_review": True},
+            )
+        self.assertEqual(result.status_code, 200, result.text)
+        coordinator.assert_called_once()
+        full_comparison, review = answer.call_args.args
+        self.assertEqual(len(full_comparison.disputed_evidence), 16)
+        self.assertEqual(review.sampled_candidates, 4)
+        payload = result.json()
+        self.assertIsNone(payload["answer"])
+        self.assertEqual(len(payload["disputed_evidence"]), 16)

@@ -27,7 +27,7 @@ from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, re
 from ml_adapter import adapt_ml
 from nemotron_review import nemotron_config, nemotron_key, review_with_nemotron
 from stoa_assistant import AssistantResponse, assistant_config, synthesize_assistant
-from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
+from verification import AnalyzerResult, Comparison, DoorCountRequest, Evidence as DoorEvidence, PageFrame, compare
 
 
 app = FastAPI(title="PlanProof MVP")
@@ -363,13 +363,13 @@ def review_for_request(
         return {"assistant": AssistantResponse(status="not_authorized")}
     review = Review(status="not_needed")
     if assistant_config():
-        review = review_comparison(comparison, page, source, True, provider="nemotron")
+        review = review_comparison(comparison, page, source, True, provider="nemotron", sample=True)
     return {"assistant": synthesize_assistant(comparison, review)}
 
 
 def review_comparison(
     comparison: Comparison, page: Page, source: PageFrame, allowed: bool,
-    *, provider: Literal["gemini", "nemotron"] = "gemini",
+    *, provider: Literal["gemini", "nemotron"] = "gemini", sample: bool = False,
 ) -> Review:
     if comparison.status != "NEEDS_REVIEW":
         return Review(status="not_needed")
@@ -386,14 +386,43 @@ def review_comparison(
         review = review_disagreement
     if not config:
         return Review(status="unavailable")
-    if not 0 < len(comparison.disputed_evidence) <= MAX_CANDIDATES:
+    evidence = comparison.disputed_evidence
+    if not evidence or (len(evidence) > MAX_CANDIDATES and not sample):
         return Review(status="outside_scope")
     with pdf_lock:
-        region = review_crop(page.png, source, comparison.disputed_evidence)
+        region = review_crop(page.png, source, evidence) if len(evidence) <= MAX_CANDIDATES else None
+        if region is None and sample:
+            evidence = local_review_candidates(evidence, source)
+            while evidence:
+                region = review_crop(page.png, source, evidence)
+                if region is not None:
+                    break
+                evidence = evidence[:-1]
     if region is None:
         return Review(status="outside_scope")
     crop, bounds = region
-    return review(crop, bounds, source.page_index, comparison, *config)
+    localized = comparison.model_copy(update={"disputed_evidence": evidence})
+    result = review(crop, bounds, source.page_index, localized, *config)
+    if result.status == "reviewed" and len(evidence) < len(comparison.disputed_evidence):
+        result.sampled_candidates = len(evidence)
+    return result
+
+
+def local_review_candidates(evidence: list[DoorEvidence], source: PageFrame) -> list[DoorEvidence]:
+    def center(item: DoorEvidence) -> tuple[float, float]:
+        left, top, right, bottom = item.bbox_xyxy
+        return (left + right) / 2, (top + bottom) / 2
+
+    # Start with proposals near the page center, then prioritize neighboring markings.
+    anchor = min(evidence, key=lambda item: (
+        ((center(item)[0] - source.width / 2) / source.width) ** 2
+        + ((center(item)[1] - source.height / 2) / source.height) ** 2,
+        item.id,
+    ))
+    x, y = center(anchor)
+    return sorted(evidence, key=lambda item: (
+        (center(item)[0] - x) ** 2 + (center(item)[1] - y) ** 2, item.id,
+    ))[:4]
 
 
 @app.post("/api/v1/documents/{document_id}/door-analysis")

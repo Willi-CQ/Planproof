@@ -1,6 +1,6 @@
 # Stoa
 
-FastAPI sert l’interface et l’API. L’analyse envoie le même PNG canonique aux moteurs déterministe et ML. Quand le visiteur demande une explication, Nemotron examine le recadrage en cas de désaccord. Le backend valide les preuves citées, puis Gemini reçoit le résumé textuel pour rédiger la réponse de l’assistant Stoa. Le calcul du total et son statut restent du ressort de PlanProof.
+FastAPI sert l’interface et l’API. L’analyse envoie le même PNG canonique aux moteurs déterministe et ML. Quand le visiteur demande une explication, Nemotron examine un recadrage en cas de désaccord. Si les propositions sont nombreuses ou dispersées, il examine une zone avec jusqu’à quatre propositions. Le backend vérifie que les références citées appartiennent à cette zone, puis Gemini reçoit le résumé textuel pour rédiger la réponse de l’assistant Stoa. La lecture de la zone reste à vérifier sur le plan. Le calcul du total et son statut restent du ressort de PlanProof.
 
 ## Lancer le front et l’API
 

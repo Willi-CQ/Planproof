@@ -66,6 +66,7 @@ function resetResult() {
 
 function setFile(file) {
   if (busy || !file) return;
+  if (/\.svg$/i.test(file.name)) return toast('Pour un plan SVG, utilisez le PDF associé ou exportez le dessin en PNG.');
   if (!accepted.includes(file.type)) return toast('Choisissez un PDF, PNG ou JPEG.');
   if (file.size > 10 * 1024 * 1024) return toast('Le fichier dépasse la limite de 10 Mo.');
   selectedFile = file;
@@ -115,9 +116,20 @@ function renderEvidence(result) {
   wrapper.append(image);
 
   const primary = result.disputed_evidence.length ? result.disputed_evidence : result.unverified_evidence;
-  const evidence = primary.length ? primary : result.matched_evidence;
+  const evidence = [...(primary.length ? primary : result.matched_evidence)];
+  const cited = new Set(result.assistant?.evidence_ids);
+  evidence.sort((a, b) => Number(cited.has(b.id)) - Number(cited.has(a.id)));
   const list = $('#evidenceList');
   list.replaceChildren();
+  const markers = [];
+  const buttons = [];
+  const largeList = evidence.length > 8;
+  const selector = document.createElement('select');
+  selector.id = 'evidenceZone';
+  function showZone(position) {
+    markers.forEach((marker, index) => { marker.hidden = index !== position; });
+    buttons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === position)));
+  }
   for (const [position, item] of evidence.entries()) {
     const [left, top, right, bottom] = item.bbox_xyxy;
     const marker = document.createElement('span');
@@ -128,16 +140,27 @@ function renderEvidence(result) {
       width: `${(right - left) / width * 100}%`, height: `${(bottom - top) / height * 100}%`,
     });
     wrapper.append(marker);
+    markers.push(marker);
+    const label = `Zone ${position + 1} · ${counts[item.provider]}${cited.has(item.id) ? ' · citée' : ''}`;
+    if (largeList) {
+      selector.add(new Option(label, String(position)));
+      continue;
+    }
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'text-button';
-    button.textContent = `Zone ${position + 1} · ${counts[item.provider]}`;
+    button.textContent = label;
     button.setAttribute('aria-pressed', String(position === 0));
-    button.addEventListener('click', () => {
-      wrapper.querySelectorAll('.evidence-marker').forEach((box) => { box.hidden = box !== marker; });
-      list.querySelectorAll('button').forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
-    });
+    button.addEventListener('click', () => showZone(position));
+    buttons.push(button);
     list.append(button);
+  }
+  if (largeList) {
+    const label = document.createElement('label');
+    label.htmlFor = selector.id;
+    label.textContent = `Zones du plan (${evidence.length})`;
+    selector.addEventListener('change', () => showZone(Number(selector.value)));
+    list.append(label, selector);
   }
   drawing.replaceChildren(wrapper);
   const link = document.createElement('a');
@@ -173,8 +196,11 @@ function render(result, fileName) {
   $('#decisionBadge').className = `decision-badge ${supported ? 'consistent' : 'review'}`;
   $('#decisionSymbol').textContent = supported ? '✓' : '!';
   $('#decisionTitle').textContent = supported ? 'Les détections concordent' : 'Total de portes indéterminé';
-  $('#decisionCopy').textContent = result.reasons.map((reason) => reasons[reason] || reason).join(' ')
-    || 'Les deux moteurs couvrent la page et les positions correspondent.';
+  const noAgreement = result.status === 'NEEDS_REVIEW' && result.matched_pairs.length === 0;
+  $('#decisionCopy').textContent = noAgreement
+    ? 'Aucune proposition de porte n’a pu être appariée. Sélectionnez une zone pour inspecter le plan.'
+    : result.reasons.map((reason) => reasons[reason] || reason).join(' ')
+      || 'Les deux moteurs couvrent la page et les positions correspondent.';
   $('#metricRooms').textContent = result.answer ?? '—';
   $('#metricArea').textContent = result.matched_pairs.length;
   $('#metricIssues').textContent = result.disputed_evidence.length + result.unverified_evidence.length;
