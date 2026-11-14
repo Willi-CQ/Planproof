@@ -670,10 +670,8 @@ export default function App() {
                 drawing={drawing}
                 name={file?.name}
                 liveRun={activeRun}
-                liveConnection={connection}
                 followLive={followLive}
                 onFollowLive={setFollowLive}
-                onFocusLive={(region) => activeMessage && focusWork(activeMessage.id, region)}
                 shapes={shapes}
                 comparisonSplit={comparisonSplit}
                 focusRegion={focusRegion}

@@ -106,12 +106,15 @@ calls and is not a new agent answer or an accuracy benchmark.
 
 ## Live briefing update
 
-The default running view now combines an in-conversation work log with a plan activity
-card. Matching start/result events form one step. Pending steps have no fabricated
+The default running view combines an in-conversation work log with source outlines
+on the drawing. The former floating plan activity card has been removed. Matching
+start/result events form one step. Pending steps have no fabricated
 outcome; interrupted steps stay interrupted. Source regions appear without opening
 the inspector. Only recorded/requested coordinates are shown; there is no inference
-of model attention. When the latest step has no image, the card calls the retained
-crop the last source region. Follow is optional, and manual navigation pauses it.
+of model attention. Retained crops remain previous source regions rather than model attention.
+Follow is an icon toggle in the bottom drawing toolbar beside Task details, with
+a persistent accessible name, pressed state and on/off icon. It can be enabled
+before a run; manual navigation pauses it. The toolbar wraps on narrow screens.
 
 Raw layers now require Diagnostics -> Show raw algorithm output. They are never
 automatically loaded or treated as the user's final findings. A returned detector
@@ -187,3 +190,9 @@ three-page PDF with one internal citation link and two source images. Desktop, 3
 and 320px browser views were checked with no page errors or toolbar overflow. The
 run was replayed, not inferred again. Preview activation waited for the user's active
 task to complete and preserved its 30 recorded events.
+
+## Proposed next evidence experience
+
+See [Evidence experience and model-use plan](EVIDENCE_EXPERIENCE_PLAN.md) for the
+proposed correlation, delivery/usage, coverage and claim-link contracts. These
+follow-on changes are planned; the toolbar Follow toggle above is implemented.

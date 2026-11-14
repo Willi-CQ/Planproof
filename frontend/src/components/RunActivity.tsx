@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, ChevronDown, Focus, LoaderCircle, CircleAlert } from "lucide-react";
 import { CropPreview } from "./EvidenceInspector";
-import { activityDetail, activityTitle, boundRegions, liveActivity, workSteps } from "../lib/activity";
+import { activityDetail, activityTitle, boundRegions, workSteps } from "../lib/activity";
 import { sameSource, terminal, type AgentRun, type Region } from "../lib/runs";
 import type { Drawing } from "../lib/api";
 
@@ -40,21 +40,4 @@ export function RunActivity({ run, drawing, onFocus, connection }: Props) {
   </>;
   if (done) return <details className="work-recap"><summary><Check size={14} />{run.status === "completed" ? "Work behind this answer" : "Recorded work"}<span>{steps.length} steps</span><ChevronDown size={14} /></summary>{content}</details>;
   return <div className="run-activity" data-testid="live-work-log">{content}</div>;
-}
-
-export function PlanActivity({ run, drawing, onFocus, connection, follow, onFollow }: Props & { follow: boolean; onFollow: (value: boolean) => void }) {
-  const active = liveActivity(run, drawing.source);
-  const [, tick] = useState(0);
-  useEffect(() => { const timer = setInterval(() => tick(v => v + 1), 1000); return () => clearInterval(timer); }, []);
-  if (!active) return null;
-  const seconds = run.created ? Math.max(0, Math.floor(Date.now() / 1000 - run.created)) : null;
-  return <aside className="plan-activity" data-testid="plan-live-activity" aria-label="Live drawing activity">
-    <div className="plan-activity-kicker"><span className="live-dot" />{connection || "Planproof · live"}<small>{seconds !== null ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : ""}</small></div>
-    <strong>{activityTitle(active.event)}</strong>
-    <p>{activityDetail(active.event)}</p>
-    <div className="plan-activity-actions">
-      {active.regions.length > 0 ? <button className="text-button" onClick={() => onFocus(active.regions[0])}><Focus size={13} />{active.currentRegion ? "Inspect requested view" : "Last source region"}</button> : <span>Page context · no specific region requested</span>}
-      <button className={follow ? "follow-control active" : "follow-control"} aria-pressed={follow} onClick={() => onFollow(!follow)}>{follow ? "Following" : "Follow view"}</button>
-    </div>
-  </aside>;
 }

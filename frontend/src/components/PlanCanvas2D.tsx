@@ -8,21 +8,20 @@ import {
   ChevronRight,
   LoaderCircle,
   ListChecks,
+  LocateFixed,
+  LocateOff,
 } from "lucide-react";
 import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
 import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
 import { liveActivity } from "../lib/activity";
-import { PlanActivity } from "./RunActivity";
 interface Props {
   hasTask: boolean;
   taskOpen: boolean;
   onTaskDetails: () => void;
   liveRun?: AgentRun;
-  liveConnection?: string;
   followLive?: boolean;
   onFollowLive?: (value: boolean) => void;
-  onFocusLive?: (region: Region) => void;
   shapes?: EvidenceShape[];
   comparisonSplit?: number | null;
   focusRegion?: Region | null;
@@ -42,7 +41,7 @@ interface Props {
 export function PlanCanvas2D({
   hasTask, taskOpen, onTaskDetails,
   drawing,
-  liveRun, liveConnection, followLive = false, onFollowLive, onFocusLive,
+  liveRun, followLive = false, onFollowLive,
   shapes = [],
   comparisonSplit,
   focusRegion,
@@ -253,8 +252,6 @@ export function PlanCanvas2D({
           </svg>
         </div>
       </div>
-      {liveRun && onFocusLive && onFollowLive && <PlanActivity run={liveRun} drawing={drawing} connection={liveConnection}
-        onFocus={onFocusLive} follow={followLive} onFollow={onFollowLive} />}
       {comparisonSplit !== null && comparisonSplit !== undefined && (
         <div className="comparison-legend">
           <span>ML predictions</span>
@@ -365,6 +362,15 @@ export function PlanCanvas2D({
           <ExternalLink size={15} />
         </a>
         <span className="toolbar-divider" />
+        {onFollowLive && <button
+          className="icon-button follow-view-button"
+          aria-label="Follow view"
+          title={followLive ? "Following agent view — click to pause" : "Follow agent view"}
+          aria-pressed={followLive}
+          onClick={() => onFollowLive(!followLive)}
+        >
+          {followLive ? <LocateFixed size={17} /> : <LocateOff size={17} />}
+        </button>}
         <button className="icon-button task-details-button" aria-label="Task details"
           title="Latest task details" aria-pressed={taskOpen} disabled={!hasTask} onClick={onTaskDetails}>
           <ListChecks size={17} />
