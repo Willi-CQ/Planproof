@@ -1,58 +1,21 @@
-# Stoa — prototype d’analyse de plans
+# STOA 2D Plan Assistant
 
-Prototype d’interface Stoa en français pour déposer un plan 2D, comparer les sorties des deux algorithmes, expliquer les écarts avec leurs sources et solliciter Gemini ou JEV en complément.
+React/Vite frontend based on the supplied Stoa construction-plan interface. GitHub Pages serves only the built static files; it cannot run Gemini or store provider credentials.
 
-## Aperçu GitHub Pages
+## Frontend configuration
 
-Le workflow `.github/workflows/pages-preview.yml` publie uniquement `index.html`, `app.js` et `styles.css` depuis la branche `front`. Cet aperçu est statique : il reste en mode démonstration, n’analyse pas le fichier déposé et ne publie ni le serveur ni les clés d’intégration. Un administrateur du dépôt doit sélectionner **GitHub Actions** dans **Settings → Pages** pour activer la publication.
+Set the repository Actions variable `VITE_STOA_API_BASE_URL` to the HTTPS origin of the chat API, then rerun the Pages workflow. The URL is public. Do not use a `VITE_GEMINI_API_KEY`, `VITE_NVIDIA_API_KEY`, or any other provider secret.
 
-## Lancer l’application
+The frontend sends `POST /api/chat` with `{ query, plan, history, uploadedImage }`. The server should call Gemini with its server-side credential and return `{ reply }`. For uploaded drawings, the client sends the selected image as base64 with each chat turn. Configure CORS for `https://willi-cq.github.io` on the API server.
 
-1. Installer Node.js 20 ou une version plus récente.
-2. Copier `.env.example` en `.env` et renseigner les variables disponibles.
-3. Lancer `node --env-file=.env server.mjs` depuis ce dossier.
-4. Ouvrir `http://localhost:4173`.
+When `VITE_STOA_API_BASE_URL` is unset, the interface still builds and can be explored, but chat requests show that the API URL is not configured.
 
-Sans configuration, l’application s’ouvre en mode démonstration. Le jeu de données affiché est simulé et n’analyse pas le fichier réellement déposé. En mode réel, les trois connecteurs Gemini, déterministe et ML doivent être configurés. JEV reste facultatif.
+## Local frontend
 
-## Intégrations
-
-Gemini utilise l’API Interactions, avec un document PDF ou une image transmis en données base64 et une réponse structurée JSON. La clé reste dans le processus serveur. Le modèle par défaut est `gemini-3.8-flash` et peut être changé avec `GEMINI_MODEL`.
-
-Le serveur envoie aux deux algorithmes une requête POST JSON de la forme :
-
-```json
-{
-  "job_id": "plan-…",
-  "file": { "name": "plan.pdf", "mime_type": "application/pdf", "data": "…base64…" },
-  "gemini": { "rooms": [], "objects": {}, "uncertainties": [] }
-}
+```sh
+bun install --frozen-lockfile
+cp .env.example .env.local
+bun run dev
 ```
 
-Chaque connecteur doit répondre avec un JSON. Le contrôle croisé attend ces champs normalisés :
-
-```json
-{
-  "room_count": 5,
-  "area_m2": 68.2,
-  "counts": { "walls": 14, "doors": 5, "windows": 4 }
-}
-```
-
-Champs supplémentaires (coordonnées, boîtes de détection, métadonnées, scores) conservés tels quels et consultables dans l’onglet JSON. Les surfaces sont considérées discordantes lorsque leur différence dépasse `AREA_TOLERANCE_M2`; les autres comptes doivent être égaux. Une divergence ou une incertitude remontée par Gemini donne `review_required`. Cette règle doit être adaptée et validée par votre métier avant usage opérationnel.
-
-L’appel JEV est un POST vers `JEV_ENDPOINT` avec `{ "analysis": { … } }`. Le résultat JSON reçu est ajouté à l’analyse. Le format exact de JEV devra être confirmé avec son fournisseur.
-
-## Limites de cette première version
-
-- L’adaptateur suppose que les deux algorithmes acceptent un POST JSON et renvoient les champs normalisés ci-dessus. Si leurs interfaces diffèrent, seule la couche d’adaptation de `server.mjs` est à remplacer.
-- L’interface ne persiste pas les fichiers ou les conversations. Le fichier transmis est gardé en mémoire pendant la requête.
-- En mode réel, le fichier est transmis à Gemini puis aux deux URLs algorithmiques configurées; vérifiez ces services et leurs règles de conservation avant d’utiliser des plans sensibles.
-- Le chatbot répond à partir de l’extraction structurée de Gemini. Il ne remplace pas la validation d’un professionnel.
-- La version n’intègre pas encore d’authentification, de journal d’audit, de gestion d’équipes, ni de politique de conservation des plans.
-
-## Sources de l’intégration Gemini
-
-- [Interactions API — guide officiel Gemini](https://ai.google.dev/gemini-api/docs/interactions-overview)
-- [Référence REST Interactions API](https://ai.google.dev/api/interactions-api)
-- [Traitement des documents PDF](https://ai.google.dev/gemini-api/docs/document-processing)
+Set `VITE_STOA_API_BASE_URL` in `.env.local` to the server origin. Keep Gemini and NVIDIA keys in the server's secret store, never in this frontend project.

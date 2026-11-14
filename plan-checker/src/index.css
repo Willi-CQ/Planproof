@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.stoa-drafting-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@keyframes stoa-flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes stoa-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes stoa-door-swing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-42deg);
+  }
+}
+
+@keyframes stoa-corridor-traverse {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  50% {
+    transform: translateX(250px);
+  }
+}
+
+@keyframes stoa-span-traverse {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  50% {
+    transform: translateX(190px);
+  }
+}
+
+@keyframes stoa-zone-beacon {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.96);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes stoa-scan-sweep {
+  0% {
+    transform: translateY(0%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.55;
+  }
+  88% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(480px);
+    opacity: 0;
+  }
+}
+
+.stoa-anim-flow {
+  animation: stoa-flow-dash 1.8s linear infinite;
+}
+
+.stoa-anim-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: stoa-spin-slow 5.5s linear infinite;
+}
+
+.stoa-anim-door {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: stoa-door-swing 4.2s ease-in-out infinite;
+}
+
+.stoa-anim-traverse {
+  animation: stoa-corridor-traverse 5.6s ease-in-out infinite;
+}
+
+.stoa-anim-span {
+  animation: stoa-span-traverse 4.8s ease-in-out infinite;
+}
+
+.stoa-anim-beacon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: stoa-zone-beacon 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.stoa-anim-scan {
+  animation: stoa-scan-sweep 6.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

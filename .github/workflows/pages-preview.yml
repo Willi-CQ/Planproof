@@ -1,4 +1,4 @@
-name: Publish Stoa preview
+name: Publish Stoa front on GitHub Pages
 
 on:
   push:
@@ -6,8 +6,11 @@ on:
       - front
     paths:
       - "plan-checker/index.html"
-      - "plan-checker/app.js"
-      - "plan-checker/styles.css"
+      - "plan-checker/src/**"
+      - "plan-checker/package.json"
+      - "plan-checker/bun.lock"
+      - "plan-checker/tsconfig.json"
+      - "plan-checker/vite.config.ts"
       - ".github/workflows/pages-preview.yml"
   workflow_dispatch:
 
@@ -21,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
+  build-and-publish:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -33,15 +36,23 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Prepare static interface only
-        run: |
-          mkdir -p site
-          cp plan-checker/index.html plan-checker/app.js plan-checker/styles.css site/
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - name: Upload preview artifact
+      - name: Build static frontend
+        working-directory: plan-checker
+        env:
+          VITE_STOA_API_BASE_URL: ${{ vars.VITE_STOA_API_BASE_URL }}
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: plan-checker/dist
 
       - name: Publish preview
         id: deployment
