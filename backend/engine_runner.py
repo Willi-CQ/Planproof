@@ -56,7 +56,9 @@ def run_engine(name: str, image: Path, frame: PageFrame, work: Path) -> Analyzer
                 str(image), str(result_path),
             ]
         env = os.environ.copy()
-        for secret in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "NEMOTRON_API_KEY", "NVIDIA_NEMOTRON_KEY"):
+        for secret in (
+            "GEMINI_API_KEY", "GOOGLE_API_KEY", "NEMOTRON_API_KEY", "NVIDIA_NEMOTRON_KEY", "STOA_ACCESS_PASSWORD",
+        ):
             env.pop(secret, None)
         env.pop("PYTHONPATH", None)
         env.pop("PYTHONHOME", None)
