@@ -26,6 +26,7 @@ import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
 import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
 
 import { liveActivity } from "./lib/activity";
+import { downloadTaskReport } from "./lib/report";
 import { EvidenceInspector } from "./components/EvidenceInspector";
 import {
   startRun,
@@ -70,6 +71,8 @@ export default function App() {
   const [connection, setConnection] = useState("");
   const [layersLoading, setLayersLoading] = useState(false);
   const [layerError, setLayerError] = useState("");
+  const [reportState, setReportState] = useState<{id?: string; busy: boolean; error?: string}>({busy: false});
+  const reportPending = useRef(false);
   const mounted = useRef(true);
   useEffect(
     () => () => {
@@ -388,6 +391,21 @@ export default function App() {
     }
   }
   const inspected = messages.find((m) => m.id === inspectionId);
+  const latestTask = [...messages].reverse().find(m => m.role === "assistant");
+  async function downloadReport() {
+    if (!drawing || !latestTask?.run || !terminal(latestTask.run) || reportPending.current) return;
+    const task = latestTask;
+    const question = messages.slice(0, messages.indexOf(task)).reverse().find(m => m.role === "user")?.content || "";
+    reportPending.current = true;
+    setReportState({id: task.id, busy: true});
+    try {
+      await downloadTaskReport(task.run!.request_id, drawing.document_id, question, file?.name || "Drawing");
+      setReportState({id: task.id, busy: false});
+    } catch (error) {
+      setReportState({id: task.id, busy: false, error: error instanceof Error && error.name !== "TimeoutError"
+        ? error.message : "The report took too long to prepare. Please try again."});
+    } finally { reportPending.current = false; }
+  }
   async function loadLayers() {
     const run = inspected?.run;
     if (!run || layersLoading) return;
@@ -639,6 +657,16 @@ export default function App() {
           <main className="workspace" data-mobile-tab={mobileTab}>
             <div className="drawing-column">
               <PlanCanvas2D
+                hasTask={!!latestTask?.run}
+                taskOpen={!!inspectionId}
+                onTaskDetails={() => {
+                  closeInspector();
+                  if (!inspectionId && latestTask?.run) {
+                    setInspectionId(latestTask.id);
+                    setLayerError("");
+                    setMobileTab("ask");
+                  }
+                }}
                 drawing={drawing}
                 name={file?.name}
                 liveRun={activeRun}
@@ -701,11 +729,10 @@ export default function App() {
                 onNewDrawing={() => input.current?.click()}
                 connection={connection}
                 onFocusWork={focusWork}
-                onInspect={(id) => {
-                  closeInspector();
-                  setInspectionId(id);
-                  setLayerError("");
-                }}
+                onDownload={() => void downloadReport()}
+                latestTaskId={latestTask?.id}
+                downloading={reportState.busy}
+                downloadError={reportState.id === latestTask?.id ? reportState.error : undefined}
                 messages={messages}
                 drawing={drawing}
                 busy={busy === "ask"}

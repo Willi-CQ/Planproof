@@ -467,6 +467,35 @@ class RunRequest(BaseModel):
     request: AgentRequest
 
 
+class TaskReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    document_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    question: Annotated[str, StringConstraints(max_length=2000)] = ""
+    filename: Annotated[str, StringConstraints(max_length=255)] = "Drawing"
+
+
+@app.post("/api/v1/runs/{request_id}/report")
+def export_task_report(request_id: UUID, body: TaskReportRequest):
+    from run_tracking import TERMINAL
+    from task_report import same_frame, task_report
+
+    try:
+        record = run_store().snapshot(str(request_id))
+    except KeyError as exc:
+        raise HTTPException(404, "This saved task is no longer available on the server.") from exc
+    if record["status"] not in TERMINAL:
+        raise HTTPException(409, "The task is still running. Download its report when it finishes.")
+    number, page = get_page(body.document_id)
+    if not same_frame(record["source"], frame_for(body.document_id, number, page).model_dump()):
+        raise HTTPException(409, "This task belongs to a different drawing page. Open its original drawing to export it.")
+    with pdf_lock:
+        data = task_report(record, page.png, body.question, body.filename)
+    return Response(data, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="planproof-task-{str(request_id)[:8]}.pdf"',
+        "Cache-Control": "no-store",
+    })
+
+
 @app.post("/api/v1/documents/{document_id}/runs", status_code=202)
 def start_run(document_id: str, body: RunRequest):
     number, page = get_page(document_id)

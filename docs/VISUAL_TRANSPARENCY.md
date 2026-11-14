@@ -14,6 +14,11 @@ The old synchronous `/api/v1/documents/{id}/ask` contract remains compatible.
   events after the requested sequence, last sequence and terminal agent result.
 - `GET /api/v1/runs/{request_id}/evidence`: allowlisted geometry/comparisons already
   produced during this run, or `not_run`. This endpoint never invokes algorithms.
+- `POST /api/v1/runs/{request_id}/report`: `{document_id, question?, filename?}`.
+  Downloads a PDF from the terminal saved run and the matching registered source page.
+  New runs retain the exact question; `question` is a legacy fallback only. The client
+  cannot supply an answer or trace. Running tasks and source mismatches return 409;
+  missing runs/pages return 404. No model or algorithm runs during export.
 
 States are queued, running, completed, failed and interrupted. Completed means
 execution returned, not that the answer is correct or even answered; preserve the
@@ -139,3 +144,46 @@ browser checks pass. One actual synthetic OFFICE A run returned the printed24m2 
 four source-role labels. No detector or Nemotron call was needed. This verifies
 integration and citation remapping, not improved accuracy or latency on real plans.
 Private desktop/mobile screenshots replay this saved run with no new inference.
+
+## Compact task details and downloadable report
+
+The bottom drawing toolbar has a small **Task details** button. It opens the latest
+task's existing Steps / Diagnostics inspector; it is disabled before the first task.
+Live on-plan activity and the chat work log remain automatic while the task runs.
+Completed work no longer adds a second expandable recap inside the conversation.
+
+**Download task report · PDF** replaces the previous answer-inspection link. Only the
+latest terminal task offers a download. Selecting an older citation or typing a new
+draft does not change which question is exported. A running latest task hides the
+previous report; failed/interrupted tasks can export their own incomplete record.
+Downloads have a pending state, prevent duplicate requests and surface retryable errors
+without discarding the answer or resubmitting the question.
+
+The PDF includes the exact question, answer/estimate status, briefing with clickable
+source references, scope and uncertainties, a source overview, numbered citation
+crops with canonical pixel bounds, recorded execution events, and the source identity.
+Missing citations remain explicitly missing. It exports selected public observations,
+not raw provider payloads, private reasoning, credentials, or local artifact paths.
+Source previews are scaled inside the PDF; originals and inference inputs are unchanged.
+
+Rendering uses the existing PyMuPDF dependency and its
+[Story document layout](https://pymupdf.readthedocs.io/en/latest/story-class.html),
+with in-memory image resources, escaped text, internal links and pagination. PDF work
+shares the existing PyMuPDF lock. The backend returns the file with `no-store` and does
+not save another copy. Browser downloads are user-owned files. A report requires the
+saved run and a registered matching source page; reopen the original saved drawing if
+the page has expired. A PDF records evidence, not a new correctness certification.
+
+Validation: 322 Python checks, TypeScript, Ruff and production build passed. All 31
+browser scenarios passed; the existing reconnect scenario exceeded its 30-second
+deadline during the full concurrent run and passed in 8.6 seconds when rerun alone.
+Report checks cover clickable citations, real PDF/image rendering, escaping, pagination,
+source mismatch, missing/running runs, abstention, legacy question fallback, zero values,
+private-field exclusion, failed downloads and no extra inference. Synthetic report
+fixtures and private visual screenshots are not accuracy benchmarks.
+
+Live export smoke check: an existing synthetic OFFICE A result produced a 104 KB,
+three-page PDF with one internal citation link and two source images. Desktop, 390px
+and 320px browser views were checked with no page errors or toolbar overflow. The
+run was replayed, not inferred again. Preview activation waited for the user's active
+task to complete and preserved its 30 recorded events.

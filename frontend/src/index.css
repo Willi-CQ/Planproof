@@ -525,6 +525,12 @@ h1 span {
   text-align: center;
   color: #52525a;
 }
+.task-details-button[aria-pressed="true"] { background: #e7eee7; color: #344e3d; }
+.task-download { margin-top: 16px; }
+.task-download .inspect-button { display: inline-flex; align-items: center; gap: 7px; margin: 0; }
+.task-download .inspect-button:disabled { opacity: .6; cursor: progress; }
+.report-format { font-size: 9px; letter-spacing: .06em; border: 1px solid #deded9; border-radius: 4px; padding: 2px 4px; }
+.report-error { font-size: 12px; line-height: 1.6; color: #8c493d; margin: 8px 0 0; }
 .page-flipper {
   display: flex;
   align-items: center;

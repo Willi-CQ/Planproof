@@ -150,6 +150,86 @@ async function ask(page: Page) {
     .click();
 }
 
+test("latest task downloads a PDF without rerunning or confusing older citations and drafts", async ({page}) => {
+  await setup(page);
+  await expect(page.getByRole("button", {name: "Task details", exact: true})).toBeDisabled();
+  let submissions = 0, lastId = "", downloads = 0;
+  let body: Record<string, string> = {};
+  await page.route("**/api/v1/documents/*/runs", r => {
+    submissions++;
+    lastId = r.request().postDataJSON().request_id;
+    return r.fulfill({json: {request_id: lastId, status: "completed", source, events, last_sequence: 4, result}});
+  });
+  await page.route("**/api/v1/runs/*/report", async r => {
+    downloads++;
+    body = r.request().postDataJSON();
+    expect(r.request().url()).toContain(lastId + "/report");
+    await r.fulfill({contentType: "application/pdf", body: "%PDF-1.7\n% Simulated download transport fixture"});
+  });
+  await ask(page);
+  await page.getByLabel("Question about this drawing").fill("Where are the windows?");
+  await page.getByRole("button", {name: "Ask Planproof", exact: true}).click();
+  await expect(page.getByTestId("answer-value")).toHaveCount(2);
+  await page.getByLabel("Question about this drawing").fill("Unsent next question");
+  await page.getByRole("button", {name: "View evidence 1, page 1", exact: true}).first().click();
+  const button = page.getByRole("button", {name: "Download task report PDF", exact: true});
+  await expect(button).toHaveCount(1);
+  await expect(page.getByRole("button", {name: "How this answer was found", exact: true})).toHaveCount(0);
+  const waiting = page.waitForEvent("download");
+  await button.click();
+  const file = await waiting;
+  expect(file.suggestedFilename()).toBe(`planproof-task-${lastId.slice(0,8)}.pdf`);
+  expect(body).toEqual({document_id: "drawing", question: "Where are the windows?", filename: "test.png"});
+  expect(submissions).toBe(2);
+  expect(downloads).toBe(1);
+  await expect(page.getByLabel("Question about this drawing")).toHaveValue("Unsent next question");
+});
+
+test("download failure preserves the answer, blocks duplicate requests and allows explicit retry", async ({page}) => {
+  await setup(page);
+  let fail = true, requests = 0;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, status: "completed", source, events, last_sequence: 4, result}}));
+  await page.route("**/api/v1/runs/*/report", async r => {
+    requests++;
+    if (fail) { await gate; return r.fulfill({status: 503, json: {detail: "Report service unavailable. Try again shortly."}}); }
+    return r.fulfill({contentType: "application/pdf", body: "%PDF-1.7\n% Fixture"});
+  });
+  await ask(page);
+  await page.getByRole("button", {name: "Download task report PDF", exact: true}).click();
+  await expect(page.getByRole("button", {name: "Preparing report… PDF", exact: true})).toBeDisabled();
+  expect(requests).toBe(1);
+  release();
+  await expect(page.getByRole("alert")).toContainText("Report service unavailable");
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+  fail = false;
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("button", {name: "Download task report PDF", exact: true}).click();
+  await waiting;
+  expect(requests).toBe(2);
+  await expect(page.locator(".report-error")).toHaveCount(0);
+});
+
+test("a running latest task hides the previous report; a failed task exports its own record", async ({page}) => {
+  await setup(page);
+  let submissions = 0, finished = false, id = "";
+  await page.route("**/api/v1/documents/*/runs", r => {
+    submissions++;
+    id = r.request().postDataJSON().request_id;
+    return r.fulfill({json: {request_id: id, status: submissions === 1 ? "completed" : "running", source, events, last_sequence: 4, result: submissions === 1 ? result : null}});
+  });
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {request_id: id, status: finished ? "failed" : "running", source, events, last_sequence: 4, message: finished ? "The service was unavailable." : undefined}}));
+  await ask(page);
+  await expect(page.getByRole("button", {name: "Download task report PDF", exact: true})).toBeVisible();
+  await ask(page);
+  await expect(page.getByRole("button", {name: "Download task report PDF", exact: true})).toHaveCount(0);
+  await expect(page.getByTestId("live-work-log")).toBeVisible();
+  finished = true;
+  await expect(page.getByText("The service was unavailable.", {exact: true})).toBeVisible();
+  await expect(page.getByRole("button", {name: "Download task report PDF", exact: true})).toHaveCount(1);
+});
+
 test("inspector links replay, layers, comparisons and Follow without extra submissions", async ({
   page,
 }) => {
@@ -173,7 +253,7 @@ test("inspector links replay, layers, comparisons and Follow without extra submi
   );
   await ask(page);
   await page
-    .getByRole("button", { name: "How this answer was found", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await expect(page.getByLabel("Follow live regions")).not.toBeChecked();
   await page
@@ -242,7 +322,7 @@ test("inspector links replay, layers, comparisons and Follow without extra submi
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
   await page.reload();
   await page
-    .getByRole("button", { name: "How this answer was found", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await page.route("**/api/v1/runs/*/evidence", (r) => r.abort());
   await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
@@ -289,7 +369,7 @@ test("live polling reconnects after refresh to the same run and keeps sequence u
   });
   await ask(page);
   await page
-    .getByRole("button", { name: "View activity", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await expect(page.locator(".event-list > li")).toHaveCount(2);
   await page.route("**/api/v1/runs/*/evidence", (r) =>
@@ -311,7 +391,7 @@ test("live polling reconnects after refresh to the same run and keeps sequence u
   disconnected = false;
   await page.reload();
   await page
-    .getByRole("button", { name: "View activity", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await expect(page.locator(".event-list > li")).toHaveCount(2);
   completed = true;
@@ -347,7 +427,7 @@ test("direct answer and wrong-source evidence never pretend algorithms ran", asy
   );
   await ask(page);
   await page
-    .getByRole("button", { name: "How this answer was found", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
   await page.getByRole("button", { name: "Show raw algorithm output", exact: true }).click();
@@ -362,7 +442,7 @@ test("direct answer and wrong-source evidence never pretend algorithms ran", asy
   );
   await page.reload();
   await page
-    .getByRole("button", { name: "How this answer was found", exact: true })
+    .getByRole("button", { name: "Task details", exact: true })
     .click();
   await expect(
     page.getByText(/Source identity could not be matched/),
@@ -389,9 +469,10 @@ test("mobile inspector navigates to crops and back with keyboard and no overflow
   );
   await ask(page);
   const inspect = page.getByRole("button", {
-    name: "How this answer was found",
+    name: "Task details",
     exact: true,
   });
+  await page.getByRole("button", { name: "Show drawing", exact: true }).click();
   await inspect.focus();
   await inspect.press("Enter");
   await page
@@ -439,8 +520,9 @@ test("actual work and requested regions appear on the plan without opening diagn
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
   await expect(page.getByTestId("plan-live-activity")).toHaveCount(0);
   await expect(page.getByTestId("live-inspection-region")).toHaveCount(0);
-  await page.locator(".work-recap > summary").click();
-  await expect(page.locator(".work-recap")).toContainText("Remaining page unknown.");
+  await expect(page.locator(".work-recap")).toHaveCount(0);
+  await page.getByRole("button", {name: "Task details", exact: true}).click();
+  await expect(page.locator(".event-list")).toContainText("Remaining page unknown.");
 });
 
 test("briefing attaches citations to claims and only detection previews follow the text", async ({page}) => {
@@ -473,7 +555,7 @@ test("raw diagnostics require explicit opt-in and never load automatically", asy
   await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json:{request_id:r.request().postDataJSON().request_id,status:"completed",source,events,last_sequence:4,result}}));
   await page.route("**/api/v1/runs/*/evidence", r => { reads++; return r.fulfill({json:bundle}); });
   await ask(page);
-  await page.getByRole("button", {name:"How this answer was found",exact:true}).click();
+  await page.getByRole("button", {name:"Task details",exact:true}).click();
   await page.getByRole("button", {name:"Diagnostics",exact:true}).click();
   await expect(page.getByText("Raw algorithm proposals",{exact:true})).toBeVisible();
   await expect(page.getByLabel("ML detections",{exact:true})).toHaveCount(0);

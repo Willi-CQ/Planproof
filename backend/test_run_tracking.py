@@ -61,6 +61,7 @@ def test_idempotency_delta_and_canonical_events(tmp_path):
     assert "private" not in json.dumps(value)
     assert all(e["sequence"] > 1 for e in store.snapshot(run_id, 1)["events"])
     restarted = RunStore(tmp_path)
+    assert restarted.snapshot(run_id)["question"] == "Doors?"
     assert restarted.snapshot(run_id)["result"]["answer"]["answer"] == 2
     restarted.pool.shutdown()
 

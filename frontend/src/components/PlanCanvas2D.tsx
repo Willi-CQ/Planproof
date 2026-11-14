@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
+  ListChecks,
 } from "lucide-react";
 import { visibleCitations, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
@@ -14,6 +15,9 @@ import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
 import { liveActivity } from "../lib/activity";
 import { PlanActivity } from "./RunActivity";
 interface Props {
+  hasTask: boolean;
+  taskOpen: boolean;
+  onTaskDetails: () => void;
   liveRun?: AgentRun;
   liveConnection?: string;
   followLive?: boolean;
@@ -36,6 +40,7 @@ interface Props {
   onPageChange: (page: number) => void;
 }
 export function PlanCanvas2D({
+  hasTask, taskOpen, onTaskDetails,
   drawing,
   liveRun, liveConnection, followLive = false, onFollowLive, onFocusLive,
   shapes = [],
@@ -359,6 +364,11 @@ export function PlanCanvas2D({
         >
           <ExternalLink size={15} />
         </a>
+        <span className="toolbar-divider" />
+        <button className="icon-button task-details-button" aria-label="Task details"
+          title="Latest task details" aria-pressed={taskOpen} disabled={!hasTask} onClick={onTaskDetails}>
+          <ListChecks size={17} />
+        </button>
       </div>
       {loadingPage && (
         <div className="page-loading" role="status">

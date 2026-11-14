@@ -222,6 +222,7 @@ class RunStore:
                 "events": [],
                 "result": None,
                 "created": time.time(),
+                "question": request.get("question", ""),
                 "evidence": {
                     "version": 1,
                     "status": "not_run",

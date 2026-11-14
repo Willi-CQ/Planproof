@@ -185,7 +185,7 @@ export function EvidenceInspector({
         >
           <ArrowLeft size={19} />
         </button>
-        <h2>How this answer was found</h2>
+        <h2>Task details</h2>
       </header>
       <div className="inspector-tabs">
         <button aria-pressed={tab === "steps"} onClick={() => setTab("steps")}>

@@ -5,10 +5,12 @@ import {
   ArrowUpRight,
   RotateCcw,
   CornerDownLeft,
+  Download,
+  LoaderCircle,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import type { AgentResult, Drawing } from "../lib/api";
-import type { AgentRun, Region } from "../lib/runs";
+import { terminal, type AgentRun, type Region } from "../lib/runs";
 import { RunActivity } from "./RunActivity";
 import { AnswerBriefing } from "./AnswerBriefing";
 export interface Message {
@@ -22,7 +24,10 @@ interface Props {
   draft: string;
   onDraftChange: (draft: string) => void;
   onNewDrawing: () => void;
-  onInspect: (messageId: string) => void;
+  onDownload: () => void;
+  latestTaskId?: string;
+  downloading: boolean;
+  downloadError?: string;
   onFocusWork: (messageId: string, region: Region) => void;
   connection?: string;
   messages: Message[];
@@ -38,7 +43,7 @@ export function PlanChatbotPanel({
   draft,
   onDraftChange: setDraft,
   onNewDrawing,
-  onInspect,
+  onDownload, latestTaskId, downloading, downloadError,
   onFocusWork,
   connection,
   messages,
@@ -181,19 +186,17 @@ export function PlanChatbotPanel({
                     onHighlight={onHighlight}
                   />
                 )}
-                {message.run && <RunActivity run={message.run} drawing={drawing} connection={connection}
+                {message.run && !terminal(message.run) && <RunActivity run={message.run} drawing={drawing} connection={connection}
                   onFocus={(region) => onFocusWork(message.id, region)} />}
-                {(message.result || message.run) && (
-                  <button
-                    className="inspect-button"
-                    onClick={() => onInspect(message.id)}
-                  >
-                    {message.result
-                      ? "How this answer was found"
-                      : "View activity"}
-                    <ArrowUpRight size={13} />
+                {message.run && terminal(message.run) && !message.result && <p className="answer-help">{message.run.message || "This task could not finish. Its recorded steps are available in Task details."}</p>}
+                {message.id === latestTaskId && message.run && terminal(message.run) && <div className="task-download">
+                  <button className="inspect-button" onClick={onDownload} disabled={downloading}>
+                    {downloading ? <LoaderCircle size={14} className="spinning" /> : <Download size={14} />}
+                    {downloading ? "Preparing report…" : "Download task report"}
+                    <span className="report-format">PDF</span>
                   </button>
-                )}
+                  {downloadError && <p role="alert" className="report-error">{downloadError}</p>}
+                </div>}
               </>
             )}
           </article>
