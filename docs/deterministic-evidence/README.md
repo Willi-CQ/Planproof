@@ -1,5 +1,13 @@
 # Planproof: deterministic 2D evidence implementation handoff
 
+**Optional feedback integration (14 November 2026):** [Nemotron feedback and
+Stoa zero-shot benchmark](../../feedback/README.md) now implement the visual
+feedback role previously reserved for Jev, plus a separate agent self-feedback
+route. This newly authorized package consumes clean crop/context artifacts;
+it does not add inference to deterministic extraction. The inference exclusion
+below describes the earlier engine-only phase. The later primary agent and the
+geometry implementation on its separate local branch remain separate work.
+
 Status: **specification ready; engine not implemented**. Updated 14 November 2026.
 This document is the entry point for a teammate or AI agent with only this branch.
 
