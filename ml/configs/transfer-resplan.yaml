@@ -1,8 +1,8 @@
 name: cubicasa-to-resplan-with-replay
 seed: 42
-image_size: 512
-effective_batch: 8
-micro_batch: 4
+image_size: 1024
+effective_batch: 4
+micro_batch: 2
 data_workers: 4
 encoder_weights: null
 encoder_lr: 0.00003

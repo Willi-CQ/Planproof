@@ -139,7 +139,7 @@ def test_transfer_initialization_allows_new_data_and_resets_optimizer(tmp_path):
     rows[0]["source_key"] = "new-dataset-version"
     manifest.write_text("".join(json.dumps(row) + "\n" for row in rows))
     config = yaml.safe_load(cfg.read_text())
-    config.update(seed=71, name="transfer", head_lr=0.0, encoder_lr=0.0)
+    config.update(seed=71, name="transfer", image_size=96, head_lr=0.0, encoder_lr=0.0)
     cfg.write_text(yaml.safe_dump(config))
     result = train(cfg, manifest, tmp_path / "transfer", "cpu", max_steps=1, init_weights=source)
     after = torch.load(tmp_path / "transfer/last.pt", weights_only=True)

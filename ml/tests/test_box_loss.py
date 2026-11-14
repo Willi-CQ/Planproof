@@ -66,3 +66,17 @@ def test_box_weight_changes_only_its_task_contribution():
     original, parts = detection_loss(prediction, batch, "giou", 2.0)
     balanced, _ = detection_loss(prediction, batch, "giou", 0.5)
     torch.testing.assert_close(original - balanced, original.new_tensor(1.5 * parts["box"]))
+
+
+def test_room_foreground_metric_is_separate_from_instance_splitting():
+    import numpy as np
+    from planproof_ml.targets import encode
+    from planproof_ml.metrics import SourceMetrics
+
+    targets = encode((32, 32), [{"class": "room", "outer": [[4, 4], [20, 4], [20, 20], [4, 20]]}], ["room"])
+    metrics = SourceMetrics()
+    metrics.add({"instances": []}, targets, {"mask_probabilities": targets["masks"].astype(np.float32)})
+    report = metrics.report()
+    assert report["raw_room_iou"] == 1.0
+    assert report["room_instance_f1_iou50"] == 0.0
+    assert report["raw_wall_iou"] is None

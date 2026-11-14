@@ -69,6 +69,8 @@ class SourceMetrics:
         self.wall_boundary_counts = np.zeros(4, np.int64)
         self.raw_wall_counts = np.zeros(2, np.int64)
         self.raw_wall_evaluated = False
+        self.raw_room_counts = np.zeros(2, np.int64)
+        self.raw_room_evaluated = False
         self.room_tp = self.room_fp = self.room_fn = 0
         self.room_evaluated = 0
         self.type_confusion = np.zeros((len(ROOM_TYPES), len(ROOM_TYPES) + 1), np.int64)
@@ -108,6 +110,17 @@ class SourceMetrics:
                     [np.sum(raw & truth & valid[0]), np.sum((raw | truth) & valid[0])]
                 )
         if valid[1].any():
+            if raw_maps is not None:
+                import cv2
+
+                raw_room = cv2.resize(
+                    raw_maps["mask_probabilities"][1], (w, h), interpolation=cv2.INTER_LINEAR
+                ) >= raw_maps.get("room_threshold", 0.5)
+                room_truth = masks[1].astype(bool)
+                self.raw_room_counts += np.array(
+                    [np.sum(raw_room & room_truth & valid[1]), np.sum((raw_room | room_truth) & valid[1])]
+                )
+                self.raw_room_evaluated = True
             self.room_evaluated += 1
             ids = [i for i in np.unique(targets["instances"][0]) if i > 0]
             truth = [(targets["instances"][0] == i) & valid[1] for i in ids]
@@ -214,6 +227,9 @@ class SourceMetrics:
             "raw_wall_iou": float(self.raw_wall_counts[0] / self.raw_wall_counts[1])
             if self.raw_wall_counts[1]
             else (1.0 if self.raw_wall_evaluated else None),
+            "raw_room_iou": float(self.raw_room_counts[0] / self.raw_room_counts[1])
+            if self.raw_room_counts[1]
+            else (1.0 if self.raw_room_evaluated else None),
             "room_instance_f1_iou50": rooms,
             "room_tp_fp_fn": [self.room_tp, self.room_fp, self.room_fn],
             "objects": classes,

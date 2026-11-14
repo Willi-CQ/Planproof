@@ -141,3 +141,17 @@ had weak overlap even at ground-truth centers in the early baseline; image-sized
 Smooth L1 errors underweighted thin-object proportions. GIoU directly supervises
 overlap across object scales. This motivates an ablation, not a promised gain.
 See the [GIoU paper](https://giou.stanford.edu/).
+
+The measured 1024-pixel detail probe runs faster per update with effective batch4
+and microbatch2 than the initial 512-pixel batch8 run. Transfer recipes therefore
+use the detail resolution and box loss weight0.5. This balances localization
+against structural masks; the earlier weight2 GIoU run is preserved as an
+ablation. Raw room-mask IoU is reported separately from instance F1 so a good
+foreground mask cannot hide failed room splitting.
+
+Calibration uses one cached prediction per validation drawing, then independently
+searches wall thresholds, room-mask/room-center thresholds, and opening-center
+thresholds. A final ordinary evaluation confirms their combined result. It never
+uses test data and the CLI refuses a different training-manifest fingerprint.
+Candidate settings, source cohorts and inference-pass counts are retained.
+Thresholds describe an operating point, not correctness probabilities.

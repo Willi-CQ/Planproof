@@ -246,7 +246,10 @@ def execute(args):
             return result
         if command == "calibrate":
             from .evaluate import calibrate
+            from .manifest import fingerprint, load_manifest
 
+            if fingerprint(load_manifest(args.manifest)) != data["manifest_fingerprint"]:
+                raise ValueError("Calibration manifest must match the checkpoint training dataset")
             result = calibrate(model, args.manifest, device, size, args.limit_per_source)
             result["manifest_fingerprint"] = data["manifest_fingerprint"]
             result["checkpoint_sha256"] = sha256(args.checkpoint)
