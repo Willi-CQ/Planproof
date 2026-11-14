@@ -1,5 +1,9 @@
 # Hackathon: first weights early, protect retries
 
+Measured results and the trained release are in
+[TRAINING_RESULTS.md](TRAINING_RESULTS.md). This document records the launch plan;
+the accepted operating point is now global1024, not the early512-pixel probe.
+
 The user has 33 hours from Saturday 01:00 to Sunday 10:00 submission. These are
 planning targets, not measured training times or a promise of sufficient accuracy.
 This supersedes the 40k-update research schedule as the initial launch path.

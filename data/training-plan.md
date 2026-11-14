@@ -2,6 +2,10 @@
 
 Updated: 2026-11-13. This is the planned GPU download list, not an inventory of datasets on the laptop. Machine-readable manifest: [gpu-training-datasets.csv](gpu-training-datasets.csv).
 
+For the datasets actually prepared/trained overnight on 14 November, measured
+results and integration artifacts, see [the training report](../ml/TRAINING_RESULTS.md).
+The broader list below remains the acquisition plan, not a completed-run inventory.
+
 Download original publisher releases on the GPU machine later. The Stoa challenge archive and its questions are the final application corpus and are not the training-data source. Original CubiCasa5K is included even though Stoa contains examples from the same source. A shared source name does not exclude an upstream release from this training plan.
 
 | Dataset | Priority | Intended training use | Original release |
