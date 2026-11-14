@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "image_tag": "planproof-inference:e761b84",
+  "source_commit": "e761b8410f8805c371bb7cb6e4a19a8afaad2ae5",
+  "development_source_mount": false,
+  "baked_code_hashes_match": true,
+  "checks": [
+    {
+      "model": "main",
+      "source": "cubicasa5k",
+      "device": "cuda",
+      "model_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+      "instances": 52,
+      "scope_classes": [
+        "door",
+        "room",
+        "wall",
+        "window"
+      ],
+      "original_coordinates_valid": true,
+      "input_preserved": true,
+      "overlay_size_matches": true,
+      "elapsed_seconds": 5.716470931998629
+    },
+    {
+      "model": "cad",
+      "source": "floorplancad",
+      "device": "cuda",
+      "model_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+      "instances": 5,
+      "scope_classes": [
+        "door",
+        "window"
+      ],
+      "original_coordinates_valid": true,
+      "input_preserved": true,
+      "overlay_size_matches": true,
+      "elapsed_seconds": 4.933046051999554
+    }
+  ],
+  "image_id": "sha256:f6652b47324bff4cdbd4e60c79d8536d3d2b89581392f036dc86c3e09f3e58ab",
+  "image_source_label": "e761b8410f8805c371bb7cb6e4a19a8afaad2ae5",
+  "image_tags": [
+    "planproof-inference:e761b84",
+    "planproof-training:latest"
+  ]
+}

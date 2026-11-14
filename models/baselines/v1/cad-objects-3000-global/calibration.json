@@ -1,0 +1,201 @@
+{
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "split": "val",
+  "tiled": false,
+  "image_size": 1024,
+  "manifest_fingerprint": "1ab14693cfed8e273e461496b9dc57d04dd7d78cd9539656375c8dc6ddec5f20",
+  "checkpoint_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+  "validation_report": {
+    "sources": {
+      "cubicasa5k": {
+        "samples": 32,
+        "wall_iou": 0.6211547336484723,
+        "wall_boundary_f1_tolerance_0002": 0.6216157338717594,
+        "raw_wall_iou": 0.6217051028998188,
+        "raw_room_iou": 0.8565597319577152,
+        "room_instance_f1_iou50": 0.46153846153846156,
+        "room_tp_fp_fn": [
+          249,
+          489,
+          92
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.5461612161756167,
+            "ap50_95": 0.1983546318754028,
+            "ground_truth_instances": 315,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.5543966885351368,
+            "ap50_95": 0.18060629041272838,
+            "ground_truth_instances": 284,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.0,
+            "ap50_95": 0.0,
+            "ground_truth_instances": 32,
+            "annotated_pages": 32
+          }
+        },
+        "object_map50": 0.36685263490358455,
+        "object_map50_95": 0.12632030742937705,
+        "room_type_macro_f1_matched": 0.5148085279451357,
+        "room_type_matched_count": 182,
+        "room_type_unknown_count": 26
+      },
+      "floorplancad": {
+        "samples": 32,
+        "wall_iou": null,
+        "wall_boundary_f1_tolerance_0002": null,
+        "raw_wall_iou": null,
+        "raw_room_iou": null,
+        "room_instance_f1_iou50": null,
+        "room_tp_fp_fn": [
+          0,
+          0,
+          0
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.6064069849429369,
+            "ap50_95": 0.36588785603000773,
+            "ground_truth_instances": 73,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.6772869833567208,
+            "ap50_95": 0.44434974553355955,
+            "ground_truth_instances": 17,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.0,
+            "ap50_95": 0.0,
+            "ground_truth_instances": 7,
+            "annotated_pages": 32
+          }
+        },
+        "object_map50": 0.4278979894332193,
+        "object_map50_95": 0.2700792005211891,
+        "room_type_macro_f1_matched": null,
+        "room_type_matched_count": 0,
+        "room_type_unknown_count": 0
+      },
+      "resplan": {
+        "samples": 32,
+        "wall_iou": 0.6977333491022387,
+        "wall_boundary_f1_tolerance_0002": 0.7865029506940513,
+        "raw_wall_iou": 0.7093288397832372,
+        "raw_room_iou": 0.7419564770307678,
+        "room_instance_f1_iou50": 0.5017835909631391,
+        "room_tp_fp_fn": [
+          211,
+          373,
+          46
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.4462575311096657,
+            "ap50_95": 0.200064555481549,
+            "ground_truth_instances": 230,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.5225461101843025,
+            "ap50_95": 0.21255930181381893,
+            "ground_truth_instances": 227,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.0,
+            "ap50_95": 0.0,
+            "ground_truth_instances": 1,
+            "annotated_pages": 1
+          }
+        },
+        "object_map50": 0.3229345470979894,
+        "object_map50_95": 0.13754128576512265,
+        "room_type_macro_f1_matched": 0.37193277310924366,
+        "room_type_matched_count": 211,
+        "room_type_unknown_count": 50
+      }
+    },
+    "macro": {
+      "wall_iou": 0.6594440413753555,
+      "object_map50": 0.37256172381159774,
+      "room_instance_f1_iou50": 0.4816610262508003
+    },
+    "selection_score": 0.5200444415688616,
+    "acceptance_gates": {
+      "all_object_classes_supported": true,
+      "wall_iou_080": false,
+      "room_f1_080": false,
+      "object_map50_070": false
+    },
+    "meets_numeric_targets": false,
+    "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms.",
+    "split": "val",
+    "manifest_fingerprint": "1ab14693cfed8e273e461496b9dc57d04dd7d78cd9539656375c8dc6ddec5f20",
+    "image_size": 1024,
+    "tiled": false,
+    "limit_per_source": 32,
+    "thresholds": {
+      "masks": [
+        0.35,
+        0.65,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "centers": [
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ]
+    },
+    "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+    "cohort_fingerprints": {
+      "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+      "floorplancad": "5b253fd76844bbf37231789c88288faf64e53eed9e32de6f4653baf756a3a85e",
+      "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+    }
+  },
+  "validation_macro": {
+    "wall_iou": 0.6594440413753555,
+    "object_map50": 0.37256172381159774,
+    "room_instance_f1_iou50": 0.4816610262508003
+  },
+  "validation_score": 0.5200444415688616,
+  "cohort_fingerprints": {
+    "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+    "floorplancad": "5b253fd76844bbf37231789c88288faf64e53eed9e32de6f4653baf756a3a85e",
+    "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+  },
+  "limit_per_source": 32,
+  "method": "Fixed threshold profile validated on the matching full mixed-source manifest; no parameter search",
+  "intended_classes": [
+    "door",
+    "window",
+    "stairs"
+  ],
+  "confidence_semantics": "model scores are not correctness probabilities",
+  "source_checkpoint_sha256": "c6ff3578ee671d54a3c6966fc4864dfb6a4f89d2ecc190989de84f8d29e5d48c",
+  "repackaged_without_optimizer": true
+}

@@ -1,0 +1,22 @@
+{
+  "document_id": "cubicasa5k:0011484c30b29a2dfe260ade",
+  "image_sha256": "f2677bb4eff5b11c5acb588c4ef22ac91a7c8ddbc49c390aec905be30e9e683e",
+  "original_size": [
+    1998,
+    1279
+  ],
+  "canvas_size": 1024,
+  "max_absolute_error": {
+    "masks": 5.3882598876953125e-05,
+    "boundary": 3.7670135498046875e-05,
+    "centers": 2.384185791015625e-05,
+    "boxes": 1.9311904907226562e-05,
+    "types": 5.7637691497802734e-05
+  },
+  "all_outputs_match": true,
+  "rtol": 0.001,
+  "atol": 0.0001,
+  "torch_forward_seconds": 2.3387606129999767,
+  "onnx_forward_seconds": 1.519451559001027,
+  "timing_context": "GPU-host CPU, two threads; one forward; excludes preprocessing/postprocessing/I/O"
+}

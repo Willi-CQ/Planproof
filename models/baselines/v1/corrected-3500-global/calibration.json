@@ -1,0 +1,746 @@
+{
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ],
+    "min_pixels": 2048
+  },
+  "validation_score": 0.7607323450395431,
+  "validation_macro": {
+    "wall_iou": 0.7172025324945144,
+    "object_map50": 0.8094578979624001,
+    "room_instance_f1_iou50": 0.7700465421767244
+  },
+  "validation_report": {
+    "sources": {
+      "cubicasa5k": {
+        "samples": 32,
+        "wall_iou": 0.6516547492947222,
+        "wall_boundary_f1_tolerance_0002": 0.6695968122822262,
+        "raw_wall_iou": 0.6530215832902173,
+        "raw_room_iou": 0.883236140197541,
+        "room_instance_f1_iou50": 0.6860158311345647,
+        "room_tp_fp_fn": [
+          260,
+          157,
+          81
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.7673138548560794,
+            "ap50_95": 0.3560403143427061,
+            "ground_truth_instances": 315,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.7947089679321354,
+            "ap50_95": 0.34647357434145404,
+            "ground_truth_instances": 284,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.4085540346142762,
+            "ap50_95": 0.15620638505724982,
+            "ground_truth_instances": 32,
+            "annotated_pages": 32
+          }
+        },
+        "object_map50": 0.6568589524674969,
+        "object_map50_95": 0.2862400912471367,
+        "room_type_macro_f1_matched": 0.560164331683319,
+        "room_type_matched_count": 189,
+        "room_type_unknown_count": 28
+      },
+      "resplan": {
+        "samples": 32,
+        "wall_iou": 0.7827503156943064,
+        "wall_boundary_f1_tolerance_0002": 0.8871375279509456,
+        "raw_wall_iou": 0.7854811529428788,
+        "raw_room_iou": 0.8907568618029272,
+        "room_instance_f1_iou50": 0.8540772532188842,
+        "room_tp_fp_fn": [
+          199,
+          10,
+          58
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.9424344820770795,
+            "ap50_95": 0.7344615247705735,
+            "ground_truth_instances": 230,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.9437360482948298,
+            "ap50_95": 0.680718386279876,
+            "ground_truth_instances": 227,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 1.0,
+            "ap50_95": 0.2,
+            "ground_truth_instances": 1,
+            "annotated_pages": 1
+          }
+        },
+        "object_map50": 0.9620568434573031,
+        "object_map50_95": 0.5383933036834831,
+        "room_type_macro_f1_matched": 0.7815065157017731,
+        "room_type_matched_count": 199,
+        "room_type_unknown_count": 1
+      }
+    },
+    "macro": {
+      "wall_iou": 0.7172025324945144,
+      "object_map50": 0.8094578979624001,
+      "room_instance_f1_iou50": 0.7700465421767244
+    },
+    "selection_score": 0.7607323450395431,
+    "acceptance_gates": {
+      "all_object_classes_supported": true,
+      "wall_iou_080": false,
+      "room_f1_080": false,
+      "object_map50_070": true
+    },
+    "meets_numeric_targets": false,
+    "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms.",
+    "split": "val",
+    "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+    "image_size": 1024,
+    "tiled": false,
+    "limit_per_source": 32,
+    "thresholds": {
+      "masks": [
+        0.35,
+        0.65,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "centers": [
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ],
+      "min_pixels": 2048
+    },
+    "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+    "cohort_fingerprints": {
+      "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+      "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+    }
+  },
+  "image_size": 1024,
+  "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+  "candidates": [
+    {
+      "component": "wall",
+      "setting": 0.35,
+      "metric": "wall_iou",
+      "score": 0.7169950728276147
+    },
+    {
+      "component": "wall",
+      "setting": 0.5,
+      "metric": "wall_iou",
+      "score": 0.7157255360946353
+    },
+    {
+      "component": "wall",
+      "setting": 0.65,
+      "metric": "wall_iou",
+      "score": 0.6994169314196104
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.05
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.47615698081864666
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.1
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5320297961865741
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.2
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.48018060242469696
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.3
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.44468699132908573
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.05
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5265813039426233
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.1
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5947678242567745
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.2
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5485035603026257
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.3
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.523384970082043
+    },
+    {
+      "component": "objects",
+      "setting": 0.1,
+      "metric": "object_map50",
+      "score": 0.8094578979624001
+    },
+    {
+      "component": "objects",
+      "setting": 0.3,
+      "metric": "object_map50",
+      "score": 0.4965321810207611
+    },
+    {
+      "component": "objects",
+      "setting": 0.5,
+      "metric": "object_map50",
+      "score": 0.2570274206801336
+    }
+  ],
+  "split": "val",
+  "tiled": false,
+  "limit_per_source": 32,
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "cohort_fingerprints": {
+    "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+    "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+  },
+  "cached_inference_passes": 64,
+  "confirmation_inference_passes": 64,
+  "confidence_semantics": "validation-selected operating thresholds, not calibrated correctness probabilities",
+  "checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+  "checkpoint_step": 3500,
+  "calibration_seconds": 288.55501069599995,
+  "component_area_candidates": {
+    "4": {
+      "sources": {
+        "cubicasa5k": {
+          "samples": 32,
+          "wall_iou": 0.6537118476533927,
+          "wall_boundary_f1_tolerance_0002": 0.6732605357081992,
+          "raw_wall_iou": 0.6583665194360305,
+          "raw_room_iou": 0.8812157525163121,
+          "room_instance_f1_iou50": 0.47882136279926335,
+          "room_tp_fp_fn": [
+            260,
+            485,
+            81
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.7673138548560794,
+              "ap50_95": 0.3560403143427061,
+              "ground_truth_instances": 315,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.7947089679321354,
+              "ap50_95": 0.34647357434145404,
+              "ground_truth_instances": 284,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 0.4085540346142762,
+              "ap50_95": 0.15620638505724982,
+              "ground_truth_instances": 32,
+              "annotated_pages": 32
+            }
+          },
+          "object_map50": 0.6568589524674969,
+          "object_map50_95": 0.2862400912471367,
+          "room_type_macro_f1_matched": 0.560164331683319,
+          "room_type_matched_count": 189,
+          "room_type_unknown_count": 28
+        },
+        "resplan": {
+          "samples": 32,
+          "wall_iou": 0.7802782980018365,
+          "wall_boundary_f1_tolerance_0002": 0.8801678741744895,
+          "raw_wall_iou": 0.772990939167015,
+          "raw_room_iou": 0.8971753796891015,
+          "room_instance_f1_iou50": 0.7107142857142857,
+          "room_tp_fp_fn": [
+            199,
+            104,
+            58
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.9424344820770795,
+              "ap50_95": 0.7344615247705735,
+              "ground_truth_instances": 230,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.9437360482948298,
+              "ap50_95": 0.680718386279876,
+              "ground_truth_instances": 227,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 1.0,
+              "ap50_95": 0.2,
+              "ground_truth_instances": 1,
+              "annotated_pages": 1
+            }
+          },
+          "object_map50": 0.9620568434573031,
+          "object_map50_95": 0.5383933036834831,
+          "room_type_macro_f1_matched": 0.7815065157017731,
+          "room_type_matched_count": 199,
+          "room_type_unknown_count": 1
+        }
+      },
+      "macro": {
+        "wall_iou": 0.7169950728276147,
+        "object_map50": 0.8094578979624001,
+        "room_instance_f1_iou50": 0.5947678242567745
+      },
+      "selection_score": 0.7080657457967983,
+      "acceptance_gates": {
+        "all_object_classes_supported": true,
+        "wall_iou_080": false,
+        "room_f1_080": false,
+        "object_map50_070": true
+      },
+      "meets_numeric_targets": false,
+      "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms."
+    },
+    "32": {
+      "sources": {
+        "cubicasa5k": {
+          "samples": 32,
+          "wall_iou": 0.6536634686063089,
+          "wall_boundary_f1_tolerance_0002": 0.6726405121984179,
+          "raw_wall_iou": 0.6583665194360305,
+          "raw_room_iou": 0.8812157525163121,
+          "room_instance_f1_iou50": 0.5377456049638056,
+          "room_tp_fp_fn": [
+            260,
+            366,
+            81
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.7673138548560794,
+              "ap50_95": 0.3560403143427061,
+              "ground_truth_instances": 315,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.7947089679321354,
+              "ap50_95": 0.34647357434145404,
+              "ground_truth_instances": 284,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 0.4085540346142762,
+              "ap50_95": 0.15620638505724982,
+              "ground_truth_instances": 32,
+              "annotated_pages": 32
+            }
+          },
+          "object_map50": 0.6568589524674969,
+          "object_map50_95": 0.2862400912471367,
+          "room_type_macro_f1_matched": 0.560164331683319,
+          "room_type_matched_count": 189,
+          "room_type_unknown_count": 28
+        },
+        "resplan": {
+          "samples": 32,
+          "wall_iou": 0.7811389578944058,
+          "wall_boundary_f1_tolerance_0002": 0.8836496340060949,
+          "raw_wall_iou": 0.772990939167015,
+          "raw_room_iou": 0.8971753796891015,
+          "room_instance_f1_iou50": 0.7495291902071564,
+          "room_tp_fp_fn": [
+            199,
+            75,
+            58
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.9424344820770795,
+              "ap50_95": 0.7344615247705735,
+              "ground_truth_instances": 230,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.9437360482948298,
+              "ap50_95": 0.680718386279876,
+              "ground_truth_instances": 227,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 1.0,
+              "ap50_95": 0.2,
+              "ground_truth_instances": 1,
+              "annotated_pages": 1
+            }
+          },
+          "object_map50": 0.9620568434573031,
+          "object_map50_95": 0.5383933036834831,
+          "room_type_macro_f1_matched": 0.7815065157017731,
+          "room_type_matched_count": 199,
+          "room_type_unknown_count": 1
+        }
+      },
+      "macro": {
+        "wall_iou": 0.7174012132503573,
+        "object_map50": 0.8094578979624001,
+        "room_instance_f1_iou50": 0.643637397585481
+      },
+      "selection_score": 0.7228890739645073,
+      "acceptance_gates": {
+        "all_object_classes_supported": true,
+        "wall_iou_080": false,
+        "room_f1_080": false,
+        "object_map50_070": true
+      },
+      "meets_numeric_targets": false,
+      "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms."
+    },
+    "128": {
+      "sources": {
+        "cubicasa5k": {
+          "samples": 32,
+          "wall_iou": 0.6538016744607825,
+          "wall_boundary_f1_tolerance_0002": 0.6728320433406506,
+          "raw_wall_iou": 0.6583665194360305,
+          "raw_room_iou": 0.8812157525163121,
+          "room_instance_f1_iou50": 0.5829596412556054,
+          "room_tp_fp_fn": [
+            260,
+            291,
+            81
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.7673138548560794,
+              "ap50_95": 0.3560403143427061,
+              "ground_truth_instances": 315,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.7947089679321354,
+              "ap50_95": 0.34647357434145404,
+              "ground_truth_instances": 284,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 0.4085540346142762,
+              "ap50_95": 0.15620638505724982,
+              "ground_truth_instances": 32,
+              "annotated_pages": 32
+            }
+          },
+          "object_map50": 0.6568589524674969,
+          "object_map50_95": 0.2862400912471367,
+          "room_type_macro_f1_matched": 0.560164331683319,
+          "room_type_matched_count": 189,
+          "room_type_unknown_count": 28
+        },
+        "resplan": {
+          "samples": 32,
+          "wall_iou": 0.7819506362103327,
+          "wall_boundary_f1_tolerance_0002": 0.88599136786233,
+          "raw_wall_iou": 0.772990939167015,
+          "raw_room_iou": 0.8971753796891015,
+          "room_instance_f1_iou50": 0.766859344894027,
+          "room_tp_fp_fn": [
+            199,
+            63,
+            58
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.9424344820770795,
+              "ap50_95": 0.7344615247705735,
+              "ground_truth_instances": 230,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.9437360482948298,
+              "ap50_95": 0.680718386279876,
+              "ground_truth_instances": 227,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 1.0,
+              "ap50_95": 0.2,
+              "ground_truth_instances": 1,
+              "annotated_pages": 1
+            }
+          },
+          "object_map50": 0.9620568434573031,
+          "object_map50_95": 0.5383933036834831,
+          "room_type_macro_f1_matched": 0.7815065157017731,
+          "room_type_matched_count": 199,
+          "room_type_unknown_count": 1
+        }
+      },
+      "macro": {
+        "wall_iou": 0.7178761553355576,
+        "object_map50": 0.8094578979624001,
+        "room_instance_f1_iou50": 0.6749094930748162
+      },
+      "selection_score": 0.7324606794453881,
+      "acceptance_gates": {
+        "all_object_classes_supported": true,
+        "wall_iou_080": false,
+        "room_f1_080": false,
+        "object_map50_070": true
+      },
+      "meets_numeric_targets": false,
+      "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms."
+    },
+    "512": {
+      "sources": {
+        "cubicasa5k": {
+          "samples": 32,
+          "wall_iou": 0.6537683720089759,
+          "wall_boundary_f1_tolerance_0002": 0.6725232318161557,
+          "raw_wall_iou": 0.6583665194360305,
+          "raw_room_iou": 0.8812157525163121,
+          "room_instance_f1_iou50": 0.6295399515738499,
+          "room_tp_fp_fn": [
+            260,
+            225,
+            81
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.7673138548560794,
+              "ap50_95": 0.3560403143427061,
+              "ground_truth_instances": 315,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.7947089679321354,
+              "ap50_95": 0.34647357434145404,
+              "ground_truth_instances": 284,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 0.4085540346142762,
+              "ap50_95": 0.15620638505724982,
+              "ground_truth_instances": 32,
+              "annotated_pages": 32
+            }
+          },
+          "object_map50": 0.6568589524674969,
+          "object_map50_95": 0.2862400912471367,
+          "room_type_macro_f1_matched": 0.560164331683319,
+          "room_type_matched_count": 189,
+          "room_type_unknown_count": 28
+        },
+        "resplan": {
+          "samples": 32,
+          "wall_iou": 0.7823460262008018,
+          "wall_boundary_f1_tolerance_0002": 0.8868441657452399,
+          "raw_wall_iou": 0.772990939167015,
+          "raw_room_iou": 0.8971753796891015,
+          "room_instance_f1_iou50": 0.8326359832635983,
+          "room_tp_fp_fn": [
+            199,
+            22,
+            58
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.9424344820770795,
+              "ap50_95": 0.7344615247705735,
+              "ground_truth_instances": 230,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.9437360482948298,
+              "ap50_95": 0.680718386279876,
+              "ground_truth_instances": 227,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 1.0,
+              "ap50_95": 0.2,
+              "ground_truth_instances": 1,
+              "annotated_pages": 1
+            }
+          },
+          "object_map50": 0.9620568434573031,
+          "object_map50_95": 0.5383933036834831,
+          "room_type_macro_f1_matched": 0.7815065157017731,
+          "room_type_matched_count": 199,
+          "room_type_unknown_count": 1
+        }
+      },
+      "macro": {
+        "wall_iou": 0.7180571991048889,
+        "object_map50": 0.8094578979624001,
+        "room_instance_f1_iou50": 0.7310879674187241
+      },
+      "selection_score": 0.7493866392562928,
+      "acceptance_gates": {
+        "all_object_classes_supported": true,
+        "wall_iou_080": false,
+        "room_f1_080": false,
+        "object_map50_070": true
+      },
+      "meets_numeric_targets": false,
+      "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms."
+    },
+    "2048": {
+      "sources": {
+        "cubicasa5k": {
+          "samples": 32,
+          "wall_iou": 0.6516547492947222,
+          "wall_boundary_f1_tolerance_0002": 0.6695968122822262,
+          "raw_wall_iou": 0.6583665194360305,
+          "raw_room_iou": 0.8812157525163121,
+          "room_instance_f1_iou50": 0.6860158311345647,
+          "room_tp_fp_fn": [
+            260,
+            157,
+            81
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.7673138548560794,
+              "ap50_95": 0.3560403143427061,
+              "ground_truth_instances": 315,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.7947089679321354,
+              "ap50_95": 0.34647357434145404,
+              "ground_truth_instances": 284,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 0.4085540346142762,
+              "ap50_95": 0.15620638505724982,
+              "ground_truth_instances": 32,
+              "annotated_pages": 32
+            }
+          },
+          "object_map50": 0.6568589524674969,
+          "object_map50_95": 0.2862400912471367,
+          "room_type_macro_f1_matched": 0.560164331683319,
+          "room_type_matched_count": 189,
+          "room_type_unknown_count": 28
+        },
+        "resplan": {
+          "samples": 32,
+          "wall_iou": 0.7827503156943064,
+          "wall_boundary_f1_tolerance_0002": 0.8871375279509456,
+          "raw_wall_iou": 0.772990939167015,
+          "raw_room_iou": 0.8971753796891015,
+          "room_instance_f1_iou50": 0.8540772532188842,
+          "room_tp_fp_fn": [
+            199,
+            10,
+            58
+          ],
+          "objects": {
+            "door": {
+              "ap50": 0.9424344820770795,
+              "ap50_95": 0.7344615247705735,
+              "ground_truth_instances": 230,
+              "annotated_pages": 32
+            },
+            "window": {
+              "ap50": 0.9437360482948298,
+              "ap50_95": 0.680718386279876,
+              "ground_truth_instances": 227,
+              "annotated_pages": 32
+            },
+            "stairs": {
+              "ap50": 1.0,
+              "ap50_95": 0.2,
+              "ground_truth_instances": 1,
+              "annotated_pages": 1
+            }
+          },
+          "object_map50": 0.9620568434573031,
+          "object_map50_95": 0.5383933036834831,
+          "room_type_macro_f1_matched": 0.7815065157017731,
+          "room_type_matched_count": 199,
+          "room_type_unknown_count": 1
+        }
+      },
+      "macro": {
+        "wall_iou": 0.7172025324945144,
+        "object_map50": 0.8094578979624001,
+        "room_instance_f1_iou50": 0.7700465421767244
+      },
+      "selection_score": 0.7607323450395431,
+      "acceptance_gates": {
+        "all_object_classes_supported": true,
+        "wall_iou_080": false,
+        "room_f1_080": false,
+        "object_map50_070": true
+      },
+      "meets_numeric_targets": false,
+      "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms."
+    }
+  },
+  "component_area_parent_calibration": "78b5ca552baf60182a002c4c9e4995f759e89c71b4463fbd0da562d76a22fec2",
+  "component_area_seconds": 192.71468885299873,
+  "source_checkpoint_sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+  "repackaged_without_optimizer": true
+}

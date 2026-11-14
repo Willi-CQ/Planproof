@@ -1,0 +1,88 @@
+{
+  "sources": {
+    "floorplancad": {
+      "samples": 128,
+      "wall_iou": null,
+      "wall_boundary_f1_tolerance_0002": null,
+      "raw_wall_iou": null,
+      "raw_room_iou": null,
+      "room_instance_f1_iou50": null,
+      "room_tp_fp_fn": [
+        0,
+        0,
+        0
+      ],
+      "objects": {
+        "door": {
+          "ap50": 0.7108079609321074,
+          "ap50_95": 0.42697152199419525,
+          "ground_truth_instances": 285,
+          "annotated_pages": 128
+        },
+        "window": {
+          "ap50": 0.4479211118405231,
+          "ap50_95": 0.2999253470983362,
+          "ground_truth_instances": 85,
+          "annotated_pages": 128
+        },
+        "stairs": {
+          "ap50": 0.24362436243624358,
+          "ap50_95": 0.04567056705670566,
+          "ground_truth_instances": 22,
+          "annotated_pages": 128
+        }
+      },
+      "object_map50": 0.46745114506962465,
+      "object_map50_95": 0.2575224787164124,
+      "room_type_macro_f1_matched": null,
+      "room_type_matched_count": 0,
+      "room_type_unknown_count": 0
+    }
+  },
+  "macro": {
+    "wall_iou": null,
+    "object_map50": 0.46745114506962465,
+    "room_instance_f1_iou50": null
+  },
+  "selection_score": null,
+  "acceptance_gates": {
+    "all_object_classes_supported": true,
+    "wall_iou_080": false,
+    "room_f1_080": false,
+    "object_map50_070": false
+  },
+  "meets_numeric_targets": false,
+  "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms.",
+  "split": "val",
+  "manifest_fingerprint": "b93530908667006d5d65d878309c64b856d3f578c002dffc6cebaf234f37875b",
+  "image_size": 1024,
+  "tiled": false,
+  "limit_per_source": 128,
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+  "cohort_fingerprints": {
+    "floorplancad": "543f7327d81203fe918f6c5f7e78710ac9b947bcdc286a65991a9a5e8ab713b0"
+  },
+  "checkpoint_sha256": "c6ff3578ee671d54a3c6966fc4864dfb6a4f89d2ecc190989de84f8d29e5d48c",
+  "checkpoint_step": 3000,
+  "purpose": "128-drawing fixed-threshold CAD object-only validation, not a publisher benchmark or universal model score",
+  "intended_classes": [
+    "door",
+    "window",
+    "stairs"
+  ]
+}

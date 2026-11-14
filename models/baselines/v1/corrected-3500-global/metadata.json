@@ -1,0 +1,117 @@
+{
+  "architecture": "unet-resnet34-multihead",
+  "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+  "outputs": [
+    "masks",
+    "boundary",
+    "centers",
+    "boxes",
+    "types"
+  ],
+  "mask_classes": [
+    "wall",
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "instance_classes": [
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "room_types": [
+    "kitchen",
+    "living",
+    "dining",
+    "bedroom",
+    "bathroom",
+    "hallway",
+    "storage",
+    "garage",
+    "balcony",
+    "other"
+  ],
+  "image_normalization": "imagenet_rgb",
+  "box_encoding": "per-class normalized width,height + tanh half-pixel offsets",
+  "checkpoint_sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+  "inference_checkpoint": "detector.pt",
+  "inference_checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+  "training_source_commit": "01a3775",
+  "inference_tiled": false,
+  "calibration_file": "calibration.json",
+  "calibration_sha256": "a3044cc77a94ae5737eb13673ec76df4343b72c9794c8e83f8c9c30daedc9b93",
+  "model_sha256": "9f8be121f5b78ee5d1f4eda5968dc5b9d8ca846e42eeabb366e413695dce0587",
+  "wall_sha256": "362d9fec5c04ca12e8c1c6980e2c1b135eed018ba2aee5a9ffd428974116a6e2",
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "training_step": 3500,
+  "canvas_size": 1024,
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ],
+    "min_pixels": 2048
+  },
+  "onnx_parity_max_abs_error": {
+    "masks": 1.5497207641601562e-05,
+    "boundary": 1.049041748046875e-05,
+    "centers": 6.198883056640625e-06,
+    "boxes": 4.0531158447265625e-06,
+    "types": 9.655952453613281e-06
+  },
+  "input": {
+    "name": "image",
+    "dtype": "float32",
+    "spatial_multiple": 32,
+    "recommended_size": [
+      1024,
+      1024
+    ],
+    "resize": "aspect-preserving letterbox; retain the Frame transform",
+    "channels": "RGB",
+    "range_before_normalization": [
+      0,
+      1
+    ],
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "output_geometry": "ONNX tensors use input-canvas coordinates; the postprocessor restores original pixel edges",
+  "output_activations": {
+    "masks": "sigmoid",
+    "boundary": "sigmoid",
+    "centers": "sigmoid",
+    "types": "softmax",
+    "boxes": "sigmoid width/height; tanh offsets times 0.5"
+  },
+  "wall_output": "one-channel logits; sigmoid only once",
+  "validation_confirmation_file": "validation.json",
+  "selection_lock_file": "selection-lock.json",
+  "release_role": "Selected universal floorplan detector; validation-selected before held-out test results",
+  "test_report_file": "test.json",
+  "heldout_test_macro": {
+    "wall_iou": 0.7133593164061682,
+    "object_map50": 0.5869926444667608,
+    "room_instance_f1_iou50": 0.7391162467240446
+  },
+  "stoa_qa_accuracy_evaluated": false
+}

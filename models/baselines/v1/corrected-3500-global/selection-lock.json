@@ -1,0 +1,13 @@
+{
+  "locked_utc": "2026-11-14T05:46:47.262233+00:00",
+  "model_selection_locked_before_test_results": true,
+  "inference_checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+  "training_checkpoint_sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+  "calibration_sha256": "a3044cc77a94ae5737eb13673ec76df4343b72c9794c8e83f8c9c30daedc9b93",
+  "training_step": 3500,
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "validation_report_sha256": "7cb321759ab7f638cfc5b2592815d6e911b456d830f00ba5286d943fc9089850",
+  "selection_report_sha256": "aaf1f0e1b7735c229cf464fe0495ab331efa3fdfa9830f1e0ea34c5b895d633f",
+  "decision_basis": "Matching 128-per-source validation, identical mode/protocol; fixed 32-per-source calibration; improvement >.005 with no per-source component regression >.02",
+  "heldout_test": "All 403 CubiCasa + 1648 ResPlan project test drawings; reporting only, not tuning or checkpoint selection"
+}

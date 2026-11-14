@@ -30,4 +30,4 @@ Do not mirror Stoa data or external archives to GitHub. Stoa is evaluation/refer
 
 ## Start with these sources
 
-Stoa is reserved for final client evaluation and reference only; do not use its drawings, questions, answers, labels, or derivatives to train or tune any model. See [training-plan.md](training-plan.md) for the external training roles, acquisition gates, and split rules. Raw source data, local evaluation records, processed samples, checkpoints, and weights must stay in ignored local folders. Use IFC samples for parser smoke tests, not as image detector training data.
+Stoa is reserved for final client evaluation and reference only; do not use its drawings, questions, answers, labels, or derivatives to train or tune any model. See [training-plan.md](training-plan.md) for the external training roles, acquisition gates, and split rules. Raw source data, local evaluation records and processed samples stay in ignored folders. Generated checkpoints/weights also stay ignored except for the explicitly approved frozen baseline under `models/baselines/v1/`, which uses Git LFS. Use IFC samples for parser smoke tests, not as image detector training data.

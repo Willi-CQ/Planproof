@@ -41,3 +41,25 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# ML environments, generated labels, diagnostics and model artifacts.
+.venv/
+.cache/
+.artifacts/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+/runs/
+/exports/
+/artifacts/
+*.npz
+*.pkl
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Explicitly approved trained baseline only. Raw datasets remain ignored.
+!/models/baselines/v1/**/*.pt
+!/models/baselines/v1/**/*.onnx
