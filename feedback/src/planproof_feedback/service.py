@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from pathlib import Path
 from typing import Protocol
 
 from .client import NemotronClient
+from .artifacts import write_json
 from .config import get_key
 from .images import ImageInput, validate_citations
 from .regions import canonical_citations
@@ -145,7 +147,7 @@ class FeedbackService:
             status, error = "ok", None
         except ValueError as exc:
             result, status, error = None, "invalid_output", str(exc)
-        return {
+        output = {
             "role": role,
             "status": status,
             "result": result,
@@ -158,6 +160,9 @@ class FeedbackService:
             if result
             else [],
         }
+        if completion.get("audit_path"):
+            write_json(Path(completion["audit_path"]) / "validated-result.json", output)
+        return output
 
     def answer(self, question, images, *, unit=None, question_type=None):
         return self._call(
@@ -206,7 +211,9 @@ def create_service(config: dict, *, backends=None) -> FeedbackService:
     for provider_id in set(config["routes"].values()):
         if provider_id not in clients:
             settings = config["providers"][provider_id]
-            clients[provider_id] = NemotronClient(settings, get_key(config, settings))
+            clients[provider_id] = NemotronClient(
+                settings, get_key(config, settings), audit_dir=config.get("audit_dir")
+            )
     return FeedbackService(
         clients[config["routes"]["feedback"]], clients[config["routes"]["self_feedback"]]
     )

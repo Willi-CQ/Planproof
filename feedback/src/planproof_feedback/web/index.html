@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Planproof · Drawing QA comparison</title>
+  <link rel="stylesheet" href="report.css">
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">PLANPROOF <span>/ BENCHMARK LAB</span></div>
+    <div class="headerline"><div><p class="eyebrow">EVIDENCE BEFORE CONFIDENCE</p><h1>Drawing QA comparison</h1><p class="intro">One frozen question set. Every answer, source and revision preserved.</p></div><span id="state" class="state">Inputs ready</span></div>
+    <div class="dataset"><span id="cohort"></span><span id="dataset-hash"></span><a href="questions-for-model.json" download>Inputs for the Gemini runner ↗</a><a href="comparison.json" download>All comparison data ↗</a></div>
+  </header>
+  <section class="run-selectors" aria-label="Choose runs to compare">
+    <label><span class="series-label a">A · Nemotron / baseline</span><select id="run-a" aria-label="Baseline run"></select></label>
+    <label><span class="series-label b">B · Gemini Carbon / comparison</span><select id="run-b" aria-label="Comparison run"></select></label>
+    <div class="import-actions"><button id="import-button" class="secondary" type="button">Add saved report</button><input id="import-file" type="file" accept=".json,application/json" hidden><button id="export" type="button">Save comparison snapshot</button></div>
+  </section>
+  <p id="message" role="status" aria-live="polite"></p>
+  <section class="scoreboard" aria-label="Comparison summary">
+    <div class="metric"><span>Shared completed questions</span><strong id="paired-n">—</strong><small id="paired-note">Waiting for two runs</small></div>
+    <div class="metric"><span id="a-title">Nemotron accuracy</span><strong id="a-accuracy">—</strong><small id="a-sub">Not run · no score yet</small></div>
+    <div class="metric"><span id="b-title">Gemini Carbon accuracy</span><strong id="b-accuracy">—</strong><small id="b-sub">Not run · no score yet</small></div>
+    <div class="metric"><span>Paired accuracy difference · B − A</span><strong id="delta">—</strong><small id="delta-sub">Only matching question IDs count</small></div>
+  </section>
+  <section class="charts">
+    <article><div class="section-heading"><h2>Accuracy by question type</h2><span>0–100% · completed cases</span></div><div id="accuracy-chart" aria-label="Accuracy by type"></div><p class="chart-note" id="type-note"></p></article>
+    <article><div class="section-heading"><h2>Where the answers differ</h2><span>Matched questions only</span></div><div id="outcomes"></div><div class="legend"><span><i class="both"></i>Both correct</span><span><i class="a-only"></i>A only</span><span><i class="b-only"></i>B only</span><span><i class="neither"></i>Neither correct</span></div></article>
+  </section>
+  <section class="efficiency"><div class="section-heading"><h2>Time & inference budget</h2><span>Reported usage · cost stays unknown until a price is verified</span></div><div class="table-wrap"><table><thead><tr><th>Run</th><th>Completed</th><th>Median time / question</th><th>Total time</th><th>Reported total tokens</th><th>Missing token usage</th></tr></thead><tbody id="efficiency-rows"></tbody></table></div></section>
+  <section class="question-section">
+    <div class="section-heading"><div><h2>Every question, in view</h2><p>Choose a cell to inspect the drawing, reference answer and each model’s evidence.</p></div><span id="visible-count"></span></div>
+    <div class="filters"><label>Question type<select id="type-filter"><option value="all">All types</option></select></label><label>Source<select id="source-filter"><option value="all">All sources</option></select></label><label>Outcome<select id="outcome-filter"><option value="all">All outcomes</option><option value="pending">Awaiting a run</option><option value="solo-correct">Recorded run correct</option><option value="solo-wrong">Recorded run incorrect</option><option value="both">Both correct</option><option value="a-only">A only correct</option><option value="b-only">B only correct</option><option value="neither">Neither correct</option><option value="error">A run failed</option></select></label><label class="search">Find a question<input id="search" type="search" placeholder="Question text or case ID"></label></div>
+    <div id="question-grid" class="question-grid" aria-label="Question outcome map"></div>
+    <div class="legend"><span><i class="pending"></i>Awaiting results</span><span><i class="solo-correct"></i>Recorded run correct</span><span><i class="solo-wrong"></i>Recorded run incorrect</span><span><i class="both"></i>Both correct</span><span><i class="a-only"></i>A only</span><span><i class="b-only"></i>B only</span><span><i class="neither"></i>Neither correct</span><span><i class="error"></i>Run error</span></div>
+  </section>
+  <section id="detail" aria-live="polite">
+    <div class="section-heading"><div><p class="eyebrow" id="case-label"></p><h2 id="question-text"></h2></div><div class="stepper"><button id="previous" type="button" aria-label="Previous question">←</button><button id="next" type="button" aria-label="Next question">→</button></div></div>
+    <div class="detail-layout"><article class="drawing-panel"><div class="drawing-toolbar"><label>Page<select id="page-select" aria-label="Drawing page"></select></label><a id="original-link" target="_blank" rel="noopener">Original drawing ↗</a><button id="toggle-boxes" aria-pressed="true" type="button">Evidence boxes on</button></div><div class="drawing"><img id="drawing-image" alt="Selected source drawing"><svg id="drawing-boxes" aria-label="Model-proposed evidence locations"></svg></div><p class="chart-note" id="image-note"></p><p class="chart-note" id="source-credit"></p><a id="license-link" class="chart-note" target="_blank" rel="noopener">Full source credit and license ↗</a></article><article class="answer-panel"><div class="reference"><span>REFERENCE ANSWER · EVALUATOR ONLY</span><strong id="reference-answer"></strong><small id="case-source"></small></div><div id="answer-a" class="answer-card a"></div><div id="answer-b" class="answer-card b"></div></article></div>
+  </section>
+  <details class="method"><summary>Evaluation method, comparability & preservation</summary><div id="method"></div><p>Exact counts; numeric quantities within 2%; normalized exact text is a local surrogate. Abstentions and failures count as incorrect completed answers. Scores describe this reference sample, not an official or unseen final benchmark.</p><p>Run prompts, tools and image policies may differ. The report pairs source hashes and question IDs; it does not claim identical reasoning conditions. Citation boxes are model proposals: identity and bounds can be checked, semantic support still needs human review.</p><p>Original drawings, all questions and reference answers, model requests without authorization headers, raw provider responses, critique stages, settings and hashes remain on disk. Completed benchmark commands also create CRC/SHA256-verified local backups. Existing runs and backups are never pruned.</p><p>Adding a saved report here is a local viewing action. Keep its source file or save a comparison snapshot; for permanent registration and backup use the documented <code>benchmark-import</code> command.</p></details>
+  <footer><span>LOCAL EVALUATION · NO DATA UPLOADS · NO EXTERNAL ASSETS</span><span id="created"></span></footer>
+</main>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script src="report.js"></script>
+</body></html>

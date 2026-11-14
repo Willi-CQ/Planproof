@@ -121,3 +121,46 @@ def test_env_is_literal_and_environment_wins(tmp_path, monkeypatch):
     env.write_text("VERDA_INFERENCE_KEY=\n")
     with pytest.raises(ValueError, match="Paste your full key"):
         get_key(config, settings)
+
+
+def test_audit_keeps_request_and_complete_provider_response_without_key(tmp_path):
+    client = NemotronClient(
+        SETTINGS, "private-key", opener=Opener([completion()]), audit_dir=tmp_path
+    )
+    result = client.complete([{"role": "user", "content": "generated fixture question"}])
+    directory = __import__("pathlib").Path(result["audit_path"])
+    request = json.loads((directory / "request.json").read_text())
+    response = json.loads((directory / "response-1.json").read_text())
+    assert request["body"]["messages"][0]["content"] == "generated fixture question"
+    assert response["choices"][0]["message"]["reasoning_content"] == "not the answer"
+    assert not any("private-key" in p.read_text() for p in directory.iterdir())
+    assert "Authorization" not in request
+
+
+def test_truncated_response_is_preserved_and_error_body_redacts_key(tmp_path):
+    client = NemotronClient(
+        SETTINGS, "private-key", opener=Opener([completion(finish="length")]), audit_dir=tmp_path
+    )
+    with pytest.raises(ProviderError):
+        client.complete([])
+    assert list(tmp_path.rglob("response-1.json"))
+    failure = urllib.error.HTTPError(
+        "https://example.test", 401, "key", {}, io.BytesIO(b"Bearer private-key")
+    )
+    with pytest.raises(ProviderError):
+        NemotronClient(
+            SETTINGS, "private-key", opener=Opener([failure]), audit_dir=tmp_path
+        ).complete([])
+    body = next(tmp_path.rglob("http-error-1.txt")).read_text()
+    assert "private-key" not in body and "[REDACTED]" in body
+
+
+def test_unexpected_provider_key_echo_is_also_removed_from_derived_output(tmp_path):
+    client = NemotronClient(
+        SETTINGS,
+        "private-key",
+        opener=Opener([completion(content="echo private-key")]),
+        audit_dir=tmp_path,
+    )
+    result = client.complete([])
+    assert result["content"] == "echo [REDACTED]"

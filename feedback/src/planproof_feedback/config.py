@@ -31,6 +31,9 @@ def load_config(path: Path = DEFAULT_CONFIG) -> dict:
     config = tomllib.loads(path.read_text(encoding="utf-8"))
     config["config_path"] = str(path)
     config["env_file"] = str((path.parent / config["env_file"]).resolve())
+    for key in ("audit_dir", "report_dir"):
+        if key in config:
+            config[key] = str((path.parent / config[key]).resolve())
     for key in ("question_file", "inventory_file", "pack_dir"):
         config["benchmark"][key] = str((path.parent / config["benchmark"][key]).resolve())
     return config

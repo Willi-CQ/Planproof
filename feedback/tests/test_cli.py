@@ -53,3 +53,22 @@ def test_missing_key_points_to_one_env_file_without_network(tmp_path, monkeypatc
     assert cli.main(["check"]) == 2
     error = capsys.readouterr().err
     assert str(path) in error and "VERDA_INFERENCE_KEY=" in error
+
+
+def test_report_failure_still_attempts_verified_backup(monkeypatch):
+    from planproof_feedback import preservation, reporting
+
+    calls = []
+
+    def broken_report(_):
+        raise ValueError("simulated rendering failure")
+
+    monkeypatch.setattr(reporting, "build_report", broken_report)
+    monkeypatch.setattr(
+        preservation,
+        "backup",
+        lambda _: calls.append("backed_up") or {"archive": "verified-fixture.zip"},
+    )
+    with pytest.raises(RuntimeError, match="backed up and verified"):
+        cli.preserve_comparison({})
+    assert calls == ["backed_up"]

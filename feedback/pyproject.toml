@@ -18,6 +18,9 @@ planproof-feedback = "planproof_feedback.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+planproof_feedback = ["web/*.html", "web/*.css", "web/*.js"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--basetemp=.artifacts/pytest-feedback"

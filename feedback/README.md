@@ -18,6 +18,16 @@ image-conditioned calls. Reports are saved under this worktree's
 preparation. Live model access/accuracy remain unverified until the key is supplied.
 The `.cmd` launcher works when PowerShell script execution is disabled.
 
+## Visual results and complete retention
+
+Open `.artifacts/nemotron/comparison/index.html`: accuracy charts, paired outcomes,
+question map, drawing/answer inspection, evidence boxes, time/token usage and
+saved-run comparison. It shows not-run states until real results exist.
+Every benchmark updates this report and creates a verified local backup. Exact
+requests without credentials, raw responses, all source/reference data and
+critique stages are retained. See [comparison and preservation](COMPARISON.md)
+for the future Gemini Carbon import contract, storage layout and restore checks.
+
 ## Feedback integration
 
 | Purpose | Python method | Later-agent tool |

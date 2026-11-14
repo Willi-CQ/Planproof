@@ -1,5 +1,7 @@
 # Paths are relative to this file. Both roles use the same key in ../.env.
 env_file = "../.env"
+audit_dir = "../.artifacts/nemotron/calls"
+report_dir = "../.artifacts/nemotron/comparison"
 
 [routes]
 feedback = "nemotron"
