@@ -10,8 +10,7 @@ from google.genai import types
 from PIL import Image
 
 from app import app
-from question_agent import AgentRequest, DrawingAgent, GeminiTransport, declarations
-import httpx
+from question_agent import AgentRequest, DrawingAgent, declarations
 
 
 def response(name, args, *, signature=None):
@@ -96,20 +95,6 @@ def test_direct_answer_never_initializes_algorithms_or_specialist():
     assert result["status"] == "ok" and not result["algorithm_used"]
     a.algorithm_factory.assert_not_called()
     a.specialist_factory.assert_not_called()
-
-
-def test_transport_retries_transient_failure_once_only():
-    transport = GeminiTransport.__new__(GeminiTransport)
-    transport._generate = Mock(
-        side_effect=[httpx.ConnectError("private network detail"), "success"]
-    )
-    with patch("question_agent.time.sleep"):
-        assert transport.generate([], []) == "success"
-    assert transport.last_attempts == 2
-    transport._generate = Mock(side_effect=httpx.ConnectError("private network detail"))
-    with patch("question_agent.time.sleep"), pytest.raises(httpx.ConnectError):
-        transport.generate([], [])
-    assert transport._generate.call_count == 2
 
 
 def test_boolean_cannot_be_promoted_to_numeric_answer():

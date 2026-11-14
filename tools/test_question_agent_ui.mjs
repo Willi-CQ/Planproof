@@ -24,7 +24,7 @@ try{
   ws.onmessage=e=>{const d=JSON.parse(e.data);if(d.id){const p=pending.get(d.id);if(!p)return;clearTimeout(p.timer);pending.delete(d.id);d.error?p.reject(new Error(JSON.stringify(d.error))):p.resolve(d.result);}else if(d.method==='Runtime.exceptionThrown')errors.push(d.params);};
   await rpc('Runtime.enable');await rpc('Page.enable');
   await rpc('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
-  await rpc('Page.navigate',{url:'http://127.0.0.1:8002/planwise/'});
+  await rpc('Page.navigate',{url:(process.env.PLANPROOF_TEST_URL||'http://127.0.0.1:8002')+'/planwise/'});
   await until(()=>evaluate("Boolean(document.getElementById('reasonButton'))"));
   assert.deepEqual(await evaluate("[...document.getElementById('reasonMode').options].map(x=>x.value)"),['auto','visual_only','direct']);checks.push('Three distinct question modes present');
   const source=path.resolve(process.argv[2]||'../_planproof_evidence/.artifacts/reference10-integrated-v1/cases/P05-resplan/plan.png');
@@ -41,6 +41,17 @@ try{
   assert.equal(await evaluate('window.__askBodies[0].allow_nemotron'),false);
   assert.match(await evaluate("document.getElementById('reasonAnswer').textContent"),/SIMULATED/);
   assert.equal(await evaluate("document.querySelectorAll('.evidence-marker').length"),1);checks.push('Real upload, selected mode, simulated final answer and source citation rendered');
+  await evaluate(`window.__uiFetch=window.fetch;window.fetch=async(url,options)=>{
+    if(String(url).endsWith('/ask'))return new Response(JSON.stringify({status:'unavailable',source:{width:window.__upload.width,height:window.__upload.height,page_index:0},image_url:window.__upload.image_url,answer:{status:'abstain',answer:null,explanation:'SIMULATED outage: no answer is asserted.'},canonical_citations:[],tool_trace:[],reliability:{retryable:true,retry_after_seconds:20,last_error:{category:'cooldown'},provider_attempts:[{attempt:1,phase:'normal',category:'server_error',http_status:503,seconds:2}]}}),{headers:{'Content-Type':'application/json'}});
+    return window.__uiFetch(url,options);};document.getElementById('reasonButton').click();`);
+  await until(()=>evaluate("document.getElementById('reasonStatus').textContent.includes('Wait at least 20 seconds')"));
+  assert.match(await evaluate("document.getElementById('reasonAnswer').textContent"),/no answer is asserted/);
+  assert.match(await evaluate("document.getElementById('reasonTrace').textContent"),/HTTP 503/);
+  assert.equal(await evaluate("document.querySelectorAll('.evidence-marker').length"),0);
+  checks.push('Outage rendering clears stale answers/citations and displays cooldown with HTTP status');
+  await evaluate(`window.fetch=async(url,options)=>{const r=await window.__uiFetch(url,options);if(!String(url).endsWith('/ask'))return r;const result=await r.json();result.reliability={recovery_succeeded:true,provider_attempts:[]};return new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json'}});};document.getElementById('reasonButton').click();`);
+  await until(()=>evaluate("document.getElementById('reasonStatus').textContent.includes('Recovered after an interrupted')"));
+  checks.push('Successful recovery is visibly distinguished from an uninterrupted answer');
   await evaluate("document.querySelector('.reasoning-panel').scrollIntoView()");
   const screenshot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'desktop.png'),Buffer.from(screenshot.data,'base64'));
   await rpc('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});

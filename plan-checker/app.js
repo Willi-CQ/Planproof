@@ -320,11 +320,21 @@ $('#reasonButton').addEventListener('click', async () => {
     $('#reasonStatus').textContent = result.status === 'ok'
       ? `Answer ready · ${result.algorithm_used ? 'structural evidence used' : 'visual reasoning'} · ${result.nemotron_calls} Nemotron calls · ${result.seconds}s`
       : result.status === 'not_configured' ? 'Gemini key/model are not configured on the server yet.' : `The agent could not produce a validated answer (${result.status}).`;
+    if (result.reliability?.recovery_succeeded) $('#reasonStatus').textContent += ' · Recovered after an interrupted model response.';
+    if (result.status !== 'ok' && result.reliability?.last_error) {
+      const issue = result.reliability.last_error;
+      const wait = result.reliability.retry_after_seconds;
+      $('#reasonStatus').textContent += result.reliability.retryable
+        ? ` The model service was interrupted (${issue.category}). ${wait ? `Wait at least ${Math.ceil(wait)} seconds before retrying.` : 'You can retry when the service is available.'} No answer is asserted.`
+        : ` The request stopped (${issue.category}). No answer is asserted.`;
+    }
     $('#reasonAnswer').textContent = result.answer?.status === 'answered'
       ? `${result.answer.answer} ${result.answer.unit || ''}\n${result.answer.explanation}`
       : result.answer?.explanation || 'No answer is asserted.';
     const trace = (result.tool_trace || []).map(t => `${t.name} · ${t.result.status === 'unavailable' ? 'unavailable' : 'returned evidence'} · ${t.seconds}s`);
-    $('#reasonTrace').textContent = [result.answer?.coverage, ...trace].filter(Boolean).join('\n');
+    const attempts = result.reliability?.provider_attempts || [];
+    const recoveryTrace = attempts.map(a => `Gemini attempt ${a.attempt} · ${a.phase} · ${a.status || a.category}${a.http_status ? ` HTTP ${a.http_status}` : ''}${a.finish_reason ? ` ${a.finish_reason}` : ''} · ${a.seconds}s`);
+    $('#reasonTrace').textContent = [result.answer?.coverage, ...trace, ...recoveryTrace].filter(Boolean).join('\n');
     $('#reasonJson').textContent = JSON.stringify(result,null,2);
     const citations = (result.canonical_citations || []).map((c,i)=>({id:`citation-${i+1}`,provider:'gemini',bbox_xyxy:c.canonical_bbox}));
     renderEvidence({...result,mode:'executed_engines',matched_evidence:citations,disputed_evidence:[],unverified_evidence:[]});

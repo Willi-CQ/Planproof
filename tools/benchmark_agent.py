@@ -24,7 +24,13 @@ from planproof_feedback.images import sha256  # noqa: E402
 def telemetry(result):
     """Count only provider-reported usage; failed requests may have unreported cost."""
     tools = result["tool_trace"]
-    gemini = [c.get("usage", {}) for c in result["gemini_calls"]]
+    # New transport records every HTTP attempt, including incomplete responses.
+    # Prefer it over logical turns to avoid omitting failed usage or double counting.
+    attempts = result.get("reliability", {}).get("provider_attempts")
+    gemini = [
+        c.get("usage", {})
+        for c in (attempts if attempts is not None else result["gemini_calls"])
+    ]
     specialist = [
         t["result"].get("usage", {})
         for t in tools

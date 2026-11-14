@@ -9,6 +9,25 @@ from run_agent_cohort import score_completed, sha256
 from select_agent_cohort import QUOTAS, category, language, select
 
 
+def test_retry_usage_counts_reported_attempts_without_double_counting_turns():
+    from benchmark_agent import telemetry
+
+    result = {
+        "tool_trace": [],
+        "gemini_calls": [{"usage": {"total_token_count": 10}}],
+        "images": [{"image_id": "overview", "source_render_size": [10, 10]}],
+        "stop_reason": "answered",
+    }
+    assert telemetry(result)["gemini_reported_tokens"] == 10
+    result["reliability"] = {
+        "provider_attempts": [
+            {"usage": {"total_token_count": 7}},
+            {"usage": {"total_token_count": 10}},
+        ]
+    }
+    assert telemetry(result)["gemini_reported_tokens"] == 17
+
+
 def test_balanced_selection_is_order_independent_and_excludes_prior_drawings():
     questions = {
         "area": "What is the net floor area?",

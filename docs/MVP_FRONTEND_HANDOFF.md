@@ -140,6 +140,14 @@ guarantee server-side cancellation. Do not silently retry expensive requests.
 Only display tool stages as completed from the actual returned trace, not from a
 timer animation. No claim of production latency or reliable dense-plan area QA.
 
+The optional `reliability` response object now exposes sanitized per-attempt
+outcomes, `recovery_used`, `recovery_succeeded`, `last_error`, `retryable` and
+`retry_after_seconds`. Show recovered answers as recovered; for outages show the
+retry delay and retain no stale numeric answer. HTTP status/finish reason are
+available for diagnostics without provider bodies or credentials. Backend retries
+are bounded; do not add a second automatic frontend retry loop. See
+[AGENT_RELIABILITY.md](AGENT_RELIABILITY.md) for the recovery contract.
+
 ## Verification
 
 The existing tested environments passed 134 host/feedback/cohort tests and ten

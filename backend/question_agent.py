@@ -13,11 +13,11 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
-from google import genai
-from google.genai import types, errors
-import httpx
+from google.genai import types
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
+
+from gemini_transport import ResilientGeminiTransport, failure_info, response_candidate
 
 from planproof_feedback.artifacts import write_json
 from planproof_feedback.config import read_env
@@ -254,47 +254,9 @@ def image_parts(image):
     ]
 
 
-class GeminiTransport:
+class GeminiTransport(ResilientGeminiTransport):
     def __init__(self, key, model):
-        self.model = model
-        self.client = genai.Client(
-            api_key=key,
-            vertexai=False,
-            http_options=types.HttpOptions(
-                timeout=90_000, retry_options=types.HttpRetryOptions(attempts=1)
-            ),
-        )
-
-    def generate(self, history, tools):
-        for attempt in range(2):
-            self.last_attempts = attempt + 1
-            try:
-                return self._generate(history, tools)
-            except (httpx.TransportError, errors.APIError) as exc:
-                transient = isinstance(exc, httpx.TransportError) or getattr(
-                    exc, "code", 0
-                ) in (429, 500, 502, 503, 504)
-                if not transient or attempt:
-                    raise
-                time.sleep(1)
-
-    def _generate(self, history, tools):
-        return self.client.models.generate_content(
-            model=self.model,
-            contents=history,
-            config=types.GenerateContentConfig(
-                system_instruction=INSTRUCTION,
-                tools=[types.Tool(function_declarations=tools)],
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                    disable=True
-                ),
-                temperature=0,
-                max_output_tokens=8192,
-            ),
-        )
-
-    def close(self):
-        self.client.close()
+        super().__init__(key, model, instruction=INSTRUCTION)
 
 
 class DrawingAgent:
@@ -327,6 +289,8 @@ class DrawingAgent:
         self.reflection_count = 0
         self.crop_cache = {}
         self.tool_cache = {}
+        self.recovery_used = False
+        self.last_failure = None
         self.allowed = {
             x.name for x in declarations(request.mode, request.allow_nemotron)
         }
@@ -335,6 +299,8 @@ class DrawingAgent:
         self.add_image(
             self.original.copy(), "overview", [0, 0, page.width, page.height]
         )
+        if isinstance(self.transport, ResilientGeminiTransport):
+            self.transport.on_attempt = self.checkpoint
 
     def add_image(self, pixels, image_id, box):
         image = encode_image(
@@ -591,6 +557,56 @@ class DrawingAgent:
         validate_output(result, "answer", list(self.images.values()))
         return result
 
+    def checkpoint(self):
+        if self.out:
+            # Separate file: a partial trace must never masquerade as a completed run.
+            write_json(
+                self.out.with_suffix(".progress.json"),
+                {
+                    "status": "in_progress",
+                    "question": self.request.question,
+                    "source_raster_sha256": self.page.raster_sha256,
+                    "tool_trace": self.tool_log,
+                    "gemini_calls": self.calls,
+                    "images": [i.metadata for i in self.images.values()],
+                    "provider_attempts": self.transport.events
+                    if isinstance(self.transport, ResilientGeminiTransport)
+                    else [],
+                    "labels_used_for_inference": False,
+                },
+            )
+
+    def recovery_history(self):
+        # A fresh, smaller transcript: no incomplete generation or model draft is
+        # promoted to evidence. Retain every observed tool result and registered image.
+        return [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(
+                        text=json.dumps(
+                            {
+                                "question": self.request.question,
+                                "requested_unit": self.request.unit,
+                                "scope": "Only this selected page is available",
+                                "native_pdf_tokens": list(self.page.labels.values())[
+                                    :300
+                                ],
+                                "observations": self.tool_log,
+                                "instruction": "Final-answer recovery after an interrupted or incomplete turn. No more observation tools are available. Use only the supplied page, crops and recorded observations; they may be incomplete or wrong. Submit a concise answer with valid citations only if supported, otherwise abstain. A partial draft or reflection is not a verified answer. Do not claim complete coverage unless it is supported.",
+                            },
+                            ensure_ascii=False,
+                        )
+                    ),
+                    *[
+                        part
+                        for image in self.images.values()
+                        for part in image_parts(image)
+                    ],
+                ],
+            )
+        ]
+
     def run(self):
         started = time.monotonic()
         history = [
@@ -623,12 +639,25 @@ class DrawingAgent:
             )
         ]
         answer, stop = None, "turn_budget"
-        for turn in range(8):
-            if time.monotonic() - started > 600:
+        deadline = started + 600
+        pending_recovery = False
+        self.checkpoint()
+        for turn in range(9):
+            if turn == 8 and not pending_recovery:
+                break
+            if time.monotonic() >= deadline:
                 stop = "time_budget"
                 break
+            if time.monotonic() >= deadline - 120:
+                pending_recovery = True
+            recovery = pending_recovery
+            if recovery:
+                if self.recovery_used:
+                    break
+                self.recovery_used = True
+                history = self.recovery_history()
             available = declarations(self.request.mode, self.request.allow_nemotron)
-            if turn == 7 or len(self.tool_log) >= 12:
+            if recovery or turn == 7 or len(self.tool_log) >= 12:
                 available = [available[0]]
                 history.append(
                     types.Content(
@@ -641,21 +670,49 @@ class DrawingAgent:
                     )
                 )
             try:
-                response = self.transport.generate(history, available)
-                candidate = response.candidates[0]
-                if (
-                    str(candidate.finish_reason).split(".")[-1] != "STOP"
-                    or not candidate.content
-                ):
-                    raise ValueError("Incomplete Gemini response")
+                response = self.transport.generate(
+                    history,
+                    available,
+                    deadline=deadline if recovery else deadline - 120,
+                    phase="recovery" if recovery else "normal",
+                    max_attempts=2 if recovery else 3,
+                )
+                candidate = response_candidate(response)
             except Exception as exc:
                 # No provider bodies, request headers or secret-bearing exception strings.
-                self.calls.append({"turn": turn, "error_code": type(exc).__name__})
+                self.last_failure = failure_info(exc)
+                self.calls.append(
+                    {
+                        "turn": turn,
+                        "phase": "recovery" if recovery else "normal",
+                        **self.last_failure,
+                    }
+                )
                 stop = "provider_error"
+                self.checkpoint()
+                if (
+                    not recovery
+                    and (
+                        self.last_failure["retryable"]
+                        and self.last_failure["category"]
+                        in (
+                            "timeout",
+                            "connection",
+                            "server_error",
+                            "incomplete_response",
+                        )
+                        or self.last_failure["category"] == "budget"
+                        and time.monotonic() >= deadline - 120
+                    )
+                    and time.monotonic() < deadline - 1
+                ):
+                    pending_recovery = True
+                    continue
                 break
             self.calls.append(
                 {
                     "turn": turn,
+                    "phase": "recovery" if recovery else "normal",
                     "usage": response.usage_metadata.model_dump(mode="json")
                     if response.usage_metadata
                     else {},
@@ -680,6 +737,9 @@ class DrawingAgent:
                     stop = "answered"
                     break
                 except ValueError:
+                    if recovery:
+                        stop = "invalid_recovery_answer"
+                        break
                     history.append(
                         types.Content(
                             role="user",
@@ -707,7 +767,8 @@ class DrawingAgent:
                     if (
                         len(self.tool_log) >= 12
                         or turn == 7
-                        or time.monotonic() - started > 600
+                        or recovery
+                        or time.monotonic() >= deadline - 120
                     ):
                         raise ValueError("Tool budget exhausted")
                     cache_key = json.dumps(
@@ -738,6 +799,7 @@ class DrawingAgent:
                         "seconds": round(time.monotonic() - t0, 3),
                     }
                 )
+                self.checkpoint()
                 responses.append(
                     types.Part(
                         function_response=types.FunctionResponse(
@@ -747,6 +809,9 @@ class DrawingAgent:
                 )
                 new_images.extend(images)
             if answer:
+                break
+            if recovery:
+                stop = "invalid_recovery_answer"
                 break
             # Images arrive with their registered IDs after the matching function responses.
             history.append(
@@ -788,7 +853,33 @@ class DrawingAgent:
             "model": self.transport.model,
             "source_raster_sha256": self.page.raster_sha256,
             "citation_verification": "Image identity and bounds validated; semantic support is model proposed.",
+            "reliability": {
+                "recovery_used": self.recovery_used,
+                "recovery_succeeded": self.recovery_used
+                and stop == "answered"
+                and answer["status"] == "answered",
+                "last_error": self.last_failure,
+                "provider_attempts": self.transport.events
+                if isinstance(self.transport, ResilientGeminiTransport)
+                else [],
+                "retryable": bool(
+                    stop != "answered"
+                    and self.last_failure
+                    and self.last_failure["retryable"]
+                ),
+                "retry_after_seconds": self.last_failure.get("retry_after_seconds")
+                if self.last_failure
+                else None,
+            },
         }
         if self.out:
             write_json(self.out, result)
+            write_json(
+                self.out.with_suffix(".progress.json"),
+                {
+                    "status": "completed",
+                    "result_file": self.out.name,
+                    "source_raster_sha256": self.page.raster_sha256,
+                },
+            )
         return result

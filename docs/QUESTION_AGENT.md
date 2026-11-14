@@ -94,14 +94,18 @@ detector class. Invalid specialist output remains unavailable evidence. Algorith
 subprocesses receive no API key variables. A failed tool returns an unavailable
 observation, not zero or a fabricated detection. Gemini can continue visually.
 
-Budgets: eight Gemini turns, twelve non-final tool attempts, six distinct crops,
+Budgets: eight normal Gemini turns, twelve non-final tool attempts, six distinct crops,
 three Nemotron calls including at most one review. Identical successful tool
 requests are cached per question. There is a 600-second admission budget checked
-before turns/tools; in-flight operations use their own timeouts and can finish
-after that deadline (Gemini 90 seconds per attempt with one transient retry,
-Nemotron 90 seconds without retry, algorithm workers 240 each). Gemini retries
-only connection/transport errors, HTTP 429 and selected 5xx responses; validation
-and authentication errors are not retried. Failed attempts may still incur cost.
+before turns/tools; the last 120 seconds are reserved for finalization. Gemini
+has cancellable 90-second attempts, at most three attempts per normal turn and
+twelve per question. One evidence-preserving final-answer recovery turn can
+follow an interruption, with at most two attempts and no new observation tools.
+Backoff, Retry-After and process-local cooldown prevent unbounded retries.
+Nemotron retains 90 seconds without retry, algorithm workers 240 each; in-flight
+tools can finish after the admission deadline. See
+[AGENT_RELIABILITY.md](AGENT_RELIABILITY.md) for exact behavior and telemetry.
+Authentication/invalid requests are not retried. Failed attempts may incur cost.
 Final answers retain the full overview context. Overlapping crops must not be
 summed blindly, and inspecting a subset does not establish whole-page coverage.
 
