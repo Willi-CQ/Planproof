@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Planproof — ten labeled development plans</title>
+<style>
+body{font:15px system-ui;margin:24px;color:#172235;background:#f5f7fa}h1{font-size:24px}button,select{padding:8px;margin:4px}section{background:white;padding:16px;border-radius:8px;margin:14px 0}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:8px;border-bottom:1px solid #ddd}.images{display:grid;grid-template-columns:1fr 1fr;gap:12px}.images img{width:100%;height:560px;object-fit:contain;background:white;cursor:zoom-in}.muted{color:#526174}a{color:#1451a0}.warning{background:#fff2cd;padding:12px}.selected{font-weight:bold}pre{white-space:pre-wrap}@media(max-width:850px){.images{grid-template-columns:1fr}}
+</style>
+<h1>Ten labeled plans — development and failure analysis</h1>
+<p class="warning">Existing validation drawings; stair-enriched diagnostic selection. Repeated optimization makes this a development set, not an unbiased final test. Deterministic results remain NOT RUN until predictions are supplied.</p>
+<button id="prev">Previous</button><select id="case"></select><button id="next">Next</button>
+<section><h2 id="title"></h2><p id="meta" class="muted"></p><p id="reason"></p>
+<div class="images"><div><h3>Original source</h3><a id="rawlink" target="_blank"><img id="raw" alt="Unmodified floorplan"></a></div><div><h3><select id="layer"><option value="truth">Existing labels</option><option value="main">Frozen main ML</option><option value="main-errors">Main ML — misses and false positives</option><option value="cad">Frozen CAD ML</option><option value="cad-errors">CAD ML — misses and false positives</option><option value="deterministic">Deterministic — when supplied</option><option value="deterministic-errors">Deterministic — error overlay</option></select></h3><a id="overlaylink" target="_blank"><img id="overlay" alt="Selected annotation or prediction overlay"></a><p id="layerstatus"></p></div></div>
+<p>Labels: walls red, rooms green, doors blue, windows amber, stairs purple. Error view: missed labeled objects red; unmatched predictions amber. Open an image for full resolution. CAD wall/room labels and physical wall counts are N/A.</p>
+<table><thead><tr><th>Class</th><th>Annotated count</th><th>Predicted</th><th>Matched</th><th>Missed</th><th>False positives</th><th>Quality</th></tr></thead><tbody id="scores"></tbody></table>
+<p id="limits" class="muted"></p><p id="links"></p></section>
+<section><h2>Recurring errors across this pack</h2><pre id="summary"></pre><p>Counts describe annotated instances, not independently verified physical quantities. A correct total can still hide wrong locations; inspect misses and false positives as well. Room area error is measured only for matched rooms and must be read alongside room misses.</p></section>
+<script>
+const data=__REFERENCE_DATA__;
+const selector=document.getElementById('case'), layer=document.getElementById('layer');
+data.cases.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.case_id;selector.appendChild(o)});
+function text(id,value){document.getElementById(id).textContent=value}
+function show(){const c=data.cases[Number(selector.value)], method=layer.value.replace('-errors',''), errors=layer.value.endsWith('-errors'); text('title',c.case_id);text('meta',c.source+' · project split '+c.source_split+' · '+c.image_size.join(' × ')+' px · group '+c.group_id);text('reason','Selection: '+c.selection_reason);
+const raw=c.directory+'/plan.png';document.getElementById('raw').src=raw;document.getElementById('rawlink').href=raw;
+const r=data.report.results.find(x=>x.case_id===c.case_id&&x.method===method);const available=method==='truth'||r?.status==='scored';
+const overlay=method==='truth'?c.directory+'/labels-overlay.png':'baselines/'+method+'/'+c.case_id+(errors?'-errors':'')+'.png';
+document.getElementById('overlay').style.display=available?'block':'none';document.getElementById('overlay').src=available?overlay:'';document.getElementById('overlaylink').href=available?overlay:'#';text('layerstatus',available?'Annotated/predicted overlay; original is preserved.':'NOT RUN / unavailable. Missing output is not zero detections.');
+const tbody=document.getElementById('scores');tbody.replaceChildren();
+for(const name of ['wall','room','door','window','stairs']){const m=r?.metrics?.[name];const values=[name,c.counts[name]??'N/A',m?.status==='scored'?(m.predicted??'mask only'):'—',m?.tp??'—',m?.fn??'—',m?.fp??'—',m?.mask_iou!=null?'mask IoU '+m.mask_iou.toFixed(3):m?.f1_iou50!=null?'F1@IoU50 '+m.f1_iou50.toFixed(3):(m?.status??'not selected')];const tr=document.createElement('tr');values.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)}
+text('limits','N/A means no compatible annotation coverage. Pixel areas have no asserted square-metre calibration. Existing prepared labels need a visual sanity check; record corrections separately.');
+const links=document.getElementById('links');links.replaceChildren();for(const [label,url] of [['Ground-truth JSON',c.directory+'/ground-truth.json'],['Source record',c.directory+'/source-record.json'],['Failure report','failure-report.json'],['CSV','failure-table.csv']]){const a=document.createElement('a');a.href=url;a.textContent=label;a.style.marginRight='18px';links.appendChild(a)}
+text('summary',JSON.stringify(data.report.summary[method]??{status:method==='truth'?'Select a method to inspect its errors.':'not_run'},null,2));}
+selector.onchange=show;layer.onchange=show;document.getElementById('prev').onclick=()=>{selector.value=(Number(selector.value)+data.cases.length-1)%data.cases.length;show()};document.getElementById('next').onclick=()=>{selector.value=(Number(selector.value)+1)%data.cases.length;show()};show();
+</script></html>

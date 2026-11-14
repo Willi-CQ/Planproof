@@ -3,6 +3,11 @@
 Status: **specification ready; engine not implemented**. Updated 14 November 2026.
 This document is the entry point for a teammate or AI agent with only this branch.
 
+Local-only update: [ten existing labeled validation plans](REFERENCE10.md) are
+prepared for development and failure analysis, with frozen ML comparisons and an
+offline viewer. They replace a proposed synthetic base dataset; generated arrays
+remain only for focused contract tests. No deterministic classifier is measured yet.
+
 ## Outcome and boundaries
 
 Given a PNG or PDF drawing, produce localized, inspectable evidence about walls,

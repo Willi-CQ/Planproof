@@ -23,6 +23,10 @@ renderer can draw with stable observation numbering.
 
 ## 1. Start without waiting for pixel extraction
 
+The primary development base is now the [ten labeled source plans](REFERENCE10.md),
+selected from existing validation data. Keep source labels out of algorithm inputs;
+use generated primitives only to test contracts and edge cases in isolation.
+
 Implement a generated fixture with known wall boundaries, one hole, an opening,
 text/dimension boxes and an intentionally incorrect ML proposal. Publish its
 `PixelEvidence` representation immediately after the shared contract kickoff.
