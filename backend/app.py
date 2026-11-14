@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from io import BytesIO
 from threading import Lock
+from time import perf_counter
 from typing import Annotated, Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -14,16 +15,23 @@ from uuid import uuid4
 
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from PIL import Image, ImageOps
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from deterministic_adapter import EngineState, run_deterministic
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
 from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 
 
 app = FastAPI(title="PlanProof MVP")
+# The viewer runs on another local port during development.
+app.add_middleware(
+    CORSMiddleware, allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type"],
+)
 
 
 @app.get("/", include_in_schema=False)
@@ -87,6 +95,7 @@ class GeminiObservation(BaseModel):
 pages: OrderedDict[str, tuple[int, Page]] = OrderedDict()
 pages_lock = Lock()
 pdf_lock = Lock()
+engine_lock = Lock()
 
 
 def register_page(pdf_bytes: bytes, page_number: int) -> DocumentPage:
@@ -257,8 +266,24 @@ class DoorCountResponse(Comparison):
     request_id: str
     source: PageFrame
     image_url: str
-    mode: Literal["submitted_results", "synthetic_demo"]
+    mode: Literal["submitted_results", "synthetic_demo", "live_engines"]
     gemini: Review
+
+
+class DoorAnalysisRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ml_detections: dict | None = None
+    allow_gemini_review: bool = False
+
+
+class EngineRuns(BaseModel):
+    deterministic: EngineState
+    deterministic_seconds: float
+    ml: Literal["provided", "not_provided"]
+
+
+class DoorAnalysisResponse(DoorCountResponse):
+    engines: EngineRuns
 
 
 def frame_for(document_id: str, number: int, page: Page) -> PageFrame:
@@ -282,11 +307,21 @@ def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCoun
         comparison = compare(request.deterministic, ml, source)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    return DoorCountResponse(
+        **comparison.model_dump(),
+        request_id=uuid4().hex,
+        source=source,
+        image_url=f"/api/documents/{request.document_id}/image",
+        mode="synthetic_demo" if demo else "submitted_results",
+        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
+    )
 
+
+def review_comparison(comparison: Comparison, page: Page, source: PageFrame, allowed: bool) -> Review:
     review = Review(status="not_needed")
     if comparison.status == "NEEDS_REVIEW":
         config = gemini_config()
-        if not request.allow_gemini_review:
+        if not allowed:
             review = Review(status="not_authorized")
         elif os.getenv("GEMINI_ENABLED", "").strip().lower() != "true":
             review = Review(status="disabled")
@@ -302,14 +337,37 @@ def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCoun
             else:
                 crop, bounds = region
                 review = review_disagreement(crop, bounds, source.page_index, comparison, *config)
+    return review
 
-    return DoorCountResponse(
+
+@app.post("/api/v1/documents/{document_id}/door-analysis")
+def door_analysis(document_id: str, request: DoorAnalysisRequest) -> DoorAnalysisResponse:
+    """Run the deterministic engine on the stored page, then compare it with optional ML detections."""
+    number, page = get_page(document_id)
+    source = frame_for(document_id, number, page)
+    try:
+        ml = adapt_ml(request.ml_detections, source) if request.ml_detections is not None else None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    started = perf_counter()
+    with engine_lock:
+        deterministic, state = run_deterministic(page.png, source)
+    seconds = round(perf_counter() - started, 2)
+    try:
+        comparison = compare(deterministic, ml, source)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return DoorAnalysisResponse(
         **comparison.model_dump(),
         request_id=uuid4().hex,
         source=source,
-        image_url=f"/api/documents/{request.document_id}/image",
-        mode="synthetic_demo" if demo else "submitted_results",
-        gemini=review,
+        image_url=f"/api/documents/{document_id}/image",
+        mode="live_engines",
+        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
+        engines=EngineRuns(
+            deterministic=state, deterministic_seconds=seconds,
+            ml="provided" if ml is not None else "not_provided",
+        ),
     )
 
 
