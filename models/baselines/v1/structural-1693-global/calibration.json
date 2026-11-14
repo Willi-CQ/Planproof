@@ -1,0 +1,270 @@
+{
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "validation_score": 0.6257364065098403,
+  "validation_macro": {
+    "wall_iou": 0.711416405601913,
+    "object_map50": 0.5553791659459404,
+    "room_instance_f1_iou50": 0.5818536482843097
+  },
+  "validation_report": {
+    "sources": {
+      "cubicasa5k": {
+        "samples": 32,
+        "wall_iou": 0.6488927654630613,
+        "wall_boundary_f1_tolerance_0002": 0.6741038252609594,
+        "raw_wall_iou": 0.6486468392798902,
+        "raw_room_iou": 0.8734953486427779,
+        "room_instance_f1_iou50": 0.46421663442940037,
+        "room_tp_fp_fn": [
+          240,
+          453,
+          101
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.7111010059298281,
+            "ap50_95": 0.31880550043223643,
+            "ground_truth_instances": 315,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.7147595997534999,
+            "ap50_95": 0.30992471071981254,
+            "ground_truth_instances": 284,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.1608910891089109,
+            "ap50_95": 0.061163366336633676,
+            "ground_truth_instances": 32,
+            "annotated_pages": 32
+          }
+        },
+        "object_map50": 0.528917231597413,
+        "object_map50_95": 0.22996452582956087,
+        "room_type_macro_f1_matched": 0.4851898440843007,
+        "room_type_matched_count": 175,
+        "room_type_unknown_count": 40
+      },
+      "resplan": {
+        "samples": 32,
+        "wall_iou": 0.7739400457407647,
+        "wall_boundary_f1_tolerance_0002": 0.8657462225843705,
+        "raw_wall_iou": 0.7741122615190077,
+        "raw_room_iou": 0.8808969529239086,
+        "room_instance_f1_iou50": 0.6994906621392191,
+        "room_tp_fp_fn": [
+          206,
+          126,
+          51
+        ],
+        "objects": {
+          "door": {
+            "ap50": 0.8660514994025975,
+            "ap50_95": 0.6208945018037448,
+            "ground_truth_instances": 230,
+            "annotated_pages": 32
+          },
+          "window": {
+            "ap50": 0.8794718014808062,
+            "ap50_95": 0.5431142195527902,
+            "ground_truth_instances": 227,
+            "annotated_pages": 32
+          },
+          "stairs": {
+            "ap50": 0.0,
+            "ap50_95": 0.0,
+            "ground_truth_instances": 1,
+            "annotated_pages": 1
+          }
+        },
+        "object_map50": 0.5818411002944679,
+        "object_map50_95": 0.38800290711884494,
+        "room_type_macro_f1_matched": 0.7004310338093609,
+        "room_type_matched_count": 206,
+        "room_type_unknown_count": 11
+      }
+    },
+    "macro": {
+      "wall_iou": 0.711416405601913,
+      "object_map50": 0.5553791659459404,
+      "room_instance_f1_iou50": 0.5818536482843097
+    },
+    "selection_score": 0.6257364065098403,
+    "acceptance_gates": {
+      "all_object_classes_supported": true,
+      "wall_iou_080": false,
+      "room_f1_080": false,
+      "object_map50_070": false
+    },
+    "meets_numeric_targets": false,
+    "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms.",
+    "split": "val",
+    "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+    "image_size": 1024,
+    "tiled": false,
+    "limit_per_source": 32,
+    "thresholds": {
+      "masks": [
+        0.35,
+        0.65,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "centers": [
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ]
+    },
+    "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+    "cohort_fingerprints": {
+      "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+      "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+    }
+  },
+  "image_size": 1024,
+  "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+  "candidates": [
+    {
+      "component": "wall",
+      "setting": 0.35,
+      "metric": "wall_iou",
+      "score": 0.711416405601913
+    },
+    {
+      "component": "wall",
+      "setting": 0.5,
+      "metric": "wall_iou",
+      "score": 0.7018417037392147
+    },
+    {
+      "component": "wall",
+      "setting": 0.65,
+      "metric": "wall_iou",
+      "score": 0.6732964259924166
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.05
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.4359878949629013
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.1
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.4806278360705034
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.2
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.4252214258028313
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.5,
+        0.3
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.3927845251711054
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.05
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5262605042016806
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.1
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5818536482843097
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.2
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5430455957357058
+    },
+    {
+      "component": "room",
+      "setting": [
+        0.65,
+        0.3
+      ],
+      "metric": "room_instance_f1_iou50",
+      "score": 0.5244510643334845
+    },
+    {
+      "component": "objects",
+      "setting": 0.1,
+      "metric": "object_map50",
+      "score": 0.5553791659459404
+    },
+    {
+      "component": "objects",
+      "setting": 0.3,
+      "metric": "object_map50",
+      "score": 0.4058852676791693
+    },
+    {
+      "component": "objects",
+      "setting": 0.5,
+      "metric": "object_map50",
+      "score": 0.12701125303461835
+    }
+  ],
+  "split": "val",
+  "tiled": false,
+  "limit_per_source": 32,
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "cohort_fingerprints": {
+    "cubicasa5k": "e9d36836904a2a53c45e62253d8c987c727cb3d4721557e326110a87c0d83e18",
+    "resplan": "3d92d9bcff9d2386aa28c7fd6a54e974a1f1357213784edf616aaecf35e7ef00"
+  },
+  "cached_inference_passes": 64,
+  "confirmation_inference_passes": 64,
+  "confidence_semantics": "validation-selected operating thresholds, not calibrated correctness probabilities",
+  "checkpoint_sha256": "f1e45539dbfb5e76eb2a004cb057d86390852131f1c3ee7a4e3ee9786b3b7b53",
+  "checkpoint_step": 1693,
+  "calibration_seconds": 280.77168090399937,
+  "source_checkpoint_sha256": "213fba279fb89199f990103379f8f5cbae64ba47b992e3f7829e4078e032d40b",
+  "repackaged_without_optimizer": true
+}

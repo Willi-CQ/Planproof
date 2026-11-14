@@ -1,0 +1,21 @@
+name: structural-model-to-floorplancad-with-replay
+seed: 42
+image_size: 1024
+effective_batch: 4
+micro_batch: 2
+data_workers: 4
+encoder_weights: null
+encoder_lr: 0.00002
+head_lr: 0.00008
+weight_decay: 0.01
+box_loss: giou
+box_loss_weight: 0.5
+crop_probability: 0.65
+validation_every: 100
+validation_limit_per_source: 8
+checkpoint_every: 100
+phases:
+  - name: cad-symbols-with-structural-replay
+    steps: 1000
+    lr_scale: 1.0
+    sources: {cubicasa5k: 0.65, resplan: 0.15, floorplancad: 0.2}

@@ -1,0 +1,106 @@
+{
+  "architecture": "unet-resnet34-multihead",
+  "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+  "outputs": [
+    "masks",
+    "boundary",
+    "centers",
+    "boxes",
+    "types"
+  ],
+  "mask_classes": [
+    "wall",
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "instance_classes": [
+    "room",
+    "door",
+    "window",
+    "stairs"
+  ],
+  "room_types": [
+    "kitchen",
+    "living",
+    "dining",
+    "bedroom",
+    "bathroom",
+    "hallway",
+    "storage",
+    "garage",
+    "balcony",
+    "other"
+  ],
+  "image_normalization": "imagenet_rgb",
+  "box_encoding": "per-class normalized width,height + tanh half-pixel offsets",
+  "checkpoint_sha256": "213fba279fb89199f990103379f8f5cbae64ba47b992e3f7829e4078e032d40b",
+  "inference_checkpoint": "detector.pt",
+  "inference_checkpoint_sha256": "f1e45539dbfb5e76eb2a004cb057d86390852131f1c3ee7a4e3ee9786b3b7b53",
+  "training_source_commit": "b914a33",
+  "inference_tiled": false,
+  "calibration_file": "calibration.json",
+  "calibration_sha256": "3fc60d7c4c197668d52b44bb631c9501e40916622c7d0e5eeb02ff2b3408b0ed",
+  "model_sha256": "7b943192ad1a083a4a0a81047e4d9512293d3d76be638976f35d030998b0b728",
+  "wall_sha256": "1637e942bc74fc3de93a253040ab4bd2368ba1bccddfc8f41b99842fe5948dab",
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "training_step": 1693,
+  "canvas_size": 1024,
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "onnx_parity_max_abs_error": {
+    "masks": 1.4066696166992188e-05,
+    "boundary": 8.106231689453125e-06,
+    "centers": 5.7220458984375e-06,
+    "boxes": 3.5762786865234375e-06,
+    "types": 1.1920928955078125e-05
+  },
+  "input": {
+    "name": "image",
+    "dtype": "float32",
+    "spatial_multiple": 32,
+    "recommended_size": [
+      1024,
+      1024
+    ],
+    "resize": "aspect-preserving letterbox; retain the Frame transform",
+    "channels": "RGB",
+    "range_before_normalization": [
+      0,
+      1
+    ],
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "output_geometry": "ONNX tensors use input-canvas coordinates; the postprocessor restores original pixel edges",
+  "output_activations": {
+    "masks": "sigmoid",
+    "boundary": "sigmoid",
+    "centers": "sigmoid",
+    "types": "softmax",
+    "boxes": "sigmoid width/height; tanh offsets times 0.5"
+  },
+  "wall_output": "one-channel logits; sigmoid only once"
+}

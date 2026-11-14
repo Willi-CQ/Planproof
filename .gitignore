@@ -30,11 +30,25 @@ AGENTS.md
 Thumbs.db
 .DS_Store
 
-# Local inference/evaluation artifacts and Python environments/caches.
-.artifacts/
+# ML environments, generated labels, diagnostics and model artifacts.
 .venv/
+.cache/
+.artifacts/
 __pycache__/
 *.py[cod]
-*.npz
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
+/runs/
+/exports/
+/artifacts/
+*.npz
+*.pkl
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Explicitly approved trained baseline only. Raw datasets remain ignored.
+!/models/baselines/v1/**/*.pt
+!/models/baselines/v1/**/*.onnx

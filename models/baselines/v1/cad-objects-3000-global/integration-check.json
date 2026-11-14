@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "source": "floorplancad",
+  "original_pixel_schema_valid": true,
+  "input_preserved": true,
+  "original_size": [
+    1000,
+    1000
+  ],
+  "intended_classes": [
+    "door",
+    "window",
+    "stairs"
+  ],
+  "all_output_instances_supported": true,
+  "instance_counts": {
+    "door": 2,
+    "window": 3
+  }
+}

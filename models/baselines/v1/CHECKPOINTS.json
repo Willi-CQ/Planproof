@@ -1,0 +1,335 @@
+{
+  "checkpoints": [
+    {
+      "path": "training-checkpoints/cad-selected-3000.pt",
+      "sha256": "c6ff3578ee671d54a3c6966fc4864dfb6a4f89d2ecc190989de84f8d29e5d48c",
+      "bytes": 293575922,
+      "training_step": 3000,
+      "source_commit": "6202491",
+      "config": {
+        "name": "supervised-cad-object-specialist",
+        "seed": 42,
+        "target_transform_revision": 2,
+        "image_size": 1024,
+        "effective_batch": 4,
+        "micro_batch": 2,
+        "data_workers": 4,
+        "encoder_weights": null,
+        "encoder_lr": 2e-05,
+        "head_lr": 0.0002,
+        "weight_decay": 0.01,
+        "box_loss": "giou",
+        "box_loss_weight": 0.5,
+        "box_size_loss_weight": 0.25,
+        "class_balanced_heads": true,
+        "crop_probability": 0.0,
+        "validation_every": 500,
+        "validation_limit_per_source": 64,
+        "checkpoint_every": 100,
+        "phases": [
+          {
+            "name": "cad-focused-object-adaptation-with-structural-replay",
+            "steps": 3000,
+            "lr_scale": 1.0,
+            "sources": {
+              "floorplancad": 0.9,
+              "cubicasa5k": 0.1
+            }
+          }
+        ]
+      },
+      "config_digest": "11a40d8cd185e897e14ae9f9daaca21ab232d0d98ed33e5170b2e52ee5af0012",
+      "manifest_fingerprint": "1ab14693cfed8e273e461496b9dc57d04dd7d78cd9539656375c8dc6ddec5f20",
+      "model_metadata": {
+        "architecture": "unet-resnet34-multihead",
+        "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+        "outputs": [
+          "masks",
+          "boundary",
+          "centers",
+          "boxes",
+          "types"
+        ],
+        "mask_classes": [
+          "wall",
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "instance_classes": [
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "room_types": [
+          "kitchen",
+          "living",
+          "dining",
+          "bedroom",
+          "bathroom",
+          "hallway",
+          "storage",
+          "garage",
+          "balcony",
+          "other"
+        ],
+        "image_normalization": "imagenet_rgb",
+        "box_encoding": "per-class normalized width,height + tanh half-pixel offsets"
+      },
+      "world_size": 1,
+      "optimizer_state_present": true,
+      "scaler_state_preserved": true,
+      "rng_state_preserved": true,
+      "target_transform_revision": 2
+    },
+    {
+      "path": "training-checkpoints/cubicasa-only-1000.pt",
+      "sha256": "8ef0e8c063c87ed0637ac4bd5ec63bbc599deaba941531784bea1ce0f286d73d",
+      "bytes": 293575794,
+      "training_step": 1000,
+      "source_commit": "1ada5c8",
+      "config": {
+        "name": "supervised-cubicasa-detail",
+        "seed": 42,
+        "image_size": 1024,
+        "effective_batch": 4,
+        "micro_batch": 2,
+        "data_workers": 4,
+        "encoder_weights": null,
+        "encoder_lr": 3e-05,
+        "head_lr": 0.0001,
+        "weight_decay": 0.01,
+        "box_loss": "giou",
+        "box_loss_weight": 0.5,
+        "crop_probability": 0.5,
+        "validation_every": 100,
+        "validation_limit_per_source": 8,
+        "checkpoint_every": 100,
+        "phases": [
+          {
+            "name": "native-detail-refinement",
+            "steps": 1000,
+            "lr_scale": 1.0,
+            "sources": {
+              "cubicasa5k": 1.0
+            }
+          }
+        ]
+      },
+      "config_digest": "0eec4fc21e6e52a40cc7ddf32e4a107c468db80fd7c4273e758a28ba77ffd012",
+      "manifest_fingerprint": "dd84fe59c6a6744a9b7bced6bddc5b89d99c139849e9b1492ec2238ebd40bb27",
+      "model_metadata": {
+        "architecture": "unet-resnet34-multihead",
+        "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+        "outputs": [
+          "masks",
+          "boundary",
+          "centers",
+          "boxes",
+          "types"
+        ],
+        "mask_classes": [
+          "wall",
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "instance_classes": [
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "room_types": [
+          "kitchen",
+          "living",
+          "dining",
+          "bedroom",
+          "bathroom",
+          "hallway",
+          "storage",
+          "garage",
+          "balcony",
+          "other"
+        ],
+        "image_normalization": "imagenet_rgb",
+        "box_encoding": "per-class normalized width,height + tanh half-pixel offsets"
+      },
+      "world_size": 1,
+      "optimizer_state_present": true,
+      "scaler_state_preserved": true,
+      "rng_state_preserved": true,
+      "target_transform_revision": "legacy-unversioned"
+    },
+    {
+      "path": "training-checkpoints/main-selected-3500.pt",
+      "sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+      "bytes": 293575922,
+      "training_step": 3500,
+      "source_commit": "01a3775",
+      "config": {
+        "name": "supervised-corrected-positive-refinement",
+        "seed": 42,
+        "target_transform_revision": 2,
+        "image_size": 1024,
+        "effective_batch": 4,
+        "micro_batch": 2,
+        "data_workers": 4,
+        "encoder_weights": null,
+        "encoder_lr": 2e-05,
+        "head_lr": 0.0001,
+        "weight_decay": 0.01,
+        "box_loss": "giou",
+        "box_loss_weight": 0.5,
+        "box_size_loss_weight": 0.25,
+        "class_balanced_heads": true,
+        "crop_probability": 0.5,
+        "validation_every": 500,
+        "validation_limit_per_source": 32,
+        "checkpoint_every": 100,
+        "phases": [
+          {
+            "name": "explicit-positive-recovery-with-structural-replay",
+            "steps": 4000,
+            "lr_scale": 1.0,
+            "sources": {
+              "cubicasa5k": 0.8,
+              "resplan": 0.2
+            }
+          }
+        ]
+      },
+      "config_digest": "fca11e0d6233c949a0cd89352e3d563f3b197fdfc6a47f753ecf7a9b90fb3251",
+      "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+      "model_metadata": {
+        "architecture": "unet-resnet34-multihead",
+        "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+        "outputs": [
+          "masks",
+          "boundary",
+          "centers",
+          "boxes",
+          "types"
+        ],
+        "mask_classes": [
+          "wall",
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "instance_classes": [
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "room_types": [
+          "kitchen",
+          "living",
+          "dining",
+          "bedroom",
+          "bathroom",
+          "hallway",
+          "storage",
+          "garage",
+          "balcony",
+          "other"
+        ],
+        "image_normalization": "imagenet_rgb",
+        "box_encoding": "per-class normalized width,height + tanh half-pixel offsets"
+      },
+      "world_size": 1,
+      "optimizer_state_present": true,
+      "scaler_state_preserved": true,
+      "rng_state_preserved": true,
+      "target_transform_revision": 2
+    },
+    {
+      "path": "training-checkpoints/structural-fallback-1693.pt",
+      "sha256": "213fba279fb89199f990103379f8f5cbae64ba47b992e3f7829e4078e032d40b",
+      "bytes": 293575858,
+      "training_step": 1693,
+      "source_commit": "b914a33",
+      "config": {
+        "name": "supervised-real-drawing-refinement",
+        "seed": 42,
+        "image_size": 1024,
+        "effective_batch": 4,
+        "micro_batch": 2,
+        "data_workers": 4,
+        "encoder_weights": null,
+        "encoder_lr": 2e-05,
+        "head_lr": 8e-05,
+        "weight_decay": 0.01,
+        "box_loss": "giou",
+        "box_loss_weight": 0.5,
+        "class_balanced_heads": true,
+        "crop_probability": 0.5,
+        "validation_every": 500,
+        "validation_limit_per_source": 32,
+        "checkpoint_every": 100,
+        "phases": [
+          {
+            "name": "real-drawings-with-resplan-replay",
+            "steps": 6000,
+            "lr_scale": 1.0,
+            "sources": {
+              "cubicasa5k": 0.8,
+              "resplan": 0.2
+            }
+          }
+        ]
+      },
+      "config_digest": "bac3c7be32b108d81e8e83621154bb99968c893ed1bf096905886dc4270e1ad3",
+      "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+      "model_metadata": {
+        "architecture": "unet-resnet34-multihead",
+        "schema_digest": "f698ab671b2be605fc07f38e1503d8466474edbdb435c4a186d2d1d6cf545527",
+        "outputs": [
+          "masks",
+          "boundary",
+          "centers",
+          "boxes",
+          "types"
+        ],
+        "mask_classes": [
+          "wall",
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "instance_classes": [
+          "room",
+          "door",
+          "window",
+          "stairs"
+        ],
+        "room_types": [
+          "kitchen",
+          "living",
+          "dining",
+          "bedroom",
+          "bathroom",
+          "hallway",
+          "storage",
+          "garage",
+          "balcony",
+          "other"
+        ],
+        "image_normalization": "imagenet_rgb",
+        "box_encoding": "per-class normalized width,height + tanh half-pixel offsets"
+      },
+      "world_size": 1,
+      "optimizer_state_present": true,
+      "scaler_state_preserved": true,
+      "rng_state_preserved": true,
+      "target_transform_revision": "legacy-unversioned"
+    }
+  ],
+  "purpose": "Preserved original training state; use fresh --init-weights for new data or schedules"
+}

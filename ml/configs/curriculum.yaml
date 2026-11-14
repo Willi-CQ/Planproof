@@ -1,0 +1,26 @@
+name: real-synthetic-curriculum
+seed: 42
+image_size: 1024
+effective_batch: 16
+micro_batch: 2
+encoder_weights: imagenet
+encoder_lr: 0.0001
+head_lr: 0.0003
+weight_decay: 0.01
+crop_probability: 0.5
+validation_every: 1000
+validation_limit_per_source: 32
+checkpoint_every: 1000
+phases:
+  - name: synthetic_preparation
+    steps: 8000
+    lr_scale: 1.0
+    sources: {modres: 0.4, rplan: 0.4, sesyd: 0.2}
+  - name: mixed_training
+    steps: 24000
+    lr_scale: 1.0
+    sources: {cubicasa5k: 0.60, floorplancad: 0.25, modres: 0.06, rplan: 0.06, sesyd: 0.03}
+  - name: real_refinement
+    steps: 8000
+    lr_scale: 0.1
+    sources: {cubicasa5k: 0.75, floorplancad: 0.25}

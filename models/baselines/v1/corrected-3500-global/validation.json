@@ -1,0 +1,126 @@
+{
+  "sources": {
+    "cubicasa5k": {
+      "samples": 128,
+      "wall_iou": 0.6476796837940312,
+      "wall_boundary_f1_tolerance_0002": 0.6581888118564775,
+      "raw_wall_iou": 0.6498247458273635,
+      "raw_room_iou": 0.8772505920561746,
+      "room_instance_f1_iou50": 0.6474380726162199,
+      "room_tp_fp_fn": [
+        954,
+        662,
+        377
+      ],
+      "objects": {
+        "door": {
+          "ap50": 0.7687774588001814,
+          "ap50_95": 0.34209049810065173,
+          "ground_truth_instances": 1211,
+          "annotated_pages": 128
+        },
+        "window": {
+          "ap50": 0.7673231618187856,
+          "ap50_95": 0.3490307358640269,
+          "ground_truth_instances": 1027,
+          "annotated_pages": 128
+        },
+        "stairs": {
+          "ap50": 0.19411652049899725,
+          "ap50_95": 0.0798150018197798,
+          "ground_truth_instances": 96,
+          "annotated_pages": 128
+        }
+      },
+      "object_map50": 0.5767390470393214,
+      "object_map50_95": 0.2569787452614862,
+      "room_type_macro_f1_matched": 0.5433469564706542,
+      "room_type_matched_count": 716,
+      "room_type_unknown_count": 157
+    },
+    "resplan": {
+      "samples": 128,
+      "wall_iou": 0.782806905470591,
+      "wall_boundary_f1_tolerance_0002": 0.885553363474574,
+      "raw_wall_iou": 0.7854499355656273,
+      "raw_room_iou": 0.8917611470910676,
+      "room_instance_f1_iou50": 0.8504523682810006,
+      "room_tp_fp_fn": [
+        799,
+        62,
+        219
+      ],
+      "objects": {
+        "door": {
+          "ap50": 0.949183648690962,
+          "ap50_95": 0.7417700070084243,
+          "ground_truth_instances": 918,
+          "annotated_pages": 128
+        },
+        "window": {
+          "ap50": 0.9479920828458376,
+          "ap50_95": 0.6767026039571576,
+          "ground_truth_instances": 938,
+          "annotated_pages": 127
+        },
+        "stairs": {
+          "ap50": 0.1485148514851485,
+          "ap50_95": 0.0297029702970297,
+          "ground_truth_instances": 7,
+          "annotated_pages": 7
+        }
+      },
+      "object_map50": 0.6818968610073161,
+      "object_map50_95": 0.4827251937542039,
+      "room_type_macro_f1_matched": 0.7579093432618864,
+      "room_type_matched_count": 799,
+      "room_type_unknown_count": 11
+    }
+  },
+  "macro": {
+    "wall_iou": 0.7152432946323111,
+    "object_map50": 0.6293179540233187,
+    "room_instance_f1_iou50": 0.7489452204486102
+  },
+  "selection_score": 0.6995762701945031,
+  "acceptance_gates": {
+    "all_object_classes_supported": true,
+    "wall_iou_080": false,
+    "room_f1_080": false,
+    "object_map50_070": false
+  },
+  "meets_numeric_targets": false,
+  "notes": "Project pixel/mask and 101-point box-AP protocol; not a claim of COCO or publisher benchmark reproduction. Type F1 is conditional on matched rooms.",
+  "split": "val",
+  "manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "image_size": 1024,
+  "tiled": false,
+  "limit_per_source": 128,
+  "thresholds": {
+    "masks": [
+      0.35,
+      0.65,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "centers": [
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ],
+    "min_pixels": 2048
+  },
+  "protocol": "project-v2-original-pixel-coordinates-known-object-coverage",
+  "cohort_fingerprints": {
+    "cubicasa5k": "e0a353e669d1f4820e2c51e7a6a7b0cf5c58484daa99d697f43feec023ff5070",
+    "resplan": "426bd1c085ba84a4b622288ab781f60d8f1d67dd7e0172a0699e84126c7ed12f"
+  },
+  "checkpoint_sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+  "training_step": 3500,
+  "training_manifest_fingerprint": "46b36620848e0d23a9d042513bd990a7ffa33cde582f5eaaec3828f2a17a8a95",
+  "inference_checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+  "training_checkpoint_sha256": "464f1897157e353bf337f217a82a991ad55a1ebf1c733bee15c4ca0077132d0a",
+  "purpose": "Fixed operating point confirmed on 128 validation drawings per source; not a Stoa QA score"
+}
