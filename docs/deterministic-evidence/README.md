@@ -6,7 +6,10 @@ This document is the entry point for a teammate or AI agent with only this branc
 Local-only update: [ten existing labeled validation plans](REFERENCE10.md) are
 prepared for development and failure analysis, with frozen ML comparisons and an
 offline viewer. They replace a proposed synthetic base dataset; generated arrays
-remain only for focused contract tests. No deterministic classifier is measured yet.
+remain only for focused contract tests. The local CPU implementation now lives in
+[`deterministic/`](../../deterministic/README.md). See the
+[implementation and measured limits](IMPLEMENTATION.md) before interpreting its
+candidate outputs. The reference pixel adapter is replaceable by Track 1.
 
 ## Outcome and boundaries
 

@@ -1,7 +1,10 @@
 # Shared evidence contracts
 
-Status: **implementation contract**, not an already available API. Both tracks
-implement and test this boundary before integrating real drawings.
+Status: the local CPU baseline implements `analyze` and `get_region`, PNG/PDF
+frames, evidence validation, source-bound ML imports and candidate comparisons.
+See [implementation status and limits](IMPLEMENTATION.md). This remains the
+target contract for Track 1 integration; dense maps and automatic dimension
+endpoint verification are not implemented.
 
 ## Coordinate and identity invariants
 
@@ -69,7 +72,7 @@ crop-to-canonical transform. The requested box is in canonical pixels; clip the
 padded box to the page and return the actual clipped box. Crop content is never
 replaced by an annotated image; provide an optional separate overlay.
 
-Planned CLI equivalents (not executable until implemented):
+Executable local CLI equivalents after installing `deterministic/`:
 
 ```bash
 planproof-evidence analyze page.png --out .artifacts/evidence/page

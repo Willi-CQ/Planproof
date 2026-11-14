@@ -15,17 +15,29 @@ body{font:15px system-ui;margin:24px;color:#172235;background:#f5f7fa}h1{font-si
 <script>
 const data=__REFERENCE_DATA__;
 const selector=document.getElementById('case'), layer=document.getElementById('layer');
+if(data.report.summary.deterministic?.status==='scored'){
+const o=document.createElement('option');o.value='vectors';o.textContent='Wall vectors and unrepaired gaps';layer.appendChild(o);
+}
 data.cases.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.case_id;selector.appendChild(o)});
 function text(id,value){document.getElementById(id).textContent=value}
-function show(){const c=data.cases[Number(selector.value)], method=layer.value.replace('-errors',''), errors=layer.value.endsWith('-errors'); text('title',c.case_id);text('meta',c.source+' · project split '+c.source_split+' · '+c.image_size.join(' × ')+' px · group '+c.group_id);text('reason','Selection: '+c.selection_reason);
+function show(){const c=data.cases[Number(selector.value)], vectors=layer.value==='vectors', method=vectors?'deterministic':layer.value.replace('-errors',''), errors=layer.value.endsWith('-errors'); text('title',c.case_id);text('meta',c.source+' · project split '+c.source_split+' · '+c.image_size.join(' × ')+' px · group '+c.group_id);text('reason','Selection: '+c.selection_reason);
 const raw=c.directory+'/plan.png';document.getElementById('raw').src=raw;document.getElementById('rawlink').href=raw;
 const r=data.report.results.find(x=>x.case_id===c.case_id&&x.method===method);const available=method==='truth'||r?.status==='scored';
-const overlay=method==='truth'?c.directory+'/labels-overlay.png':'baselines/'+method+'/'+c.case_id+(errors?'-errors':'')+'.png';
+const overlay=vectors?'geometry/'+c.case_id+'/page-000/vector-overlay.png':method==='truth'?c.directory+'/labels-overlay.png':'baselines/'+method+'/'+c.case_id+(errors?'-errors':'')+'.png';
 document.getElementById('overlay').style.display=available?'block':'none';document.getElementById('overlay').src=available?overlay:'';document.getElementById('overlaylink').href=available?overlay:'#';text('layerstatus',available?'Annotated/predicted overlay; original is preserved.':'NOT RUN / unavailable. Missing output is not zero detections.');
 const tbody=document.getElementById('scores');tbody.replaceChildren();
 for(const name of ['wall','room','door','window','stairs']){const m=r?.metrics?.[name];const values=[name,c.counts[name]??'N/A',m?.status==='scored'?(m.predicted??'mask only'):'—',m?.tp??'—',m?.fn??'—',m?.fp??'—',m?.mask_iou!=null?'mask IoU '+m.mask_iou.toFixed(3):m?.f1_iou50!=null?'F1@IoU50 '+m.f1_iou50.toFixed(3):(m?.status??'not selected')];const tr=document.createElement('tr');values.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)}
 text('limits','N/A means no compatible annotation coverage. Pixel areas have no asserted square-metre calibration. Existing prepared labels need a visual sanity check; record corrections separately.');
 const links=document.getElementById('links');links.replaceChildren();for(const [label,url] of [['Ground-truth JSON',c.directory+'/ground-truth.json'],['Source record',c.directory+'/source-record.json'],['Failure report','failure-report.json'],['CSV','failure-table.csv']]){const a=document.createElement('a');a.href=url;a.textContent=label;a.style.marginRight='18px';links.appendChild(a)}
+if(data.report.summary.deterministic?.status==='scored'){
+for(const [label,file] of [['Geometry evidence JSON','evidence.json'],['Raw extraction JSON','page-000/pixel-evidence.json'],['Vector topology JSON','page-000/vector-evidence.json']]){const a=document.createElement('a');a.href='geometry/'+c.case_id+'/'+file;a.textContent=label;a.style.marginRight='18px';links.appendChild(a)}
+if(vectors)text('layerstatus','Green: observed wall medial lines. Red: uninserted gap hypotheses. The table still evaluates deterministic class candidates.');
+else if(method==='deterministic'&&!errors)text('layerstatus','Classical candidates: walls orange, rooms blue, doors red, windows teal, stairs purple. Labels map to overlay_label in evidence JSON.');
+}
 text('summary',JSON.stringify(data.report.summary[method]??{status:method==='truth'?'Select a method to inspect its errors.':'not_run'},null,2));}
-selector.onchange=show;layer.onchange=show;document.getElementById('prev').onclick=()=>{selector.value=(Number(selector.value)+data.cases.length-1)%data.cases.length;show()};document.getElementById('next').onclick=()=>{selector.value=(Number(selector.value)+1)%data.cases.length;show()};show();
+selector.onchange=show;layer.onchange=show;document.getElementById('prev').onclick=()=>{selector.value=(Number(selector.value)+data.cases.length-1)%data.cases.length;show()};document.getElementById('next').onclick=()=>{selector.value=(Number(selector.value)+1)%data.cases.length;show()};
+const params=new URLSearchParams(location.search), selected=data.cases.findIndex(c=>c.case_id===params.get('case'));
+if(selected>=0)selector.value=selected;
+if([...layer.options].some(o=>o.value===params.get('layer')))layer.value=params.get('layer');
+show();
 </script></html>

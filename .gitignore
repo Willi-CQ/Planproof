@@ -38,3 +38,6 @@ __pycache__/
 *.npz
 .pytest_cache/
 .ruff_cache/
+*.egg-info/
+build/
+dist/
