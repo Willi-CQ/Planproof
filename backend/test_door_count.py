@@ -15,7 +15,7 @@ from PIL import Image
 from app import app
 from check_gemini import DEFAULT_MODEL
 from ml_adapter import adapt_ml
-from verification import PageFrame
+from verification import AnalyzerResult, PageFrame
 
 
 class DoorCountTests(unittest.TestCase):
@@ -256,6 +256,20 @@ class DoorCountTests(unittest.TestCase):
         self.assertEqual(upload.status_code, 200, upload.text)
         self.assertEqual((upload.json()["width"], upload.json()["height"]), (10, 20))
         self.assertEqual(self.client.post("/api/documents", data={"page": 2}, files=files).status_code, 422)
+
+    def test_analyze_doors_runs_on_the_page_shown_to_the_user(self):
+        synthetic = self.demo("agreement")
+        source = synthetic["source"]
+        result = self.result(source, [[10, 20, 30, 50]], complete=False)
+        with patch("app.run_engines", return_value={"ml": AnalyzerResult.model_validate(result)}) as run:
+            report = self.client.post(f"/api/v1/documents/{source['document_id']}/analyze-doors")
+        self.assertEqual(report.status_code, 200, report.text)
+        png, frame = run.call_args.args
+        self.assertEqual(png, self.client.get(synthetic["image_url"]).content)
+        self.assertEqual(frame.model_dump(), source)
+        self.assertEqual(report.json()["mode"], "executed_engines")
+        self.assertEqual(report.json()["unverified_evidence"][0]["id"], "ml:0")
+        self.generate.assert_not_called()
 
 
 if __name__ == "__main__":

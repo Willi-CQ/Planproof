@@ -59,7 +59,7 @@ def main() -> int:
     print(f"Gemini responded: {review.advisory.resolution}. PlanProof status: {result.status}.")
     print("Cited evidence IDs:", ", ".join(review.advisory.evidence_ids) or "none")
     if args.serve:
-        print(f"Run the demo in the browser at http://127.0.0.1:{args.port}/docs")
+        print(f"Open Planwise at http://127.0.0.1:{args.port}/")
         uvicorn.run(app, host="127.0.0.1", port=args.port)
     return 0
 

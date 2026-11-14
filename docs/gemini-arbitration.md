@@ -11,7 +11,7 @@ python -m pip install -r backend/requirements.txt
 python -m uvicorn app:app --app-dir backend --reload
 ```
 
-Open [the API test page](http://127.0.0.1:8000/docs). Run **POST /api/v1/demo/door-count** with one of these scenarios:
+Open [Planwise](http://127.0.0.1:8000/planwise/) and click **Tester le plan d’exemple**. For separate scenarios, use **POST /api/v1/demo/door-count** in [the API test page](http://127.0.0.1:8000/docs).
 
 | Scenario | Expected response |
 | --- | --- |
@@ -38,6 +38,20 @@ For a regular uvicorn launch, set `GEMINI_API_KEY`, `GEMINI_MODEL` and `GEMINI_E
 The backend submits one original PNG crop, the two counts, the reason for review and the disputed candidate IDs. It skips review for more than eight disputed candidates or a crop covering more than half the page. The response includes an advisory, cited IDs and the bounds of the crop where available. Gemini failures preserve the local result and its evidence.
 
 ## Connect the engines
+
+The Planwise upload flow uses **POST /api/v1/documents/{document_id}/analyze-doors** to launch configured engines. Both runners receive the PNG served by the viewer. Use separate Python environments if their requirements differ. Install the deterministic package from branch `iamd-johan-deterministic-fix`, or from `norlan-deterministic` once it includes the OpenCV shape fix. Install Willi's `ml` package and its dependencies in Python 3.11 or 3.12, then fetch the selected model and calibration from Git LFS. [Deterministic source and fix](https://github.com/Willi-CQ/Planproof/tree/iamd-johan-deterministic-fix) · [ML release](https://github.com/Willi-CQ/Planproof/tree/ml/trained-baseline-v1/models/baselines/v1)
+
+```powershell
+$env:PLANPROOF_DETERMINISTIC_PYTHON = 'C:/path/to/deterministic-venv/Scripts/python.exe'
+$env:PLANPROOF_ML_PYTHON = 'C:/path/to/ml-venv/Scripts/python.exe'
+$env:PLANPROOF_ML_CHECKPOINT = 'C:/path/to/corrected-3500-global/detector.pt'
+$env:PLANPROOF_ML_CALIBRATION = 'C:/path/to/corrected-3500-global/calibration.json'
+python backend/check_gemini.py --serve
+```
+
+Open [Planwise with Gemini enabled](http://127.0.0.1:8001/planwise/). To run without Gemini, use the regular uvicorn command above. Missing engines are reported as unavailable. The service runs analyses one at a time and each engine has a 120-second deadline.
+
+### Submit results from separate engine runs
 
 1. Upload a PDF, PNG or JPEG using **POST /api/documents** and select the page for a PDF. Save its `image_url` as `page.png`.
 2. Fetch **GET /api/v1/documents/{document_id}/frame**. The frame identifies the original file and the exact decoded RGB image. Page indexes start at zero. Boxes use pixel edges from the top left, ordered `[x0, y0, x1, y1]`.

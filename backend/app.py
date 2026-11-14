@@ -6,6 +6,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from hashlib import sha256
 from io import BytesIO
+from pathlib import Path
 from threading import Lock
 from typing import Annotated, Literal
 from urllib.error import URLError
@@ -14,21 +15,35 @@ from uuid import uuid4
 
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from PIL import Image, ImageOps
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from engine_runner import enabled_engines, run_engines
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
 from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 
 
 app = FastAPI(title="PlanProof MVP")
+frontend = Path(__file__).resolve().parents[1] / "plan-checker"
+
+
+@app.get("/planwise/", include_in_schema=False)
+def planwise():
+    return planwise_asset("index.html")
+
+
+@app.get("/planwise/{asset}", include_in_schema=False)
+def planwise_asset(asset: str):
+    if asset not in {"index.html", "app.js", "styles.css"} or not (frontend / asset).is_file():
+        raise HTTPException(404, "Page not found.")
+    return FileResponse(frontend / asset)
 
 
 @app.get("/", include_in_schema=False)
 def root():
-    return RedirectResponse(url="/docs")
+    return RedirectResponse(url="/planwise/" if frontend.is_dir() else "/docs")
 
 
 MAX_UPLOAD = 10 * 1024 * 1024
@@ -257,7 +272,7 @@ class DoorCountResponse(Comparison):
     request_id: str
     source: PageFrame
     image_url: str
-    mode: Literal["submitted_results", "synthetic_demo"]
+    mode: Literal["submitted_results", "executed_engines", "synthetic_demo"]
     gemini: Review
 
 
@@ -274,8 +289,10 @@ def get_page_frame(document_id: str) -> PageFrame:
     return frame_for(document_id, number, page)
 
 
-def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCountResponse:
-    number, page = get_page(request.document_id)
+def run_door_count(
+    request: DoorCountRequest, *, demo: bool = False, loaded_page: tuple[int, Page] | None = None
+) -> DoorCountResponse:
+    number, page = loaded_page or get_page(request.document_id)
     source = frame_for(request.document_id, number, page)
     try:
         ml = adapt_ml(request.ml_detections, source) if request.ml_detections is not None else request.ml
@@ -308,7 +325,7 @@ def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCoun
         request_id=uuid4().hex,
         source=source,
         image_url=f"/api/documents/{request.document_id}/image",
-        mode="synthetic_demo" if demo else "submitted_results",
+        mode="synthetic_demo" if demo else "executed_engines" if loaded_page else "submitted_results",
         gemini=review,
     )
 
@@ -317,6 +334,25 @@ def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCoun
 def door_count(request: DoorCountRequest) -> DoorCountResponse:
     """Compare normalized door assemblies from two trusted local analyzers."""
     return run_door_count(request)
+
+
+@app.get("/api/v1/engines")
+def engine_status() -> dict[str, bool]:
+    return {**enabled_engines(), "gemini": (
+        os.getenv("GEMINI_ENABLED", "").strip().lower() == "true" and gemini_config() is not None
+    )}
+
+
+@app.post("/api/v1/documents/{document_id}/analyze-doors")
+def analyze_doors(document_id: str, allow_gemini_review: bool = False) -> DoorCountResponse:
+    """Run configured local engines against one page and compare their evidence."""
+    loaded_page = get_page(document_id)
+    number, page = loaded_page
+    results = run_engines(page.png, frame_for(document_id, number, page))
+    return run_door_count(DoorCountRequest(
+        document_id=document_id, deterministic=results.get("deterministic"), ml=results.get("ml"),
+        allow_gemini_review=allow_gemini_review,
+    ), loaded_page=loaded_page)
 
 
 @app.post("/api/v1/demo/door-count")
