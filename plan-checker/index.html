@@ -3,23 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f6f5f1" />
-    <title>Planwise — Analyse de plans</title>
+    <meta name="theme-color" content="#f4f3ef" />
+    <title>Stoa — Vérification de plans</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <a class="brand" href="#" aria-label="Planwise, accueil">
-          <span class="brand-mark"><span></span><span></span><span></span><span></span></span>
-          <span>planwise<span class="brand-dot">.</span></span>
+        <a class="brand" href="#" aria-label="Stoa, accueil">
+          <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true"><path d="M6 4h18l-8 8H1z"/><path d="M10 15h17l-8 9H3z"/></svg>
+          <span>STOA</span>
         </a>
         <div class="workspace-switcher">
-          <div class="workspace-avatar">A</div>
-          <div class="workspace-copy"><b>Atelier Nord</b><small>Espace de travail</small></div>
+          <div class="workspace-avatar">S</div>
+          <div class="workspace-copy"><b>Chantier pilote</b><small>Espace de projet</small></div>
           <span class="chevron">⌄</span>
         </div>
         <div class="nav-caption">ESPACE PROJET</div>
@@ -47,9 +47,9 @@
         <section class="content-wrap">
           <div class="page-heading">
             <div>
-              <div class="eyebrow"><span class="eyebrow-line"></span> ESPACE D’ANALYSE</div>
-              <h1>Analyse de plan <span class="heading-spark">✳</span></h1>
-              <p class="page-subtitle">Déposez un plan, croisez les analyses et obtenez une décision traçable.</p>
+              <div class="eyebrow"><span class="eyebrow-line"></span> CONTRÔLE DE PLAN</div>
+              <h1>Vérification du plan</h1>
+              <p class="page-subtitle">Comparez les détections et retrouvez chaque constat sur sa page source.</p>
             </div>
             <button class="button button-secondary" id="newAnalysis"><span>＋</span> Nouvelle analyse</button>
           </div>
@@ -133,11 +133,11 @@
 
             <aside class="assistant-column">
               <div class="card assistant-card">
-                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Planwise</b><small><span class="online-dot"></span> Prêt à vous aider</small></div><button class="assistant-menu" aria-label="Options">···</button></div>
+                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Stoa</b><small><span class="online-dot"></span> Prêt à vous aider</small></div><button class="assistant-menu" aria-label="Options">···</button></div>
                 <div class="assistant-context"><span class="context-icon">▧</span><span><b id="assistantContextTitle">Plan appartement T3</b><small>Exemple · 1 page</small></span><span class="context-status">Analysé</span></div>
                 <div class="chat-body" id="chatBody" aria-live="polite">
                   <div class="chat-time">AUJOURD’HUI, 10:42</div>
-                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><div class="message-author">Planwise <span>· Assistant</span></div><p>Bonjour Johan ! J’ai comparé les deux analyses du plan.</p><p>Un écart apparaît sur les <b>fenêtres</b> : le modèle ML en détecte 5, tandis que l’algorithme déterministe en compte 4.</p><div class="message-hint"><span>↳</span> Vous pouvez demander une vérification complémentaire avec JEV.</div></div></div>
+                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><div class="message-author">Stoa <span>· Assistant</span></div><p>Les deux analyses du plan ont été comparées.</p><p>Un écart apparaît sur les <b>fenêtres</b> : le modèle ML en détecte 5, tandis que l’algorithme déterministe en compte 4.</p><div class="message-hint"><span>↳</span> Vérifiez la zone source ou demandez un avis complémentaire avec JEV.</div></div></div>
                   <div class="suggestion-label">SUGGESTIONS</div>
                   <div class="suggestions"><button class="suggestion-chip">Quelles pièces ont un écart ?</button><button class="suggestion-chip">Comment la décision est-elle prise ?</button></div>
                 </div>
@@ -147,7 +147,7 @@
               <div class="integration-card" id="integrations"><div class="integration-top"><span class="integration-icon">⌘</span><div><b>Vos intégrations</b><small>Connecteurs de traitement</small></div><button class="integration-arrow" title="Configuration">↗</button></div><div class="integration-items"><span class="integration-item"><i class="gemini-orb">✦</i><b>Gemini</b><span class="connector-state" id="geminiState">Démo</span></span><span class="integration-item"><i class="status-check">ƒ</i><b>Algorithme</b><span class="connector-state" id="detState">Démo</span></span><span class="integration-item"><i class="status-check ml-mini">✳</i><b>ML</b><span class="connector-state" id="mlState">Démo</span></span><span class="integration-item"><i class="status-check jev-mini">J</i><b>JEV</b><span class="connector-state" id="jevState">Optionnel</span></span></div><button class="configure-link" id="how-it-works">Comment ça fonctionne <span>↗</span></button></div>
             </aside>
           </div>
-          <footer class="page-footer"><span>Planwise <span>·</span> Bêta privée</span><span><a href="#how-it-works">Documentation</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
+          <footer class="page-footer"><span>STOA <span>·</span> Prototype d’analyse</span><span><a href="#how-it-works">Documentation</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
         </section>
       </main>
     </div>

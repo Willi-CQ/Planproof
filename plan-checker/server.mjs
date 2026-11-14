@@ -185,4 +185,4 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(port, host, () => console.log(`Planwise est disponible sur http://${host}:${port}`));
+server.listen(port, host, () => console.log(`Stoa est disponible sur http://${host}:${port}`));

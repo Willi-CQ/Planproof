@@ -1,6 +1,6 @@
-# Planwise — prototype d’analyse de plans
+# Stoa — prototype d’analyse de plans
 
-Interface en français pour déposer un plan 2D, l’analyser avec Gemini, envoyer le plan aux deux algorithmes, rapprocher leurs JSON, expliquer les écarts dans un chatbot et solliciter JEV en complément.
+Prototype d’interface Stoa en français pour déposer un plan 2D, comparer les sorties des deux algorithmes, expliquer les écarts avec leurs sources et solliciter Gemini ou JEV en complément.
 
 ## Lancer l’application
 
