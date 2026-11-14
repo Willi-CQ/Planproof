@@ -32,6 +32,14 @@ Three selectable modes allow a controlled comparison:
 - `visual_only`: crops and optional Nemotron inspection/review, with algorithms disabled by the host.
 - `auto`: Gemini chooses from all authorized tools, including the cached algorithms.
 
+Pilot policy update (2026-11-14): Nemotron inspection and draft review accept only
+registered detail crops, each at most 75% of the original page area. Overview and
+page-sized crop requests are rejected before provider access. Gemini still sees
+the overview and chooses whether any tool is worthwhile. Optional `reflect`
+records one concise draft/coverage/uncertainty check and the intended next action;
+it calls no external model and does not certify correctness. Reflection is not
+forced on obvious direct answers. These changes pass 130 backend/feedback tests.
+
 These are capabilities and tested execution policies, not claims that Gemini will
 always make the best decision. Source citations validate identity and bounds;
 their semantic support still needs human/evaluator review.
@@ -70,6 +78,7 @@ The host still retains all hashes/transforms and source artifacts for verificati
 | `crop_region` | normalized original-page `[x0,y0,x1,y1]` in 0..1000 | Creates a clean source crop even if algorithms are unavailable or missed a region. |
 | `inspect_nemotron` | registered image IDs, focused question | Real Nemotron visual answer for those images only. |
 | `review_answer` | draft and registered image IDs | One optional Nemotron visual feedback pass. Works without any algorithms. |
+| `reflect` | short draft, evidence checks, unresolved issues, next action | One optional recorded Gemini self-check; no provider call and no hidden reasoning trace. |
 | `submit_answer` | answer/abstention, citations, coverage, uncertainties | Host validates output and maps citations back to original page coordinates. |
 
 Registered images carry sent size, source identity, pixel scaling, canonical crop

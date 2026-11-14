@@ -127,15 +127,14 @@ def test_uncooperative_model_stops_at_turn_budget():
 
 def test_specialist_call_budget_is_enforced():
     a = agent()
+    a.execute("crop_region", {"bbox": [0, 0, 500, 500]})
     for i in range(3):
         a.execute(
             "inspect_nemotron",
-            {"image_ids": ["overview"], "question": f"Inspect area {i}"},
+            {"image_ids": ["crop-1"], "question": f"Inspect area {i}"},
         )
     with pytest.raises(ValueError):
-        a.execute(
-            "inspect_nemotron", {"image_ids": ["overview"], "question": "Another"}
-        )
+        a.execute("inspect_nemotron", {"image_ids": ["crop-1"], "question": "Another"})
     assert a.specialist_factory.return_value.answer.call_count == 3
 
 
@@ -152,7 +151,7 @@ def test_visual_feedback_independent_of_algorithms_and_signatures_preserved():
         response(
             "review_answer",
             {
-                "image_ids": ["overview", "crop-1"],
+                "image_ids": ["crop-1"],
                 "candidate": "Two tubs; check duplicates",
             },
         ),
@@ -273,13 +272,47 @@ def test_provider_failure_is_sanitized_and_abstains():
 
 def test_duplicate_specialist_request_cached_and_review_bounded():
     call = response(
-        "inspect_nemotron", {"image_ids": ["overview"], "question": "How many tubs?"}
+        "inspect_nemotron", {"image_ids": ["crop-1"], "question": "How many tubs?"}
     )
     a = agent(call, call, response("submit_answer", final()))
+    a.execute("crop_region", {"bbox": [0, 0, 500, 500]})
     assert a.run()["nemotron_calls"] == 1
-    a.execute("review_answer", {"image_ids": ["overview"], "candidate": "2"})
+    a.execute("review_answer", {"image_ids": ["crop-1"], "candidate": "2"})
     with pytest.raises(ValueError):
-        a.execute("review_answer", {"image_ids": ["overview"], "candidate": "3"})
+        a.execute("review_answer", {"image_ids": ["crop-1"], "candidate": "3"})
+
+
+@pytest.mark.parametrize(
+    "name,extra",
+    [
+        ("inspect_nemotron", {"question": "Inspect"}),
+        ("review_answer", {"candidate": "2"}),
+    ],
+)
+def test_specialist_never_receives_overview_or_page_sized_crop(name, extra):
+    a = agent()
+    a.execute("crop_region", {"bbox": [0, 0, 1000, 1000]})
+    for image_id in ("overview", "crop-1"):
+        with pytest.raises(ValueError):
+            a.execute(name, {"image_ids": [image_id], **extra})
+    a.specialist_factory.assert_not_called()
+    assert a.nemotron_calls == 0
+
+
+def test_optional_reflection_is_recorded_without_models_and_bounded():
+    a = agent()
+    args = {
+        "draft": "Two candidate objects",
+        "checks": ["Overlapping crop may duplicate one object"],
+        "unresolved": ["Check the shared boundary"],
+        "next_action": "inspect",
+    }
+    result, images = a.execute("reflect", args)
+    assert result["status"] == "recorded" and images == []
+    a.algorithm_factory.assert_not_called()
+    a.specialist_factory.assert_not_called()
+    with pytest.raises(ValueError):
+        a.execute("reflect", args)
 
 
 def test_api_missing_configuration_and_permission_do_not_run_models():

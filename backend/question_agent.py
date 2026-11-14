@@ -43,7 +43,14 @@ Repeated and overlapping crops may show the SAME object: reconcile spatial locat
 blindly sum crop counts. Room proposals may overlap, omit rooms or cover several rooms.
 ML and geometry are fallible and ML-assisted room geometry is not independent confirmation.
 Nemotron is a visual specialist/advisory reviewer, not final authority. Reconcile disagreements
-with visible source evidence. Optional review_answer is a bounded visual feedback loop and can
+by asking focused subquestions on concrete source coordinates. Nemotron ONLY receives detail
+crops (each at most 75% of the original page area), never overview. First use crop_room or
+crop_region; subdivide a large room if needed. Gemini keeps the global counting scope.
+Use reflect for a brief evidence audit when resolving conflicts, uncertain classifications or
+aggregating multiple regions: check omissions, duplicate objects and unanswered scope. This
+records checks and remaining uncertainty, not hidden reasoning or proof of correctness. It is
+optional for obvious answers and does not force algorithms or a specialist call.
+Optional review_answer is a bounded visual feedback loop and can
 be used WITHOUT algorithms. Do not force review for obvious answers or repeat a failed tool.
 Measure only with a visibly verified scale/dimension; no area from pixels alone. For printed
 areas prefer the source label. Never infer scale, unseen pages, categories or absent symbols.
@@ -124,6 +131,31 @@ def declarations(mode, allow_nemotron):
     ]
     if mode == "direct":
         return result
+    result.append(
+        declaration(
+            "reflect",
+            "Record one brief self-check of the draft, coverage and remaining uncertainties before deciding whether more evidence is useful. No external model call; no hidden reasoning.",
+            {
+                "draft": {"type": "string", "maxLength": 2000},
+                "checks": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 1,
+                    "maxItems": 6,
+                },
+                "unresolved": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 6,
+                },
+                "next_action": {
+                    "type": "string",
+                    "enum": ["answer", "inspect", "abstain"],
+                },
+            },
+            ("draft", "checks", "unresolved", "next_action"),
+        )
+    )
     if mode == "auto":
         result.append(
             declaration(
@@ -176,7 +208,7 @@ def declarations(mode, allow_nemotron):
         result.append(
             declaration(
                 "inspect_nemotron",
-                "Ask Nemotron a focused visual question on up to three already supplied images. Can inspect unsupported objects such as bathtubs. Counts are local and advisory.",
+                "Ask Nemotron a focused visual subquestion on up to three registered DETAIL CROPS, never overview. Each crop must cover at most 75% of the original page area. Can inspect unsupported objects such as bathtubs. Counts are local and advisory.",
                 {
                     "image_ids": image_ids,
                     "question": {"type": "string", "maxLength": 2000},
@@ -187,7 +219,7 @@ def declarations(mode, allow_nemotron):
         result.append(
             declaration(
                 "review_answer",
-                "One optional visual self-feedback pass on a draft, with or without algorithms. Check omissions/duplicates/scope; Gemini still decides the final answer.",
+                "One optional Nemotron review of a draft using registered DETAIL CROPS only (each at most 75% page area). With or without algorithms. Check omissions/duplicates; Gemini retains whole-page scope and final decision.",
                 {
                     "image_ids": image_ids,
                     "candidate": {"type": "string", "maxLength": 4000},
@@ -292,6 +324,7 @@ class DrawingAgent:
         self.images = {}
         self.tool_log, self.calls = [], []
         self.nemotron_calls = self.review_calls = self.crop_count = 0
+        self.reflection_count = 0
         self.crop_cache = {}
         self.tool_cache = {}
         self.allowed = {
@@ -353,6 +386,7 @@ class DrawingAgent:
         if name not in self.allowed or name == "submit_answer":
             raise ValueError("Unknown or disabled tool")
         expected = {
+            "reflect": {"draft", "checks", "unresolved", "next_action"},
             "get_algorithms": {"classes"},
             "crop_room": {"room_id"},
             "crop_region": {"bbox"},
@@ -361,6 +395,28 @@ class DrawingAgent:
         }[name]
         if not isinstance(args, dict) or set(args) != expected:
             raise ValueError("Invalid tool arguments")
+        if name == "reflect":
+            if (
+                self.reflection_count
+                or not isinstance(args["draft"], str)
+                or not 1 <= len(args["draft"]) <= 2000
+                or args["next_action"] not in ("answer", "inspect", "abstain")
+            ):
+                raise ValueError("Invalid reflection or reflection budget exhausted")
+            for field, minimum in (("checks", 1), ("unresolved", 0)):
+                values = args[field]
+                if (
+                    not isinstance(values, list)
+                    or not minimum <= len(values) <= 6
+                    or not all(isinstance(x, str) and 0 < len(x) <= 500 for x in values)
+                ):
+                    raise ValueError("Reflection requires concise evidence checks")
+            self.reflection_count += 1
+            return {
+                "status": "recorded",
+                **args,
+                "verification": "Agent self-check only; not independent validation. Choose the next useful action.",
+            }, []
         if name == "get_algorithms":
             classes = args["classes"]
             if (
@@ -484,6 +540,17 @@ class DrawingAgent:
             or len(set(ids)) != len(ids)
         ):
             raise ValueError("Select one to three registered image IDs")
+        for image_id in ids:
+            box = self.images[image_id].metadata["canonical_bbox"]
+            fraction = (
+                (box[2] - box[0])
+                * (box[3] - box[1])
+                / (self.page.width * self.page.height)
+            )
+            if image_id == "overview" or fraction > 0.75:
+                raise ValueError(
+                    "Nemotron requires detail crops covering at most 75% of the page"
+                )
         field = "candidate" if name == "review_answer" else "question"
         value = args[field]
         if (
@@ -712,6 +779,7 @@ class DrawingAgent:
             "algorithm_executed": self.job is not None,
             "algorithm_registry": self.algorithm_registry,
             "nemotron_calls": self.nemotron_calls,
+            "reflection_calls": self.reflection_count,
             "tool_trace": self.tool_log,
             "gemini_calls": self.calls,
             "images": [i.metadata for i in self.images.values()],
