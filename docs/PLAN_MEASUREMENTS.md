@@ -55,6 +55,13 @@ calibration details, suitable for a future boundary overlay. Existing frontends
 continue to render the numeric answer, explanation, uncertainties and source
 boxes. The host enforces an approximation warning for raster measurements even
 if the model omits it. Calculations survive the compact token-recovery path.
+Recovery also allows up to two local calculation attempts using the already
+inspected images. A provider timeout must not disable arithmetic merely because
+the model has not called the measurement tool yet. Missing width labels alone
+do not prevent an approximate takeoff using other same-view dimension anchors.
+New image inspections stay disabled; invalid/unreadable inputs still require
+abstention. Recovery abstentions distinguish interrupted processing from an
+actual lack of drawing evidence.
 
 With the observation-enabled backend, both the legacy `/ask` endpoint and the
 resumable `/runs` endpoint return measurements. Completed measurement events
