@@ -1,13 +1,25 @@
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   ArrowUpRight,
   FileText,
+  FolderOpen,
   LoaderCircle,
   Plus,
   X,
   MessageCircle,
   Scan,
 } from "lucide-react";
+import { DrawingLibrary } from "./components/DrawingLibrary";
+import {
+  readLibrary,
+  getSavedDrawing,
+  saveDrawing,
+  removeDrawing,
+  leaveDrawing,
+  drawingId,
+  type LibraryEntry,
+  type SavedDrawing,
+} from "./lib/library";
 import { BrandMark } from "./components/BrandMark";
 import { PlanCanvas2D } from "./components/PlanCanvas2D";
 import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
@@ -35,6 +47,118 @@ export default function App() {
   const [mobileTab, setMobileTab] = useState<"drawing" | "ask">("ask");
   const input = useRef<HTMLInputElement>(null);
   const pending = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [entries, setEntries] = useState<LibraryEntry[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [cacheError, setCacheError] = useState<string | null>(null);
+  const cacheFailure = () =>
+    setCacheError(
+      "Your browser couldn't save these changes. Keep this tab open, or free browser storage and try again.",
+    );
+
+  async function restore(saved: SavedDrawing) {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy("upload");
+    setLibraryOpen(false);
+    setError(null);
+    try {
+      // Renew the ephemeral backend document using the unchanged original. No inference.
+      const fresh = await uploadDrawing(saved.file, saved.drawing.page);
+      const sameFrame =
+        fresh.width === saved.drawing.width &&
+        fresh.height === saved.drawing.height &&
+        fresh.page === saved.drawing.page;
+      setFile(saved.file);
+      setPage(fresh.page);
+      setDrawing(fresh);
+      setSavedId(saved.id);
+      setMessages(saved.messages);
+      setDraft(saved.draft);
+      setZoom(saved.zoom);
+      setSelectedEvidence(sameFrame ? saved.selectedEvidence : null);
+      if (saved.interrupted)
+        setError(
+          "The previous question was interrupted by a refresh. It may still be processing; it has not been sent again.",
+        );
+      else if (!sameFrame)
+        setError(
+          "This page rendered differently. Your conversation is saved, but previous highlights may no longer align.",
+        );
+    } catch {
+      setError(
+        "Couldn't reopen the saved drawing. Your original and conversation are still saved. Open Your drawings to try again when the server is available.",
+      );
+    } finally {
+      pending.current = false;
+      setBusy(null);
+    }
+  }
+  useEffect(() => {
+    void readLibrary()
+      .then(async (library) => {
+        setEntries(library.entries);
+        if (library.active) await restore(library.active);
+      })
+      .catch(cacheFailure)
+      .finally(() => setReady(true));
+  }, []);
+  useEffect(() => {
+    if (!ready || !savedId || !file || !drawing || busy === "upload") return;
+    void saveDrawing({
+      id: savedId,
+      file,
+      drawing,
+      messages,
+      draft,
+      zoom,
+      selectedEvidence,
+      interrupted: busy === "ask",
+      updated: Date.now(),
+    })
+      .then(() => {
+        setEntries((previous) => [
+          {
+            id: savedId,
+            name: file.name,
+            page: drawing.page,
+            updated: Date.now(),
+          },
+          ...previous.filter((entry) => entry.id !== savedId),
+        ]);
+        setCacheError(null);
+      })
+      .catch(cacheFailure);
+  }, [
+    ready,
+    savedId,
+    file,
+    drawing,
+    messages,
+    draft,
+    zoom,
+    selectedEvidence,
+    busy,
+  ]);
+  async function openSaved(id: string) {
+    try {
+      const saved = await getSavedDrawing(id);
+      if (saved) await restore(saved);
+    } catch {
+      cacheFailure();
+    }
+  }
+  async function deleteSaved(id: string) {
+    try {
+      await removeDrawing(id, id === savedId);
+      if (id === savedId) reset();
+      setEntries((previous) => previous.filter((entry) => entry.id !== id));
+    } catch {
+      cacheFailure();
+    }
+  }
 
   async function loadFile(nextFile: File, nextPage: number) {
     if (pending.current) return;
@@ -47,12 +171,19 @@ export default function App() {
     const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
     setError(null);
-    if (!changingPage) setDrawing(null);
+    if (!changingPage) {
+      setDrawing(null);
+      setSavedId(null);
+    }
     setFile(nextFile);
     setPage(nextPage);
     if (!changingPage) setMobileTab("ask");
     try {
-      setDrawing(await uploadDrawing(nextFile, nextPage));
+      const fresh = await uploadDrawing(nextFile, nextPage);
+      const id = changingPage && savedId ? savedId : await drawingId(nextFile);
+      setDrawing(fresh);
+      setSavedId(id);
+      setDraft("");
       setMessages([]);
       setSelectedEvidence(null);
       setZoom(100);
@@ -80,7 +211,7 @@ export default function App() {
       { id: id + "-question", role: "user", content: question },
     ]);
     try {
-      // Sending a question authorizes Planproof's AI services as disclosed by the composer.
+      // Only explicit send calls the existing Planproof agent.
       // The same agent chooses all tools; no model choice or new routing is introduced.
       const result = await askDrawing(drawing.document_id, question, {
         allow_gemini: true,
@@ -120,6 +251,9 @@ export default function App() {
   }
   const reset = () => {
     if (pending.current) return;
+    setSavedId(null);
+    setDraft("");
+    void leaveDrawing().catch(cacheFailure);
     setFile(null);
     setDrawing(null);
     setMessages([]);
@@ -138,7 +272,7 @@ export default function App() {
   function drop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
-    if (pending.current) return;
+    if (pending.current || !ready) return;
     if (e.dataTransfer.files.length !== 1) {
       setError("Choose one drawing at a time.");
       return;
@@ -165,7 +299,7 @@ export default function App() {
         <button
           className="brand"
           onClick={reset}
-          disabled={!!busy}
+          disabled={!!busy || !ready}
           aria-label="Planproof home"
         >
           <BrandMark />
@@ -185,14 +319,24 @@ export default function App() {
           )}
         </div>
         <div className="header-actions">
+          <button
+            className="subtle-button"
+            aria-label="Your drawings"
+            title="Your drawings"
+            disabled={!!busy || !ready}
+            onClick={() => setLibraryOpen(true)}
+          >
+            <FolderOpen size={16} />
+            <span>Your drawings</span>
+          </button>
           {drawing && (
             <button
-              className="subtle-button"
-              disabled={!!busy}
+              className="subtle-button mobile-new"
+              aria-label="New drawing"
+              disabled={!!busy || !ready}
               onClick={() => input.current?.click()}
             >
               <Plus size={16} />
-              <span>New drawing</span>
             </button>
           )}
         </div>
@@ -202,7 +346,7 @@ export default function App() {
           type="file"
           aria-label="Upload drawing"
           accept="application/pdf,image/png,image/jpeg"
-          disabled={!!busy}
+          disabled={!!busy || !ready}
           onChange={(e) => {
             const selected = e.target.files?.[0];
             e.target.value = "";
@@ -211,12 +355,15 @@ export default function App() {
         />
       </header>
 
-      {error && (
+      {(error || cacheError) && (
         <div role="alert" className="error-banner">
-          <p>{error}</p>
+          <p>{error || cacheError}</p>
           <button
             className="icon-button"
-            onClick={() => setError(null)}
+            onClick={() => {
+              setError(null);
+              setCacheError(null);
+            }}
             aria-label="Dismiss error"
           >
             <X size={16} />
@@ -243,7 +390,7 @@ export default function App() {
             </p>
             <button
               className={`upload-card ${dragging ? "upload-card-active" : ""}`}
-              disabled={!!busy}
+              disabled={!!busy || !ready}
               onClick={() =>
                 file && !busy
                   ? void loadFile(file, page)
@@ -329,7 +476,7 @@ export default function App() {
                 zoom={zoom}
                 onZoomChange={setZoom}
                 isPdf={file?.type === "application/pdf"}
-                disabled={!!busy}
+                disabled={!!busy || !ready}
                 loadingPage={busy === "upload"}
                 onPageChange={(nextPage) => {
                   if (file && Number.isInteger(nextPage) && nextPage > 0)
@@ -339,10 +486,13 @@ export default function App() {
             </div>
             <PlanChatbotPanel
               key={drawing.document_id}
+              draft={draft}
+              onDraftChange={setDraft}
+              onNewDrawing={() => input.current?.click()}
               messages={messages}
               drawing={drawing}
               busy={busy === "ask"}
-              disabled={!!busy}
+              disabled={!!busy || !ready}
               onSendMessage={sendMessage}
               onClearChat={() => {
                 if (!pending.current) {
@@ -355,6 +505,19 @@ export default function App() {
             />
           </main>
         </>
+      )}
+      {libraryOpen && (
+        <DrawingLibrary
+          entries={entries}
+          active={savedId}
+          onClose={() => setLibraryOpen(false)}
+          onOpen={(id) => void openSaved(id)}
+          onRemove={(id) => void deleteSaved(id)}
+          onAdd={() => {
+            setLibraryOpen(false);
+            input.current?.click();
+          }}
+        />
       )}
       {dragging && (
         <div className="drop-overlay" aria-hidden="true">

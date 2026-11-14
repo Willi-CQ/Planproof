@@ -41,11 +41,10 @@ separate on 5175. Do not merge this branch into main until the design is accepte
 - The bottom toolbar is the only page navigator: previous/next or enter a page
   number. Successful PDF page changes clear previous answers. Failed page loads
   retain the current source and conversation; sending is disabled during loading.
-- The composer discloses that sending allows Planproof's AI services to analyze
-  the drawing. The explicit send action sets both existing permission flags;
-  uploading or choosing a suggested question does not call inference. Ask sends
-  only `{question, mode: "auto", allow_gemini: true, allow_nemotron: true}` to the
-  existing `/ask`. Previous messages are display history, not model context.
+- Only explicit send calls Planproof's AI services, with the unchanged payload
+  `{question, mode: "auto", allow_gemini: true, allow_nemotron: true}`. Upload,
+  restore, and suggested questions never call inference. Previous messages are
+  display history, not model context. The composer has no footer or model controls.
 - Agent-selected algorithms, Nemotron and reflection remain optional. There is
   no algorithms-first frontend workflow and no browser-generated model answer.
 - Canonical citations are drawn in original source pixels; selecting a citation
@@ -57,6 +56,31 @@ separate on 5175. Do not merge this branch into main until the design is accepte
 - One request at a time; changing uploads/pages and duplicate submission are
   disabled while working. No automatic retry of paid requests. A network error
   does not prove the server stopped; re-upload is explicit on document expiry.
+
+## Local drawing library
+
+The chat spans the desktop workspace from its top edge; New drawing sits in its
+header. Your drawings opens a small, keyboard-accessible picker with remove controls.
+
+Original files, the last viewed page, its conversation, draft, zoom and selected
+evidence are saved automatically in browser IndexedDB (`planproof-library`, v1).
+Content hashes deduplicate originals. The library contains no provider credentials.
+[IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) supports
+structured browser records and original file blobs without a separate server database.
+
+Refreshing or selecting a saved drawing reuploads its unchanged original to the
+existing document endpoint, renewing expired backend document IDs. No question is
+resent. Interrupted questions are marked; their draft is retained for explicit retry.
+If the backend is unavailable, originals and conversations remain saved and can be
+reopened from Your drawings later. If rendering dimensions change, retain history
+but suppress mismatched source boxes. The current page's history clears on a
+successful page flip, just as before; the library is not a per-page chat archive.
+
+This is local to this browser profile and origin (use the same host and port).
+Clearing site data removes it; it is not a backup or cross-device sync. Storage
+failures are visible and do not prevent asking questions. Removing a saved drawing
+removes its local original and conversation, not backend uploads or source files.
+Home closes the active workspace without deleting saved drawings.
 
 ## Verify
 
@@ -72,7 +96,7 @@ coordinates, explicit send, duplicate prevention, failures and mobile layout.
 They do not establish model accuracy. On Windows an installed browser may be
 selected with `PLANPROOF_BROWSER` pointing to `msedge.exe`.
 
-Validation: 15 browser checks cover the UI, including page navigation failure
+Validation: 21 browser checks cover the UI, including page navigation failure
 recovery and narrow-screen controls. TypeScript and production build passed. One real
 end-to-end test used a generated, explicitly synthetic sheet: the unchanged agent
 returned the printed 24 m² room area and a source citation. This proves the UI/API

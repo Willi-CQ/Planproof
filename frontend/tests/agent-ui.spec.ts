@@ -37,6 +37,29 @@ const result: AgentResult = {
   reflection_calls: 1,
   seconds: 12.5,
 };
+async function savedRecords(page: Page) {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("planproof-library", 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return new Promise<any[]>((resolve, reject) => {
+      const request = db
+        .transaction("drawings")
+        .objectStore("drawings")
+        .getAll();
+      request.onsuccess = () => {
+        resolve(request.result);
+        db.close();
+      };
+      request.onerror = () => {
+        reject(request.error);
+        db.close();
+      };
+    });
+  });
+}
 async function setup(page: Page) {
   await page.route("https://**/*", (r) => r.abort());
   await page.route("**/api/v1/agent", (r) =>
@@ -87,7 +110,8 @@ test("one assistant with upload first and no model controls", async ({
   await expect(
     page.getByRole("button", { name: "Ask Planproof", exact: true }),
   ).toBeEnabled();
-  await expect(page.getByText(/Sending lets Planproof/)).toBeVisible();
+  await expect(page.getByText(/Sending lets Planproof/)).toHaveCount(0);
+  await expect(page.getByText("Good to know", { exact: true })).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText(
     /Gemini|Nemotron|Algorithms|configured-model/,
   );
@@ -496,4 +520,218 @@ test("narrow welcome and keyboard focus remain usable", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Next page", exact: true }),
   ).toBeDisabled();
+});
+
+test("refresh restores original, answer, draft and evidence without another inference", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page);
+  let asks = 0;
+  await page.route("**/api/v1/documents/*/ask", (r) => {
+    asks++;
+    return r.fulfill({ json: result });
+  });
+  await ask(page);
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  await page
+    .getByRole("button", { name: "View evidence 1, page 1", exact: true })
+    .click();
+  await page
+    .getByLabel("Question about this drawing")
+    .fill("Next question draft");
+  await expect
+    .poll(async () => (await savedRecords(page))[0]?.draft)
+    .toBe("Next question draft");
+  let uploaded = "";
+  await page.route("**/api/documents", (r) => {
+    uploaded = r.request().postData() || "";
+    return r.fulfill({
+      json: {
+        ...drawing,
+        document_id: "renewed-document",
+        image_url: "/api/documents/renewed-document/image",
+      },
+    });
+  });
+  await page.reload();
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  await expect(page.getByLabel("Question about this drawing")).toHaveValue(
+    "Next question draft",
+  );
+  await expect(page.getByTestId("source-image")).toHaveAttribute(
+    "src",
+    /renewed-document/,
+  );
+  await expect(page.getByTestId("evidence-box")).toHaveAttribute(
+    "stroke",
+    "#001d00",
+  );
+  expect(uploaded).toContain('filename="plan.png"');
+  expect(asks).toBe(1);
+  const panel = await page
+    .getByRole("region", { name: "Planproof assistant" })
+    .boundingBox();
+  expect(panel!.y).toBeLessThan(20);
+});
+
+test("saved drawings can be switched and removed independently", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page, "first.png");
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({ json: result }),
+  );
+  await ask(page);
+  await expect
+    .poll(async () => (await savedRecords(page))[0]?.messages.length)
+    .toBe(2);
+  await page.getByLabel("Upload drawing", { exact: true }).setInputFiles({
+    name: "second.png",
+    mimeType: "image/png",
+    buffer: Buffer.concat([png, Buffer.from("second")]),
+  });
+  await expect.poll(async () => (await savedRecords(page)).length).toBe(2);
+  await page
+    .getByRole("button", { name: "Your drawings", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Open first.png", exact: true })
+    .click();
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  await page
+    .getByRole("button", { name: "Your drawings", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Remove second.png from saved drawings",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Open second.png", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", {
+      name: "Remove first.png from saved drawings",
+      exact: true,
+    })
+    .click();
+  await expect.poll(async () => (await savedRecords(page)).length).toBe(0);
+  await page.reload();
+  await expect(page.getByTestId("source-image")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Add your drawing/ }),
+  ).toBeVisible();
+});
+
+test("server outage on restore retains the saved conversation for a later reopen", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page);
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({ json: result }),
+  );
+  await ask(page);
+  await expect
+    .poll(async () => (await savedRecords(page))[0]?.messages.length)
+    .toBe(2);
+  await page.route("**/api/documents", (r) =>
+    r.fulfill({ status: 503, json: { detail: "Offline" } }),
+  );
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText("still saved");
+  expect((await savedRecords(page))[0].messages).toHaveLength(2);
+  await page.route("**/api/documents", (r) => r.fulfill({ json: drawing }));
+  await page
+    .getByRole("button", { name: "Your drawings", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Open plan.png", exact: true })
+    .click();
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+});
+
+test("refresh during an unfinished question never resubmits it", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page);
+  let calls = 0;
+  await page.route("**/api/v1/documents/*/ask", async (r) => {
+    calls++;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await r.abort().catch(() => {});
+  });
+  await ask(page);
+  await expect
+    .poll(async () => (await savedRecords(page))[0]?.interrupted)
+    .toBe(true);
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText(
+    "has not been sent again",
+  );
+  await expect(page.getByLabel("Question about this drawing")).toHaveValue(
+    "How many doors?",
+  );
+  expect(calls).toBe(1);
+});
+
+test("the selected PDF page is restored and rendering changes keep history without stale boxes", async ({
+  page,
+}) => {
+  await setup(page);
+  await upload(page, "plan.pdf", "application/pdf");
+  await page.route("**/api/documents", (r) =>
+    r.fulfill({ json: { ...drawing, page: 2 } }),
+  );
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({
+      json: {
+        ...result,
+        canonical_citations: [
+          { canonical_bbox: [100, 120, 400, 300], page_index: 1 },
+        ],
+      },
+    }),
+  );
+  await ask(page);
+  await expect
+    .poll(async () => (await savedRecords(page))[0]?.messages.length)
+    .toBe(2);
+  let uploaded = "";
+  await page.route("**/api/documents", (r) => {
+    uploaded = r.request().postData() || "";
+    return r.fulfill({ json: { ...drawing, page: 2, width: 2000 } });
+  });
+  await page.reload();
+  await expect(page.getByLabel("PDF page", { exact: true })).toHaveValue("2");
+  expect(uploaded).toContain('name="page"\r\n\r\n2');
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
+  await expect(page.getByTestId("evidence-box")).toHaveCount(0);
+  await expect(page.getByRole("alert")).toContainText("rendered differently");
+});
+
+test("unavailable browser storage reports the problem but still allows questions", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "indexedDB", {
+      get() {
+        throw new Error("Storage disabled");
+      },
+    });
+  });
+  await setup(page);
+  await expect(page.getByRole("alert")).toContainText("couldn't save");
+  await upload(page);
+  await page.route("**/api/v1/documents/*/ask", (r) =>
+    r.fulfill({ json: result }),
+  );
+  await ask(page);
+  await expect(page.getByTestId("answer-value")).toHaveText("0 doors");
 });

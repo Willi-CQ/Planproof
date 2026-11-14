@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   ArrowUp,
+  Plus,
   ArrowUpRight,
   ChevronDown,
   RotateCcw,
@@ -22,6 +23,9 @@ export interface Message {
   result?: AgentResult;
 }
 interface Props {
+  draft: string;
+  onDraftChange: (draft: string) => void;
+  onNewDrawing: () => void;
   messages: Message[];
   drawing: Drawing;
   busy: boolean;
@@ -101,6 +105,9 @@ function Answer({
   );
 }
 export function PlanChatbotPanel({
+  draft,
+  onDraftChange: setDraft,
+  onNewDrawing,
   messages,
   drawing,
   busy,
@@ -110,7 +117,6 @@ export function PlanChatbotPanel({
   selectedEvidence,
   onHighlight,
 }: Props) {
-  const [draft, setDraft] = useState("");
   const scroll = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -145,18 +151,29 @@ export function PlanChatbotPanel({
           <BrandMark small />
           <h2>Planproof</h2>
         </div>
-        <button
-          className="icon-button"
-          aria-label="Clear conversation"
-          title="New conversation"
-          disabled={!messages.length || busy || disabled}
-          onClick={() => {
-            onClearChat();
-            setDraft("");
-          }}
-        >
-          <RotateCcw size={16} />
-        </button>
+        <div className="assistant-actions">
+          <button
+            className="subtle-button"
+            aria-label="New drawing"
+            disabled={busy || disabled}
+            onClick={onNewDrawing}
+          >
+            <Plus size={15} />
+            <span>New drawing</span>
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Clear conversation"
+            title="New conversation"
+            disabled={!messages.length || busy || disabled}
+            onClick={() => {
+              onClearChat();
+              setDraft("");
+            }}
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
       </header>
       <div
         ref={scroll}
@@ -284,17 +301,6 @@ export function PlanChatbotPanel({
             </button>
           </div>
         </form>
-        <p className="processing-note">
-          Sending lets Planproof’s AI services analyze this drawing.
-        </p>
-        <details className="chat-help">
-          <summary>Good to know</summary>
-          <p>
-            Each question is answered independently against the loaded page.
-            Include the room or detail you mean. Answers can be imperfect; check
-            the highlighted source.
-          </p>
-        </details>
       </div>
     </section>
   );

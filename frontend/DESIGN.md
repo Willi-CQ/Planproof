@@ -22,11 +22,14 @@ prompt. The reference is an Apple-like native utility: quiet, precise, direct.
   model names and connection diagnostics are absent from the normal flow.
 - Behavior: drop/upload, keyboard send, native-pixel highlights, zoom and pan.
   Suggested questions only fill the composer; they never trigger a model call.
-- Sending a question allows Planproof's AI services, disclosed next to the
-  composer. The existing request permissions are set together on that action.
-  Upload alone never calls inference. No provider chooser or automatic retry.
-- Details: relevant uncertainty remains available under “About this answer”.
-  Stateless question scope is explained in optional help, without changing the agent.
+- The assistant reaches the top desktop edge; New drawing sits in its header.
+  Nothing is placed below the composer. Only explicit send calls the existing agent;
+  upload, browser-library restore and suggestions never trigger inference.
+- Your drawings is a compact modal picker. Keep original files and the current
+  page's conversation/draft in IndexedDB; restore without resubmitting questions.
+  Local storage failure is visible, and users can remove saved drawings.
+- Relevant uncertainty stays under About this answer. Questions remain independent;
+  displayed conversation history does not change the agent's request contract.
 - Safety: no fake answers, animations implying unreported tool execution,
   invented confidence scores or altered drawing pixels.
 
