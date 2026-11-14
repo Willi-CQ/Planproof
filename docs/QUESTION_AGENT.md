@@ -155,6 +155,12 @@ configuration; the new question panel is the general agent entry point.
 
 ## Validation and honest performance boundary
 
+Latest mixed 50-question result: adaptive **33/50 (66%)**, direct **27/50 (54%)**,
+with 15 versus 20 execution failures. All six gains were on direct execution
+failures; on 29 cases where both answered, both scored 27/29. No general moat or
+semantic correction advantage is established. See [the full cohort report](AGENT_COHORT50.md)
+for categories, reliability, timing, token usage and limitations.
+
 Latest full eight-question result: adaptive and fresh direct Gemini each scored
 **7/8**, missing the same window-count case, with no execution/tool failures.
 Adaptive routing chose algorithms once, five Nemotron calls on detail crops,

@@ -53,7 +53,7 @@ try{
     await rpc('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
     await rpc('Page.navigate',{url:pathToFileURL(path.resolve(process.argv[3])).href});
     await until(()=>evaluate("document.querySelectorAll('#cards .card').length===Object.keys(JSON.parse(document.getElementById('data').textContent).summary).length && document.getElementById('drawing').naturalWidth>0"));
-    await evaluate("document.getElementById('case').selectedIndex=1;document.getElementById('case').dispatchEvent(new Event('change'));document.querySelector('#cards button').click()");
+    await evaluate("window.__comparison=JSON.parse(document.getElementById('data').textContent);window.__cropCase=window.__comparison.cases.find(c=>c.mode==='auto'&&c.details.canonical_citations.length&&c.details.tool_trace.some(t=>['inspect_nemotron','review_answer'].includes(t.name)&&t.result.status==='ok'));document.getElementById('case').value=window.__cropCase.id;document.getElementById('case').dispatchEvent(new Event('change'));document.querySelector('#cards button').click()");
     assert.ok(await evaluate("document.querySelectorAll('#overlay rect').length>0"));
     const cropPanels = await evaluate("[...document.querySelectorAll('#cards details')].filter(d=>d.querySelector('summary').textContent==='Crops actually supplied to Nemotron').map(d=>{d.open=true;return true}).length");
     assert.ok(cropPanels>0,'Fixture question must show the crops actually sent to Nemotron');
@@ -67,6 +67,17 @@ try{
     const cropShot=await rpc('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'live-crops.png'),Buffer.from(cropShot.data,'base64'));
     checks.push('Real comparison report renders questions, all available modes and source citations');
     checks.push('Actual Nemotron detail crops load and render at valid dimensions');
+    if(await evaluate("Boolean(window.__comparison.breakdown)")){
+      assert.equal(await evaluate("document.querySelectorAll('#case option').length"),await evaluate("window.__comparison.binding.case_ids.length"));
+      await evaluate("document.getElementById('outcome').value='auto_wrong';document.getElementById('outcome').dispatchEvent(new Event('change'))");
+      assert.equal(await evaluate("document.querySelectorAll('#case option').length"),await evaluate("window.__comparison.cases.filter(c=>c.mode==='auto'&&!c.score.correct).length"));
+      await evaluate("document.getElementById('outcome').value='all';document.getElementById('outcome').dispatchEvent(new Event('change'));document.getElementById('group').value='area';document.getElementById('group').dispatchEvent(new Event('change'))");
+      assert.equal(await evaluate("document.querySelectorAll('#case option').length"),await evaluate("window.__comparison.cases.filter(c=>c.mode==='auto'&&c.category==='area').length"));
+      checks.push('Cohort category and failure filters preserve exact case counts');
+    }
+    await rpc('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    assert.equal(await evaluate('document.documentElement.scrollWidth > window.innerWidth + 2'),false);
+    assert.equal(errors.length,0);checks.push('Comparison report fits mobile width without runtime errors');
   }
   await fs.writeFile(path.join(out,'report.json'),JSON.stringify({simulated_answer:true,checks},null,2));
   console.log(JSON.stringify({checks},null,2));

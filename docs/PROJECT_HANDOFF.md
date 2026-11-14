@@ -1,11 +1,15 @@
 # Consolidated project handoff
 
-The completed ML, deterministic evidence and Nemotron feedback work is collected
-on `main`. Package boundaries and existing behavior are preserved by this merge.
+The ML, deterministic evidence, Nemotron specialist and question-aware Gemini
+agent are collected on `main`. Start with the [MVP/frontend handoff](MVP_FRONTEND_HANDOFF.md)
+for setup, API requests, result states and coordinate overlays.
 The root README remains empty at the owner's request.
 
 | Component | Entry point |
 | --- | --- |
+| Local MVP and frontend integration | [MVP/frontend handoff](MVP_FRONTEND_HANDOFF.md) |
+| Gemini question agent and optional tools | [Question agent](QUESTION_AGENT.md) |
+| Latest mixed 50-question evaluation | [Measured results and limits](AGENT_COHORT50.md) |
 | Training, inference, calibration and export | [ML package](../ml/README.md) |
 | Frozen weights, training checkpoints and restore checks | [Baseline v1](../models/baselines/v1/README.md) |
 | Pixel extraction, geometry and ML comparisons | [Deterministic package](../deterministic/README.md) |
@@ -33,8 +37,8 @@ Run each package's existing tests in its documented environment. Dependency
 versions differ between packages, so separate environments remain supported.
 `python ml/scripts/verify_baseline.py` verifies all frozen model payloads.
 
-The question-aware Gemini coordinator is now implemented in this integration
-branch. It chooses direct vision, clean crops, Nemotron inspection/review and
+The question-aware Gemini coordinator chooses direct vision, clean crops,
+Nemotron inspection/review and
 optional ML/geometry tools. See [QUESTION_AGENT.md](QUESTION_AGENT.md) for the
 architecture, local launch, API, execution budgets and three-mode comparison.
 The feedback adapter also accepts the newer room-context schema. Live QA scores

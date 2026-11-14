@@ -1,7 +1,14 @@
-# Planwise — interface PlanProof
+# Planproof frontend
 
-Interface issue de la branche `front` (`a465bba`). FastAPI sert la page et l’API sur le même port. Ouvrez `/planwise/` et cliquez sur **Tester le plan d’exemple** pour voir un écart simulé et cliquer sur la zone correspondante.
+FastAPI serves this interface at `/planwise/` on the same origin as the API.
+Start with the [MVP/frontend handoff](../docs/MVP_FRONTEND_HANDOFF.md) for portable
+setup, upload, the general Gemini `/ask` endpoint, error states and citation overlays.
 
-Pour analyser un fichier, choisissez un PDF, PNG ou JPEG. Choisissez la page pour un PDF. Le serveur envoie le même PNG RGB aux deux moteurs locaux configurés. Le visiteur peut autoriser une revue Gemini sur la demande en cours lorsque le serveur dispose d’une clé. Le total reste indéterminé si la couverture est inconnue ou si les propositions divergent.
+The general question panel lets Gemini choose direct vision, algorithms, clean
+crops, Nemotron inspection and self-checks. Provider permissions are explicit.
+The older door-comparison and synthetic demo controls remain separate flows.
 
-Les commandes pour configurer les moteurs et lancer l’interface sont dans le [guide de lancement](../docs/gemini-arbitration.md). L’[architecture et l’état des branches](../docs/project-context.md) sont documentés pour l’audit.
+Frontend files: `index.html`, `app.js`, `styles.css`. Keep keys and algorithms on
+the server. Render canonical citations over the returned source image and clear
+stale answers when the selected page changes. See the [agent contract](../docs/QUESTION_AGENT.md)
+and [50-question results](../docs/AGENT_COHORT50.md) for capabilities and limitations.

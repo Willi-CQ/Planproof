@@ -1,9 +1,9 @@
 name: Question agent contracts
 on:
   push:
-    paths: ['backend/**', 'feedback/**', 'tools/benchmark_agent.py', '.github/workflows/agent.yml']
+    paths: ['backend/**', 'feedback/**', 'tools/*agent*.py', 'tools/*mvp*.py', '.github/workflows/agent.yml']
   pull_request:
-    paths: ['backend/**', 'feedback/**', 'tools/benchmark_agent.py', '.github/workflows/agent.yml']
+    paths: ['backend/**', 'feedback/**', 'tools/*agent*.py', 'tools/*mvp*.py', '.github/workflows/agent.yml']
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,5 +14,5 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r backend/requirements.txt -e 'feedback[test]'
       - run: mkdir -p .artifacts
-      - run: python -m pytest backend feedback/tests -q
-      - run: python -m ruff check backend/question_agent.py backend/visual_specialist.py backend/agent_pipeline.py backend/run_local.py feedback/src feedback/tests tools/benchmark_agent.py
+      - run: python -m pytest backend feedback/tests tools/test_agent_cohort.py tools/test_mvp.py -q
+      - run: python -m ruff check backend/question_agent.py backend/visual_specialist.py backend/agent_pipeline.py backend/run_local.py feedback/src feedback/tests tools/benchmark_agent.py tools/select_agent_cohort.py tools/run_agent_cohort.py tools/test_agent_cohort.py tools/build_agent_report.py tools/mvp.py tools/test_mvp.py
