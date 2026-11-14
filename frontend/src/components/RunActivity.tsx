@@ -20,7 +20,7 @@ export function RunActivity({ run, drawing, onFocus, connection }: Props) {
         const running = !done && step.state === "running";
         const pending = step.state === "pending" || step.state === "busy";
         const interrupted = done && step.state === "running";
-        const unavailable = step.state === "unavailable" || interrupted || pending;
+        const unavailable = step.state === "unavailable" || step.state === "partial" || interrupted || pending;
         const regions = sameSource(run.source, drawing.source) ? boundRegions(step, drawing.source) : [];
         return <li key={`${step.stage}-${step.sequence}`} className={running ? "work-current" : unavailable ? "work-unavailable" : ""}>
           <span className="work-icon">{running ? <LoaderCircle className="spinning" size={14} /> : unavailable ? <CircleAlert size={14} /> : <Check size={14} />}</span>

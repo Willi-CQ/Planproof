@@ -4,7 +4,7 @@ export function workSteps(run: AgentRun): EvidenceEvent[] {
   const steps: EvidenceEvent[] = [];
   for (const event of run.events) {
     if (event.stage === "run" || event.stage === "provider_attempt") continue;
-    const pending = steps.reduce((found, e, i) => e.stage === event.stage && e.state === "running" ? i : found, -1);
+    const pending = steps.reduce((found, e, i) => e.stage === event.stage && e.inspection_id === event.inspection_id && e.state === "running" ? i : found, -1);
     if (pending >= 0 && event.state !== "running") {
       const previous = steps[pending];
       steps[pending] = { ...previous, ...event, images: event.images?.length ? event.images : previous.images };
@@ -18,6 +18,7 @@ const titles: Record<string, [string, string]> = {
   crop_region: ["Opening a closer view", "Closer view prepared"],
   crop_room: ["Opening a room detail", "Room detail prepared"],
   inspect_nemotron: ["Checking this detail with Nemotron", "Focused visual check returned"],
+  inspect_regions: ["Delegating focused detail checks", "Detail inspections returned"],
   review_answer: ["Cross-checking the proposed answer", "Answer review returned"],
   reflect: ["Checking coverage and uncertainty", "Coverage and uncertainty checked"],
   calculate_area: ["Calculating from cited dimensions", "Source-based calculation returned"],
@@ -30,6 +31,7 @@ export function activityTitle(event?: EvidenceEvent) {
     return event.state === "pending" ? "Structural analysis continues in the background" : "Structural analysis is busy";
   const title = titles[event.stage] || ["Working with the drawing", "Step recorded"];
   if (event.state === "unavailable") return `${title[0]} — unavailable`;
+  if (event.state === "partial") return "Some detail checks need another look";
   return title[event.state === "running" ? 0 : 1];
 }
 export function activityDetail(event?: EvidenceEvent) {
@@ -60,10 +62,12 @@ export function liveActivity(run: AgentRun | undefined, frame?: SourceFrame) {
   const steps = workSteps(run);
   const event = steps.at(-1);
   const spatial = [...steps].reverse().find(e => boundRegions(e, frame).length);
+  const inspections = steps.filter(e => e.inspection_id && e.state === "running");
+  const inspecting = inspections.flatMap(e => boundRegions(e, frame));
   return {
     event,
-    regions: sameSource(run.source, frame) ? boundRegions(spatial, frame) : [],
-    currentRegion: spatial?.sequence === event?.sequence,
+    regions: sameSource(run.source, frame) ? inspecting.length ? inspecting : boundRegions(spatial, frame) : [],
+    currentRegion: inspecting.length > 0 || spatial?.sequence === event?.sequence,
     sequence: spatial?.sequence,
   };
 }

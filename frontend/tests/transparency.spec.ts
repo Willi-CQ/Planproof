@@ -546,6 +546,28 @@ test("pending algorithms remain honest while source inspection proceeds", async 
   await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
 });
 
+test("parallel inspections keep each region and completion associated with its worker", async ({page}) => {
+  await setup(page);
+  const second = {...region, image_id: "crop-2", canonical_bbox: [500, 100, 800, 350]};
+  const workers = [
+    {...events[2], sequence: 1, state: "running", inspection_id: "worker-a", question: "Check the left apartment entrance", images: [region], citations: [], advisory: undefined},
+    {...events[2], sequence: 2, state: "running", inspection_id: "worker-b", question: "Check the right apartment entrance", images: [second], citations: [], advisory: undefined},
+    {...events[2], sequence: 3, state: "completed", inspection_id: "worker-a", question: "Check the left apartment entrance", images: [region], citations: [region], advisory: {findings: ["Left entry observed."]}},
+  ];
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {request_id: "parallel-fixture", status: "running", source, events: workers, last_sequence: 3}}));
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, status: "running", source, events: workers, last_sequence: 3}}));
+  await ask(page);
+  const log = page.getByTestId("live-work-log");
+  await expect(log.locator("li")).toHaveCount(2);
+  const right = log.locator("li").filter({hasText: "Check the right apartment entrance"});
+  await expect(right).toHaveClass(/work-current/);
+  await expect(right).toContainText("In progress");
+  const left = log.locator("li").filter({hasText: "Check the left apartment entrance"});
+  await expect(left).toContainText("Left entry observed");
+  await expect(left).not.toHaveClass(/work-current/);
+  await expect(page.getByTestId("live-inspection-region")).toHaveAttribute("x", "500");
+});
+
 test("briefing attaches citations to claims and only detection previews follow the text", async ({page}) => {
   await setup(page);
   const rich = {...result, answer: {...result.answer, answer: 12, unit: "m2", briefing: [

@@ -141,6 +141,7 @@ def public_event(stage, state, payload, source):
             "delivered_ids",
             "category",
             "attempt",
+            "inspection_id",
         ),
     )
     if "summary" in payload:

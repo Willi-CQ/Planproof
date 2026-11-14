@@ -9,6 +9,7 @@ from run_tracking import RunStore
 from test_measurements import rectangle_request
 from test_question_agent import agent, final, response
 from test_run_tracking import finished
+from test_specialist_routing import observation, target
 
 
 def test_measurement_flows_through_resumable_api_with_citations(tmp_path, monkeypatch):
@@ -16,6 +17,7 @@ def test_measurement_flows_through_resumable_api_with_citations(tmp_path, monkey
     monkeypatch.setattr(module, "_run_store", store)
     monkeypatch.setenv("PLANPROOF_AGENT_TRACE_ROOT", str(tmp_path / "traces"))
     scripted = agent(
+        response("inspect_regions", {"regions": [target()]}),
         response("calculate_area", rectangle_request()),
         response(
             "submit_answer",
@@ -23,7 +25,13 @@ def test_measurement_flows_through_resumable_api_with_citations(tmp_path, monkey
         ),
     )
     monkeypatch.setattr("question_agent.settings", lambda: ("fixture", "fixture"))
-    monkeypatch.setattr("question_agent.GeminiTransport", lambda *_: scripted.transport)
+    monkeypatch.setattr(
+        "question_agent.GeminiTransport", lambda *_, **__: scripted.transport
+    )
+    scripted.specialist_factory.return_value.answer.side_effect = observation
+    monkeypatch.setattr(
+        "agent_pipeline.specialist_service", scripted.specialist_factory
+    )
     # A stored page number other than one exercises the API's selected-PDF-page mapping.
     scripted.page.source_sha256 = "b" * 64
     document = module.store_page(scripted.page, 4)
@@ -36,6 +44,7 @@ def test_measurement_flows_through_resumable_api_with_citations(tmp_path, monkey
                 "request": {
                     "question": "Room area in square feet?",
                     "allow_gemini": True,
+                    "allow_nemotron": True,
                 },
             },
         )
@@ -60,7 +69,7 @@ def test_measurement_flows_through_resumable_api_with_citations(tmp_path, monkey
         )
         calls = scripted.transport.generate.call_count
         client.get(f"/api/v1/runs/{run_id}")
-        assert scripted.transport.generate.call_count == calls == 2
+        assert scripted.transport.generate.call_count == calls == 3
     store.pool.shutdown()
 
 

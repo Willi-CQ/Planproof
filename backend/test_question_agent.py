@@ -375,7 +375,12 @@ def test_api_missing_configuration_and_permission_do_not_run_models():
                 == "not_authorized"
             )
             result = client.post(
-                path, json={"question": "Floors?", "allow_gemini": True}
+                path,
+                json={
+                    "question": "Floors?",
+                    "allow_gemini": True,
+                    "allow_nemotron": True,
+                },
             )
             assert result.json()["status"] == "not_configured"
             assert "private config" not in result.text

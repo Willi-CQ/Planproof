@@ -18,6 +18,7 @@ STAGES = {
     "crop_region": "Closer source view",
     "crop_room": "Room detail",
     "inspect_nemotron": "Nemotron visual check",
+    "inspect_regions": "Concurrent detail inspections",
     "review_answer": "Answer cross-check",
     "reflect": "Coverage and uncertainty check",
     "calculate_area": "Calculation from cited dimensions",

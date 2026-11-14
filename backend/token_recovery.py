@@ -35,6 +35,8 @@ _SPECIALIST_FIELDS = (
     "image_ids",
     "scope",
     "error",
+    "image",
+    "resolution",
 )
 _CROP_FIELDS = (
     "status",
@@ -65,7 +67,7 @@ def _record(entry, index):
         return None
     if name == "get_algorithms":
         fields = _ALGORITHM_FIELDS + ("status", "error")
-    elif name in ("inspect_nemotron", "review_answer"):
+    elif name in ("inspect_nemotron", "inspect_regions", "review_answer"):
         fields = _SPECIALIST_FIELDS
     elif name in ("crop_region", "crop_room"):
         fields = _CROP_FIELDS
@@ -108,6 +110,29 @@ def _record(entry, index):
         return None
 
 
+def expanded_inspections(tool_log):
+    """A batch's successful/failed tiles remain separate atomic evidence records."""
+    for entry in tool_log:
+        result = entry.get("result") if isinstance(entry, Mapping) else None
+        if (
+            isinstance(result, Mapping)
+            and entry.get("name") == "inspect_regions"
+            and isinstance(result.get("inspections"), list)
+        ):
+            for row in result["inspections"]:
+                if isinstance(row, Mapping):
+                    yield {
+                        "name": "inspect_regions",
+                        "args": {
+                            "question": row.get("question"),
+                            "image_ids": row.get("image_ids", []),
+                        },
+                        "result": {**row, "scope": result.get("scope")},
+                    }
+        else:
+            yield entry
+
+
 def compact_observations(tool_log, max_chars=12000):
     """Return bounded JSON evidence, with omissions and scope explicitly marked.
 
@@ -119,7 +144,7 @@ def compact_observations(tool_log, max_chars=12000):
     """
     if isinstance(max_chars, bool) or not isinstance(max_chars, int) or max_chars <= 0:
         raise ValueError("max_chars must be a positive integer")
-    entries = list(tool_log)
+    entries = list(expanded_inspections(tool_log))
     output = {
         "coverage": "unknown",
         "warnings": list(_WARNINGS),
@@ -141,7 +166,7 @@ def compact_observations(tool_log, max_chars=12000):
     records.sort(
         key=lambda item: (
             0
-            if item["tool"] in ("inspect_nemotron", "review_answer")
+            if item["tool"] in ("inspect_nemotron", "inspect_regions", "review_answer")
             else 2
             if item["tool"] == "get_algorithms"
             else 1,
@@ -251,9 +276,10 @@ def select_detail_images(images, tool_log, max_count=2):
     if max_count == 0:
         return []
     inspected = set()
-    for entry in tool_log:
+    for entry in expanded_inspections(tool_log):
         if not isinstance(entry, Mapping) or entry.get("name") not in (
             "inspect_nemotron",
+            "inspect_regions",
             "review_answer",
         ):
             continue

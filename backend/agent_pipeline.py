@@ -54,6 +54,13 @@ def ask(document_id, page, request, *, observer=None):
 
     if not request.allow_gemini:
         return {"status": "not_authorized", "answer": None, "canonical_citations": []}
+    if request.mode != "direct" and not request.allow_nemotron:
+        return {
+            "status": "not_authorized",
+            "answer": None,
+            "canonical_citations": [],
+            "error_code": "nemotron_inspection_permission_required",
+        }
     try:
         key, model = settings()
     except (ValueError, OSError):
@@ -63,7 +70,7 @@ def ask(document_id, page, request, *, observer=None):
             "canonical_citations": [],
             "error_code": "gemini_configuration_required",
         }
-    transport = GeminiTransport(key, model)
+    transport = GeminiTransport(key, model, orchestrated=request.mode != "direct")
     request_id = uuid4().hex
     out = Path(
         os.getenv(
@@ -81,6 +88,7 @@ def ask(document_id, page, request, *, observer=None):
             out=out,
             observer=observer,
             budget=AgentBudget.interactive(),
+            require_specialist=True,
         ).run()
         return {**result, "request_id": request_id}
     finally:

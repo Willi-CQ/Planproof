@@ -19,6 +19,12 @@ NORMALIZED 0..1000 coordinates RELATIVE TO THAT IMAGE, [left,top,right,bottom].
 0,0 is its top-left and 1000,1000 its bottom-right. Do NOT use original page
 coordinates or pixel coordinates. Use only supplied image_ids. Overlapping views
 can contain the same physical object; never blindly sum their counts.
+For door-role questions, inspect the door AND adjacent spaces/labels. A visible
+door symbol alone does not establish that it is an apartment's main entrance.
+For counts, cite individual objects separately when possible; note cut-off objects,
+unreadable details and incomplete scope. Never treat a crop edge as a wall or
+infer a complete room from a partial tile. If detail or context is insufficient,
+return uncertain with a focused description of the missing view.
 Return only JSON:
 {"status":"observed"|"uncertain", "answer":number|string|null,
  "findings":["short visible observations"],

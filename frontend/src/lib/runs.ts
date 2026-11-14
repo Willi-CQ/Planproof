@@ -19,6 +19,7 @@ export interface EvidenceEvent {
   seconds?: number;
   summary?: string;
   question?: string;
+  inspection_id?: string;
   classes?: string[];
   delivered_ids?: string[];
   images: Region[];
@@ -153,6 +154,7 @@ export const stageNames: Record<string, string> = {
   crop_room: "Room detail",
   crop_region: "Drawing detail",
   inspect_nemotron: "Nemotron · focused inspection",
+  inspect_regions: "Nemotron · parallel detail inspection",
   review_answer: "Nemotron · answer review",
   reflect: "Gemini · self-check",
   provider_attempt: "Connection / recovery",

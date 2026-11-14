@@ -18,5 +18,6 @@ jobs:
       - run: python -m ruff check backend/test_measurement_runs.py
       - run: python -m ruff check backend/task_report.py backend/test_task_report.py
       - run: python -m ruff check backend/algorithm_jobs.py backend/test_interactive_latency.py
+      - run: python -m ruff check backend/specialist_routing.py backend/test_specialist_routing.py
       - run: python -m ruff check backend/test_measurement_recovery.py
       - run: python -m ruff check backend/answer_presentation.py backend/test_answer_presentation.py backend/run_tracking.py backend/test_run_tracking.py backend/question_agent.py backend/measurements.py backend/test_measurements.py backend/gemini_transport.py backend/test_gemini_transport.py backend/token_recovery.py backend/test_token_recovery.py backend/test_token_repair_agent.py backend/test_visual_specialist.py backend/visual_specialist.py backend/agent_pipeline.py backend/run_local.py feedback/src feedback/tests tools/benchmark_agent.py tools/select_agent_cohort.py tools/run_agent_cohort.py tools/test_agent_cohort.py tools/build_agent_report.py tools/mvp.py tools/test_mvp.py tools/run_resilience_probe.py tools/extend_case_review.py tools/test_extend_case_review.py backend/test_large_drawings.py

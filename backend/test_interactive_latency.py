@@ -165,7 +165,7 @@ def test_fast_deadline_reserves_finalization_and_caps_specialists():
     )
     b.budget = AgentBudget.interactive()
     b.run()
-    assert b.specialist.review.call_args.kwargs["timeout_seconds"] <= 15
+    assert b.specialist.review.call_args.kwargs["timeout_seconds"] <= 30
 
 
 def test_invalid_optional_self_check_does_not_add_another_model_turn():

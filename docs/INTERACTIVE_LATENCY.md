@@ -1,8 +1,10 @@
 # Interactive answer latency
 
-The interactive API uses a bounded, faster agent profile. Gemini still chooses tools
-from the question and evidence. There is no mandatory detector/specialist sequence,
-cached answer, or change to original drawing pixels, model weights or geometry rules.
+The interactive API uses a bounded, faster agent profile. The latest
+[mandatory parallel Nemotron routing](NEMOTRON_ORCHESTRATION.md) builds on this work;
+algorithms remain optional. This document's two live timings measured the earlier
+optional-specialist profile. No cached answer or change to original drawing pixels,
+model weights or geometry rules is involved.
 
 ## Observed bottleneck
 
@@ -41,8 +43,9 @@ created a new ID, lost reuse, and could repeat the entire CPU pipeline.
   bounded retry, Retry-After, cancellation, token recovery, citation validation and
   local measurement recovery remain. This is not a guarantee that every upload,
   local operation or server queue completes within120seconds.
-- Interactive Nemotron inspection and review use15second socket timeouts, no retries,
-  and bounded output. This is a socket timeout, not a strict whole-endpoint deadline.
+- The measured profile used15second Nemotron socket timeouts. The newer parallel
+  inspection profile allows30seconds clipped to the remaining batch budget, more
+  room-level calls, and one explicit failed-tile retry; see the routing document.
 - Independent detail crops are encouraged in one model turn. A `reflect` followed by
   `submit_answer` can share a response when the self-check's next action is answer.
   Reflection is optional metadata: its formatting failure is recorded but cannot

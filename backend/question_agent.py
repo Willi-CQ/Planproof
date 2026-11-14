@@ -25,6 +25,16 @@ from gemini_transport import (
 )
 from algorithm_jobs import AlgorithmPending
 from token_recovery import compact_observations, select_detail_images
+from specialist_routing import (
+    ROUTING,
+    DelegationRequired,
+    InspectionBatch,
+    InspectionPolicy,
+    parallel_inspections,
+    region_boxes,
+    require_inspected_citations,
+    tiles,
+)
 from answer_presentation import BriefingStatement, CitationDetail, attach_presentation
 from measurements import (
     AreaRequest,
@@ -196,7 +206,7 @@ def declaration(name, description, properties, required=()):
     )
 
 
-def declarations(mode, allow_nemotron):
+def declarations(mode, allow_nemotron, *, orchestrated=False):
     result = [
         types.FunctionDeclaration(
             name="submit_answer",
@@ -288,6 +298,14 @@ def declarations(mode, allow_nemotron):
         )
     )
     if allow_nemotron:
+        if orchestrated:
+            result.append(
+                types.FunctionDeclaration(
+                    name="inspect_regions",
+                    description="Delegate up to six focused room/region questions to concurrent Nemotron workers. Select bbox (normalized page coordinates) OR registered room_id. Host preserves native details using overlapping tiles and returns per-tile findings, citations and metadata. Failed/overlapping tiles never imply zero or additive counts.",
+                    parameters_json_schema=InspectionBatch.model_json_schema(),
+                )
+            )
         image_ids = {
             "type": "array",
             "items": {"type": "string"},
@@ -344,11 +362,11 @@ def image_parts(image):
 
 
 class GeminiTransport(ResilientGeminiTransport):
-    def __init__(self, key, model):
+    def __init__(self, key, model, *, orchestrated=False):
         super().__init__(
             key,
             model,
-            instruction=INSTRUCTION,
+            instruction=INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
             low_latency=True,
             policy=RetryPolicy(
                 attempts=2, attempt_seconds=35, turn_seconds=70, max_requests=10
@@ -364,7 +382,7 @@ class AgentBudget:
 
     @classmethod
     def interactive(cls):
-        return cls(seconds=120, final_seconds=35, specialist_seconds=15)
+        return cls(seconds=120, final_seconds=35, specialist_seconds=30)
 
 
 class DrawingAgent:
@@ -381,6 +399,8 @@ class DrawingAgent:
         out=None,
         observer=None,
         budget=None,
+        require_specialist=False,
+        inspection_policy=None,
     ):
         self.page, self.request, self.transport = page, request, transport
         self.algorithm_factory, self.specialist_factory = (
@@ -389,6 +409,13 @@ class DrawingAgent:
         )
         self.observer = observer
         self.budget = budget or AgentBudget()
+        self.require_specialist = require_specialist and request.mode != "direct"
+        self.inspection_policy = inspection_policy or InspectionPolicy()
+        self.inspected_images = set()
+        self.inspection_cache = {}
+        self.inspection_attempts = {}
+        self.unresolved_inspections = {}
+        self.delegation_rejections = 0
         self._observed_attempts = 0
         self.out = out
         self.job = self.specialist = None
@@ -410,7 +437,12 @@ class DrawingAgent:
         self.token_repair_notes = []
         self.last_failure = None
         self.allowed = {
-            x.name for x in declarations(request.mode, request.allow_nemotron)
+            x.name
+            for x in declarations(
+                request.mode,
+                request.allow_nemotron,
+                orchestrated=self.require_specialist,
+            )
         }
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
         self.original = Image.open(io.BytesIO(page.png)).convert("RGB")
@@ -452,8 +484,8 @@ class DrawingAgent:
         cached = self.crop_cache.get(tuple(box))
         if cached:
             return {"image": visible_metadata(cached), "cached": True}, [cached]
-        if self.crop_count >= 6:
-            raise ValueError("Six crop budget exhausted")
+        if self.crop_count >= self.crop_limit:
+            raise ValueError("Source crop budget exhausted")
         self.crop_count += 1
         image = self.add_image(
             self.original.crop(tuple(box)), f"crop-{self.crop_count}", box
@@ -470,6 +502,144 @@ class DrawingAgent:
                 self.observer(stage, state, **payload)
             except Exception:
                 pass
+
+    @property
+    def crop_limit(self):
+        return self.inspection_policy.max_crops if self.require_specialist else 6
+
+    @property
+    def specialist_limit(self):
+        return self.inspection_policy.max_calls if self.require_specialist else 3
+
+    def record_inspection(self, result):
+        if result.get("status") == "ok" and isinstance(result.get("result"), dict):
+            self.inspected_images.update(
+                c["image_id"]
+                for c in result["result"].get("citations", [])
+                if c.get("image_id") in self.images and c["image_id"] != "overview"
+            )
+
+    def inspect_batch(self, args, timeout_seconds):
+        policy = self.inspection_policy
+        regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
+        planned, seen = [], set()
+        for question, box in regions:
+            for tile in tiles(box, policy):
+                key = json.dumps([question, tile])
+                if key not in seen:
+                    planned.append((key, question, tile))
+                    seen.add(key)
+        needed = [
+            p
+            for p in planned
+            if p[0] not in self.inspection_cache
+            and self.inspection_attempts.get(p[0], 0) < 2
+        ]
+        if len(needed) + self.nemotron_calls > self.specialist_limit:
+            raise ValueError(
+                f"This selection needs {len(needed)} new native-detail inspections; "
+                f"{self.specialist_limit - self.nemotron_calls} remain. Select smaller "
+                "relevant rooms/regions first; no inspection was sent or silently omitted."
+            )
+        new_boxes = {tuple(p[2]) for p in needed if tuple(p[2]) not in self.crop_cache}
+        if len(new_boxes) + self.crop_count > self.crop_limit:
+            raise ValueError("Too many new detail crops; prioritize relevant regions")
+        deadline = time.monotonic() + (
+            timeout_seconds if timeout_seconds is not None else 60
+        )
+        prepared = []
+        for key, question, box in needed:
+            _, images = self.crop(box)
+            prepared.append((key, question, images[0]))
+        if prepared and self.specialist is None:
+            self.specialist = self.specialist_factory()
+
+        def inspect(item, timeout):
+            _, question, image = item
+            return self.specialist.answer(question, [image], timeout_seconds=timeout)
+
+        def event(index, state, result):
+            _, question, image = prepared[index]
+            self.observe(
+                "inspect_nemotron",
+                state,
+                inspection_id=f"inspection-{self.nemotron_calls}-{index}-{image.image_id}",
+                question=question,
+                images=[image.metadata],
+                seconds=(result or {}).get("seconds"),
+                advisory=(result or {}).get("result"),
+                canonical_citations=(result or {}).get("canonical_citations", []),
+                summary=f"Native detail {image.metadata['sent_size'][0]} x {image.metadata['sent_size'][1]} pixels; selected scope only.",
+            )
+
+        results, attempted = parallel_inspections(
+            prepared,
+            inspect,
+            deadline=deadline,
+            seconds=policy.seconds,
+            on_event=event,
+        )
+        self.nemotron_calls += attempted
+        current = {}
+        for (key, question, image), value in zip(prepared, results):
+            self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
+            row = {
+                "status": value["status"],
+                "question": question,
+                "image_ids": [image.image_id],
+                "image": visible_metadata(image),
+                "resolution": {
+                    "source_pixels": image.metadata["source_render_size"],
+                    "sent_pixels": image.metadata["sent_size"],
+                    "downscale": image.metadata["sent_to_source_render"],
+                },
+                "advisory": value.get("result"),
+                "canonical_citations": value.get("canonical_citations", []),
+                "seconds": value.get("seconds"),
+                "error_code": value.get("error_code"),
+            }
+            current[key] = row
+            self.record_inspection(value)
+            if value["status"] == "ok":
+                self.inspection_cache[key] = row
+                self.unresolved_inspections.pop(key, None)
+            else:
+                self.unresolved_inspections[key] = row
+        rows = []
+        for key, question, _ in planned:
+            if key in current:
+                rows.append(current[key])
+            elif key in self.inspection_cache:
+                rows.append({**self.inspection_cache[key], "cached": True})
+            else:
+                rows.append(
+                    {
+                        "status": "unavailable",
+                        "question": question,
+                        "error_code": "TileRetryExhausted",
+                        "image_ids": [],
+                    }
+                )
+        ok = sum(row["status"] == "ok" for row in rows)
+        return {
+            "status": "ok" if ok == len(rows) else "partial" if ok else "unavailable",
+            "inspections": rows,
+            "image_ids": [
+                image_id
+                for row in rows
+                if row["status"] == "ok"
+                for image_id in row["image_ids"]
+            ],
+            "canonical_citations": [
+                c for row in rows for c in row.get("canonical_citations", [])
+            ],
+            "coverage": {
+                "requested_tiles": len(rows),
+                "returned_tiles": ok,
+                "unresolved_tiles": len(rows) - ok,
+            },
+            "scope": "Selected regions only; overlapping tile counts are NOT additive. Failed, unreadable or unselected regions prevent a complete count. Reconcile object locations. All findings remain advisory.",
+        }, []
 
     def execute(self, name, args, *, timeout_seconds=None):
         if self.observer is None:
@@ -556,8 +726,10 @@ class DrawingAgent:
                 )
             self.observe(
                 name,
-                result.get("status")
-                if result.get("status") in ("unavailable", "pending", "busy")
+                "unavailable"
+                if result.get("status") == "invalid_output"
+                else result.get("status")
+                if result.get("status") in ("unavailable", "pending", "busy", "partial")
                 else "completed",
                 seconds=round(time.monotonic() - start, 3),
                 images=[i.metadata for i in images] or selected,
@@ -579,6 +751,8 @@ class DrawingAgent:
     def _execute(self, name, args, *, timeout_seconds=None):
         if name not in self.allowed or name == "submit_answer":
             raise ValueError("Unknown or disabled tool")
+        if name == "inspect_regions":
+            return self.inspect_batch(args, timeout_seconds)
         if name in ("calculate_area", "measure_polygon"):
             images = list(self.images.values())
             result = (
@@ -771,7 +945,9 @@ class DrawingAgent:
             or len(value) > (4000 if field == "candidate" else 2000)
         ):
             raise ValueError("Invalid specialist request")
-        if self.nemotron_calls >= 3 or (name == "review_answer" and self.review_calls):
+        if self.nemotron_calls >= self.specialist_limit or (
+            name == "review_answer" and self.review_calls
+        ):
             raise ValueError("Specialist budget exhausted")
         self.nemotron_calls += 1
         if self.specialist is None:
@@ -798,6 +974,7 @@ class DrawingAgent:
                 if timeout_seconds is not None
                 else self.specialist.answer(value, images)
             )
+        self.record_inspection(result)
         return {
             "status": result["status"],
             "advisory": result.get("result"),
@@ -863,6 +1040,19 @@ class DrawingAgent:
         elif measurement_id:
             raise ValueError("Abstention must not assert a measurement")
         validate_output(result, "answer", list(self.images.values()))
+        if self.require_specialist and result["status"] == "answered":
+            require_inspected_citations(
+                canonical_citations(result["citations"], list(self.images.values())),
+                [
+                    self.images[i].metadata["canonical_bbox"]
+                    for i in self.inspected_images
+                ],
+            )
+            if self.unresolved_inspections:
+                result["uncertainties"] = [
+                    f"{len(self.unresolved_inspections)} requested detail inspections remain unresolved; this result does not establish complete coverage of those regions.",
+                    *result["uncertainties"],
+                ][:20]
         return attach_presentation(result, original_citations, raw_presentation)
 
     def checkpoint(self):
@@ -977,6 +1167,12 @@ class DrawingAgent:
                                 if compact
                                 else self.tool_log,
                                 "token_repair": compact,
+                                "routing_policy": ROUTING
+                                if self.require_specialist
+                                else "Optional specialist baseline",
+                                "registered_images": [
+                                    visible_metadata(i) for i in self.images.values()
+                                ],
                                 "delegation_notes": self.token_repair_notes,
                                 "instruction": "Recovery after a provider interruption, not proof of missing drawing information. No new crops, algorithms or specialist calls are available. In non-direct mode the host may still offer calculate_area and measure_polygon: use those local tools on the supplied images to complete a supported measurement before submitting. A missing width label does not prevent a calibrated estimate from a readable boundary and two distinct dimensions in the same view. Do not claim an exact area from an approximate drawing. At most two local calculation attempts, within the original shared budget, are allowed. Never invent inputs to avoid abstaining. If evidence or budget is insufficient, abstain and distinguish unavailable source information from incomplete processing. A partial draft or reflection is not a verified answer.",
                             },
@@ -986,6 +1182,7 @@ class DrawingAgent:
                     *[
                         part
                         for image in self.images.values()
+                        if not self.require_specialist or image.image_id == "overview"
                         for part in image_parts(image)
                     ],
                 ],
@@ -1005,14 +1202,17 @@ class DrawingAgent:
                                 "requested_unit": self.request.unit,
                                 "scope": "Only this selected page is available",
                                 "mode": self.request.mode,
+                                "routing_policy": ROUTING
+                                if self.require_specialist
+                                else "Optional specialist baseline",
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
                                 "budgets": {
                                     "gemini_turns": 8,
                                     "tool_calls": 12,
-                                    "crops": 6,
-                                    "nemotron_calls": 3,
+                                    "crops": self.crop_limit,
+                                    "nemotron_calls": self.specialist_limit,
                                     "reviews": 1,
                                 },
                             },
@@ -1056,7 +1256,11 @@ class DrawingAgent:
                 self.recovery_used = True
                 history = self.recovery_history(compact=phase == "token_repair")
             continuing_recovery = False
-            available = declarations(self.request.mode, self.request.allow_nemotron)
+            available = declarations(
+                self.request.mode,
+                self.request.allow_nemotron,
+                orchestrated=self.require_specialist,
+            )
             local_recovery_allowed = (
                 recovery
                 and self.request.mode != "direct"
@@ -1194,7 +1398,12 @@ class DrawingAgent:
                     )
                     stop = "answered"
                     break
-                except ValueError:
+                except ValueError as exc:
+                    if isinstance(exc, DelegationRequired):
+                        self.delegation_rejections += 1
+                        if self.delegation_rejections >= 2:
+                            stop = "specialist_required"
+                            break
                     if recovery:
                         stop = "invalid_recovery_answer"
                         break
@@ -1203,7 +1412,9 @@ class DrawingAgent:
                             role="user",
                             parts=[
                                 types.Part.from_text(
-                                    text="Invalid answer format or citation. Use submit_answer with valid supplied image IDs and pixel bounds, or abstain."
+                                    text=str(exc)
+                                    if isinstance(exc, DelegationRequired)
+                                    else "Invalid answer format or citation. Use submit_answer with valid supplied image IDs and pixel bounds, or abstain."
                                 )
                             ],
                         )
@@ -1259,6 +1470,7 @@ class DrawingAgent:
                     if (
                         cache_key in self.tool_cache
                         and function.name != "get_algorithms"
+                        and function.name != "inspect_regions"
                     ):
                         result, images = self.tool_cache[cache_key]
                         self.observe(
@@ -1270,7 +1482,12 @@ class DrawingAgent:
                         )
                     else:
                         timeout = self.budget.specialist_seconds
-                        if timeout is not None:
+                        if function.name == "inspect_regions":
+                            timeout = max(
+                                0,
+                                deadline - self.budget.final_seconds - time.monotonic(),
+                            )
+                        elif timeout is not None:
                             timeout = max(
                                 1,
                                 min(
@@ -1296,12 +1513,16 @@ class DrawingAgent:
                     if function.name in (
                         "calculate_area",
                         "measure_polygon",
+                        "inspect_regions",
                     ) and isinstance(exc, ValueError):
                         # These tools are local and consume no credentials/provider text.
                         # A concise validation reason allows the model to repair its inputs.
                         result["instruction"] = (
                             str(exc)[:600] + ". Recheck the source or abstain."
                         )
+                    if isinstance(exc, DelegationRequired):
+                        self.delegation_rejections += 1
+                        result["instruction"] = str(exc)
                 self.tool_log.append(
                     {
                         "name": function.name,
@@ -1320,6 +1541,9 @@ class DrawingAgent:
                 )
                 new_images.extend(images)
             if answer:
+                break
+            if self.delegation_rejections >= 2:
+                stop = "specialist_required"
                 break
             if recovery and not local_recovery_attempted:
                 stop = "invalid_recovery_answer"
@@ -1343,6 +1567,15 @@ class DrawingAgent:
                 "coverage": "See the recorded tool trace; missing evidence remains unresolved.",
                 "uncertainties": [stop],
             }
+        if (
+            self.require_specialist
+            and answer["status"] == "abstain"
+            and not self.inspected_images
+        ):
+            answer["uncertainties"] = [
+                "Required focused inspection did not establish cited evidence; this is incomplete processing, not proof that the objects are absent.",
+                *answer["uncertainties"],
+            ][:20]
         if self.recovery_used and answer["status"] == "abstain":
             answer["uncertainties"] = [
                 "A provider interruption occurred. This abstention may reflect incomplete processing rather than missing information on the drawing.",
@@ -1361,6 +1594,14 @@ class DrawingAgent:
             "algorithm_executed": self.job is not None,
             "algorithm_registry": self.algorithm_registry,
             "nemotron_calls": self.nemotron_calls,
+            "delegation": {
+                "required": self.require_specialist,
+                "inspected_image_ids": sorted(self.inspected_images),
+                "max_calls": self.specialist_limit,
+                "tile_edge": self.inspection_policy.tile_edge,
+                "overlap": self.inspection_policy.overlap,
+                "unresolved_tiles": len(self.unresolved_inspections),
+            },
             "reflection_calls": self.reflection_count,
             "tool_trace": self.tool_log,
             "gemini_calls": self.calls,

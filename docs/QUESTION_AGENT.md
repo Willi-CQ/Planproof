@@ -1,5 +1,15 @@
 # Question-aware Gemini agent
 
+## Current product policy: mandatory parallel inspection
+
+The interactive product now uses Gemini as the orchestrator and Nemotron for required
+focused visual work. `inspect_regions` combines native-detail cropping and concurrent
+inspection in one tool turn; ML/geometry remain optional navigation aids. See
+[orchestration contract, resolution and tuning](NEMOTRON_ORCHESTRATION.md). Host-enforced
+source coverage, partial-failure handling and operating limits there supersede the
+original optional-specialist baseline described below. The explicit `direct` comparison
+mode and standalone offline `DrawingAgent` default retain their original behavior.
+
 ## Interactive latency update
 
 The interactive API now uses background, source-addressed algorithm jobs and a faster
@@ -8,20 +18,21 @@ for the current limits, evidence semantics and two live stair-count comparisons.
 settings supersede older interactive timing defaults below; tool and citation contracts
 remain in force.
 
-Gemini receives the question and a clean drawing overview first. It may answer
-directly, zoom into the source, ask Nemotron for a focused visual inspection, or
-request ML/geometry evidence. Algorithms are no longer a mandatory first step.
+Gemini receives the question and a clean drawing overview first. In the product it
+delegates focused inspection before answering, optionally using ML/geometry evidence
+to choose regions. Algorithms are not a mandatory first step.
 
 ```mermaid
 flowchart TD
   U[Question + selected drawing page] --> G[Gemini coordinator]
-  G -->|Clearly visible answer| F[Answer + visual citations]
+  G -->|Choose focused regions| N[Nemotron visual specialist]
   G -->|Need layout/search regions| A[Cached ML + deterministic evidence]
   A -->|Room proposals and structural observations| G
   G -->|Zoom/read symbols or labels| C[Clean room or arbitrary page crop]
   C --> G
-  G -->|Focused inspection or draft review| N[Nemotron visual specialist]
+  G -->|Concurrent region inspection or draft review| N
   N -->|Advisory + source locations| G
+  G -->|Required inspected evidence available| F[Answer + visual citations]
   G -->|Evidence insufficient| X[Abstain with missing scope]
 ```
 
