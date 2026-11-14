@@ -5,7 +5,7 @@ import urllib.error
 import pytest
 
 from planproof_feedback.client import NemotronClient, NoRedirect, ProviderError
-from planproof_feedback.config import get_key, read_env
+from planproof_feedback.config import get_key, read_env, load_config
 
 
 class Response(io.BytesIO):
@@ -164,3 +164,22 @@ def test_unexpected_provider_key_echo_is_also_removed_from_derived_output(tmp_pa
     )
     result = client.complete([])
     assert result["content"] == "echo [REDACTED]"
+
+
+def test_default_nemotron_routes_select_event_key_when_personal_key_also_exists(
+    tmp_path, monkeypatch
+):
+    from planproof_feedback.service import create_service
+
+    config = load_config()
+    env = tmp_path / ".env"
+    env.write_text(
+        "VERDA_INFERENCE_KEY=personal-fixture-key\nNVIDIA_NEMOTRON_KEY=event-fixture-key\n"
+    )
+    config["env_file"] = str(env)
+    monkeypatch.delenv("NVIDIA_NEMOTRON_KEY", raising=False)
+    monkeypatch.delenv("VERDA_INFERENCE_KEY", raising=False)
+    assert config["providers"]["nemotron"]["api_key_env"] == "NVIDIA_NEMOTRON_KEY"
+    service = create_service(config)
+    assert service.backends["feedback"].key == "event-fixture-key"
+    assert service.backends["self_feedback"].key == "event-fixture-key"

@@ -1,4 +1,4 @@
-# Paths are relative to this file. Both roles use the same key in ../.env.
+# Paths are relative to this file. Both roles use NVIDIA's event-issued key in ../.env.
 env_file = "../.env"
 audit_dir = "../.artifacts/nemotron/calls"
 report_dir = "../.artifacts/nemotron/comparison"
@@ -10,7 +10,7 @@ self_feedback = "nemotron"
 [providers.nemotron]
 base_url = "https://containers.datacrunch.io/nemotron-3-5-super-vl-b300/v1"
 model = "nemotron-3.5-super-vl"
-api_key_env = "VERDA_INFERENCE_KEY"
+api_key_env = "NVIDIA_NEMOTRON_KEY"
 timeout_seconds = 180
 retries = 2
 max_tokens = 4096

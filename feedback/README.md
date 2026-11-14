@@ -1,9 +1,11 @@
 # Nemotron feedback and Stoa benchmark
 
 The two feedback routes, local Python environment and fixed 100-question Stoa
-pack are prepared. Paste the **full inference key** after `VERDA_INFERENCE_KEY=`
+pack are prepared. Paste the **full key from NVIDIA's event message** after `NVIDIA_NEMOTRON_KEY=`
 in `../.env`. This one ignored file serves feedback, self-feedback and benchmarking.
 An existing environment variable of the same name takes precedence.
+The personal `VERDA_INFERENCE_KEY` can remain in the private file, but this
+Nemotron deployment explicitly uses the separate event-issued credential.
 
 From the parent Planproof workspace in PowerShell:
 
