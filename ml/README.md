@@ -1,5 +1,10 @@
 # Floor-plan detection training
 
+For measured overnight results and the integration command, start with
+[TRAINING_RESULTS.md](TRAINING_RESULTS.md). The trained release uses a calibrated
+**1024-pixel global view**; pass `--global-view` with its calibration file. The
+long curriculum below remains an experiment design, not a record of completed runs.
+
 For the current deadline, use [HACKATHON.md](HACKATHON.md): short first runs,
 automatic session time caps, live status checks and a reserved retry window.
 
@@ -20,7 +25,8 @@ Room categories are kitchen, living, dining, bedroom, bathroom, hallway, storage
 garage, balcony and other. Unknown source categories remain unsupervised;
 unknown predictions remain unknown. Elevators/escalators are not stairs.
 
-Inference combines a global view and overlapping detailed tiles. It returns
+Inference supports a global view and overlapping detailed tiles. Each mode needs
+its own matching validation calibration. It returns
 original-page pixel coordinates with origin at the top left and xyxy boxes:
 document id, page index, image size, schema/model version, instance id, class,
 confidence, optional room category, and polygons with holes. Raw probability

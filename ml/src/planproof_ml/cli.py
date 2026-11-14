@@ -93,17 +93,16 @@ def parser():
         q.add_argument(
             "--global-view", action="store_true", help="Use one global view instead of tiled inference"
         )
+        q.add_argument(
+            "--limit-per-source",
+            type=int,
+            default=None,
+            help="Optional diagnostic subset; default full validation",
+        )
         if name == "evaluate":
             q.add_argument("--split", choices=("val", "test"), default="val")
             q.add_argument("--calibration", type=Path)
             q.add_argument("--overlays", type=int, default=12)
-        else:
-            q.add_argument(
-                "--limit-per-source",
-                type=int,
-                default=None,
-                help="Optional diagnostic subset; default full validation",
-            )
     q = sub.add_parser("infer")
     q.add_argument("--checkpoint", type=Path, required=True)
     q.add_argument("--image", type=Path, required=True)
@@ -219,11 +218,12 @@ def execute(args):
 
         device = getattr(args, "device", "cpu")
         model, data = load_detector(args.checkpoint, device)
+        checkpoint_hash = sha256(args.checkpoint)
         size = data["config"].get("image_size", 1024)
         calibration = read_json(args.calibration) if getattr(args, "calibration", None) else None
         if calibration and (
             calibration.get("manifest_fingerprint") != data["manifest_fingerprint"]
-            or calibration.get("checkpoint_sha256") != sha256(args.checkpoint)
+            or calibration.get("checkpoint_sha256") != checkpoint_hash
             or calibration.get("split") != "val"
         ):
             raise ValueError("Calibration must come from validation and match this checkpoint/dataset")
@@ -242,12 +242,13 @@ def execute(args):
                 size,
                 thresholds,
                 tiled=tiled,
+                limit_per_source=getattr(args, "limit_per_source", None),
                 output=args.out,
                 overlays=args.overlays,
             )
             result.update(
                 {
-                    "checkpoint_sha256": sha256(args.checkpoint),
+                    "checkpoint_sha256": checkpoint_hash,
                     "training_step": data["step"],
                     "training_manifest_fingerprint": data["manifest_fingerprint"],
                 }
@@ -262,7 +263,7 @@ def execute(args):
                 raise ValueError("Calibration manifest must match the checkpoint training dataset")
             result = calibrate(model, args.manifest, device, size, args.limit_per_source, tiled=tiled)
             result["manifest_fingerprint"] = data["manifest_fingerprint"]
-            result["checkpoint_sha256"] = sha256(args.checkpoint)
+            result["checkpoint_sha256"] = checkpoint_hash
             write_json(args.out, result)
             return result
         if command == "infer":
@@ -280,7 +281,7 @@ def execute(args):
                 tiled=tiled,
                 document_id=args.document_id,
                 page_index=args.page_index,
-                model_version=f"step-{data['step']}",
+                model_version=f"step-{data['step']}-{checkpoint_hash[:12]}",
                 return_maps=True,
             )
             args.out.mkdir(parents=True, exist_ok=True)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import hashlib
+from copy import deepcopy
 
 import cv2
 import numpy as np
@@ -212,6 +213,9 @@ def detect(
         "image_size": [original_w, original_h],
         "model_version": model_version,
         "coordinate_system": "pixel_edges_xy_top_left",
+        "inference_mode": "tiled" if tiled else "global",
+        "canvas_size": size,
+        "thresholds": deepcopy(thresholds),
         "original_to_work_scale_xy": [w / original_w, h / original_h],
         "instances": instances,
         "confidence_semantics": "model probability; calibrate on validation; not correctness probability",

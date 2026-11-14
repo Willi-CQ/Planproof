@@ -50,6 +50,7 @@ def test_cli_refuses_calibration_against_another_dataset(tmp_path, monkeypatch):
         "load_detector",
         lambda *args: (object(), {"config": {"image_size": 64}, "manifest_fingerprint": "different"}),
     )
+    (tmp_path / "unused.pt").write_bytes(b"mock checkpoint")
     args = Namespace(
         command="calibrate",
         checkpoint=tmp_path / "unused.pt",
