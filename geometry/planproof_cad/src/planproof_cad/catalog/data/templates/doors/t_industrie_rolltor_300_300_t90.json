@@ -1,0 +1,33 @@
+{
+  "template_key": "t_industrie_rolltor_300_300_t90",
+  "name": "Industrie-Rolltor T90 3.00 × 3.00",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "industrial_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 3000,
+    "default_height_mm": 3000,
+    "leaf_type": "steel_roll_t90",
+    "opening_direction": "overhead",
+    "typical_for": [
+      "Industrie",
+      "Brandwand"
+    ]
+  },
+  "computed_properties": {
+    "fire_resistance": "EI 90"
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false,
+      "FireRating": "EI 90"
+    }
+  },
+  "din_references": [
+    "DIN 18101"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

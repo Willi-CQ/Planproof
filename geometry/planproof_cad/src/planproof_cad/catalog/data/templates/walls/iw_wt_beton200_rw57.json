@@ -1,0 +1,54 @@
+{
+  "template_key": "iw_wt_beton200_rw57",
+  "name": "Wohnungstrennwand Stahlbeton 200 (R'w >= 57 dB, erhöht)",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "interior_wall_apartment_separation",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "stahlbeton_200",
+      "thickness_mm": 200.0,
+      "function": "structural_acoustic"
+    },
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "MFH",
+      "Wohnungstrennwand_erhöht"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 57,
+    "fire_resistance": "REI 120",
+    "u_value": 3.167,
+    "total_thickness_mm": 230.0,
+    "r_total": 0.316
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": false,
+      "LoadBearing": true,
+      "FireRating": "REI 120",
+      "AcousticRating": "R'w >= 57 dB",
+      "ThermalTransmittance": 3.167
+    }
+  },
+  "din_references": [
+    "DIN 4109-1",
+    "DIN 4109-32"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"20.9\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"10.4\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">15</text><rect x=\"20.9\" y=\"0\" width=\"278.3\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">200</text><rect x=\"299.1\" y=\"0\" width=\"20.9\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"309.6\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">15</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "stahlbeton_decke_180",
+  "name": "Stahlbeton-Decke 180 mm",
+  "category": "concrete",
+  "thickness_mm": 180.0,
+  "properties": {
+    "thermal_conductivity": 2.3,
+    "density": 2400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

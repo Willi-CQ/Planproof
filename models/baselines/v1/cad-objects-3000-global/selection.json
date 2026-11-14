@@ -1,0 +1,15 @@
+{
+  "policy_defined_before_candidate_results": true,
+  "rule": "Object mAP50 improvement >.005, no door/window/stairs AP50 regression >.02; identical CAD validation cohort/protocol and fixed thresholds",
+  "baseline_step": 1500,
+  "candidate_step": 3000,
+  "selected_step": 3000,
+  "baseline_map50": 0.4032403319785263,
+  "candidate_map50": 0.46745114506962465,
+  "per_class_delta": {
+    "door": 0.07153412949326454,
+    "window": 0.04707107947079264,
+    "stairs": 0.07402723030923777
+  },
+  "select_candidate": true
+}

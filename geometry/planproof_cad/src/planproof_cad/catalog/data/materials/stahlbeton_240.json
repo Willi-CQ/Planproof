@@ -1,0 +1,12 @@
+{
+  "material_key": "stahlbeton_240",
+  "name": "Stahlbeton 240 mm",
+  "category": "concrete",
+  "thickness_mm": 240.0,
+  "properties": {
+    "thermal_conductivity": 2.3,
+    "density": 2400,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

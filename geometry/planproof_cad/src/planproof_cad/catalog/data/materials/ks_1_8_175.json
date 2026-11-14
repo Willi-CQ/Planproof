@@ -1,0 +1,12 @@
+{
+  "material_key": "ks_1_8_175",
+  "name": "Kalksandstein 1.8 / 175 mm",
+  "category": "masonry",
+  "thickness_mm": 175.0,
+  "properties": {
+    "thermal_conductivity": 0.99,
+    "density": 1800,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

@@ -1,0 +1,18 @@
+{
+  "release": "corrected-3500-global",
+  "inference_checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+  "training_step": 3500,
+  "inference_mode": "global",
+  "validation_macro": {
+    "wall_iou": 0.7152432946323111,
+    "object_map50": 0.6293179540233187,
+    "room_instance_f1_iou50": 0.7489452204486102
+  },
+  "test_report_pending": false,
+  "test_samples": 2051,
+  "test_macro": {
+    "wall_iou": 0.7133593164061682,
+    "object_map50": 0.5869926444667608,
+    "room_instance_f1_iou50": 0.7391162467240446
+  }
+}

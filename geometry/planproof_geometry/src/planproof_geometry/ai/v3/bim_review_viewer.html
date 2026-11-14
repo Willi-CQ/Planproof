@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Planproof BIM — Review</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --card: #0f172a; --border: #334155;
+    --muted: #94a3b8; --text: #e2e8f0; --accent: #0ea5e9; --ok: #10b981; --warn: #f97316;
+  }
+  html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .app { display: flex; height: 100vh; }
+  .viewer-pane { flex: 1; position: relative; background: radial-gradient(circle at 50% 40%, #1e293b 0%, #0f172a 70%); min-width: 0; }
+  model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+  .viewer-hint { position: absolute; top: 12px; left: 12px; background: rgba(15,23,42,.85); padding: 8px 12px; border-radius: 4px; font-size: 12px; color: var(--muted); pointer-events: none; }
+
+  .panel { width: 520px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-width: 420px; max-width: 720px; resize: horizontal; overflow: hidden; }
+  .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .panel-header h1 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; }
+  .count-badge { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .btn { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: #0284c7; }
+  .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn.ghost:hover { background: #334155; }
+  .btn.warn { background: var(--warn); }
+  .btn.warn:hover { background: #ea580c; }
+  .btn.ok { background: var(--ok); }
+  .btn.ok:hover { background: #059669; }
+
+  .filter-row { display: flex; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .filter-row button { flex: 1; min-width: 60px; background: #334155; color: var(--text); border: none; padding: 5px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+  .filter-row button.active { background: var(--accent); color: white; }
+
+  .search-row { padding: 4px 16px 8px; border-bottom: 1px solid var(--border); }
+  .search-row input { width: 100%; box-sizing: border-box; background: #020617; color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; font-size: 12px; }
+
+  .element-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 10px; margin-bottom: 6px; cursor: pointer; transition: border-color .1s, background .1s; }
+  .card:hover { border-color: var(--accent); }
+  .card.selected { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
+  .card.flagged { border-color: var(--warn); background: #1c1410; }
+
+  .card-header { display: flex; gap: 8px; align-items: center; }
+  .card-title { font-weight: 600; font-size: 12px; flex: 1; font-family: ui-monospace, monospace; }
+  .card-kind { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; letter-spacing: .03em; }
+  .kind-WALL { background: #374151; color: #d1d5db; }
+  .kind-DOOR { background: #991b1b; color: white; }
+  .kind-WINDOW { background: #0c4a6e; color: white; }
+  .kind-ROOM { background: #065f46; color: white; }
+
+  .card-meta { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: ui-monospace, monospace; word-break: break-word; }
+  .card-json { display: none; font-size: 10px; color: #cbd5e1; font-family: ui-monospace, monospace; background: #020617; padding: 8px; border-radius: 3px; margin-top: 6px; max-height: 260px; overflow: auto; white-space: pre-wrap; border: 1px solid var(--border); }
+  .card.expanded .card-json { display: block; }
+
+  .card-actions { display: flex; gap: 4px; margin-top: 8px; }
+  .card-actions button { flex: 1; background: #334155; color: var(--text); border: none; padding: 4px 6px; border-radius: 3px; cursor: pointer; font-size: 10px; }
+  .card-actions button:hover { background: #475569; }
+  .card-actions button.active { background: var(--warn); color: white; }
+
+  .card-note { display: none; margin-top: 6px; }
+  .card.flagged .card-note { display: block; }
+  .card-note textarea { width: 100%; box-sizing: border-box; min-height: 60px; background: #020617; color: #fef3c7; border: 1px solid var(--warn); border-radius: 3px; padding: 6px; font-family: inherit; font-size: 12px; resize: vertical; }
+  .card-note textarea::placeholder { color: #78350f; }
+  .card-note .note-meta { font-size: 10px; color: var(--muted); margin-top: 4px; font-family: ui-monospace, monospace; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--ok); color: white; padding: 10px 16px; border-radius: 6px; opacity: 0; transform: translateY(10px); transition: .25s; z-index: 100; font-size: 13px; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .empty { padding: 40px; text-align: center; color: #64748b; font-size: 13px; }
+  .stat-row { display: flex; gap: 10px; padding: 6px 16px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; flex-wrap: wrap; }
+  .stat-row .stat-flag { color: var(--warn); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="viewer-pane">
+    <model-viewer id="mv"
+      src="__GLTF_URL__"
+      camera-controls touch-action="pan-y"
+      shadow-intensity="1.2" exposure="1.1"
+      environment-image="neutral"
+      camera-orbit="0deg 55deg auto"
+      min-camera-orbit="auto auto 5%"
+      max-camera-orbit="auto auto 400%">
+    </model-viewer>
+    <div class="viewer-hint">Klick auf eine Card rechts -&gt; Element wird pink hervorgehoben. Flagged = orange. J/K blaettert.</div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-header">
+      <h1>BIM Review <span class="count-badge" id="count">-</span></h1>
+      <button class="btn ghost" id="clearBtn" title="Alle Flags/Notizen loeschen">Reset</button>
+      <button class="btn ok" id="exportBtn" title="Alle Flags als JSON herunterladen">Export</button>
+    </div>
+    <div class="stat-row" id="stats"></div>
+    <div class="filter-row">
+      <button data-kind="all" class="active">All</button>
+      <button data-kind="WALL">Walls</button>
+      <button data-kind="DOOR">Doors</button>
+      <button data-kind="WINDOW">Windows</button>
+      <button data-kind="ROOM">Rooms</button>
+      <button data-kind="flagged">Flagged</button>
+    </div>
+    <div class="search-row">
+      <input type="text" id="searchBox" placeholder="Suche (id, type, wall_type, ...)">
+    </div>
+    <div class="element-list" id="list">
+      <div class="empty">Lade semantics.json ...</div>
+    </div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'planproof_bim_review_notes';
+const SEM_URL = '__SEMANTICS_URL__';
+
+let elements = [];
+let notes = {};
+let currentFilter = 'all';
+let search = '';
+let selectedId = null;
+
+try { notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { notes = {}; }
+
+function saveNotes() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+}
+
+function flagCount() {
+  return Object.keys(notes).filter(k => notes[k] && notes[k].flagged).length;
+}
+
+function showToast(msg, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = kind === 'warn' ? 'var(--warn)' : 'var(--ok)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function load() {
+  try {
+    const r = await fetch(SEM_URL, {cache: 'no-cache'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const sem = await r.json();
+    elements = buildElements(sem);
+    pruneStaleNotes();
+    render();
+    updateStats();
+  } catch (e) {
+    document.getElementById('list').innerHTML =
+      '<div class="empty">Fehler: ' + e.message + '<br><br>Stelle sicher, dass ' + SEM_URL + ' existiert.</div>';
+  }
+}
+
+function pruneStaleNotes() {
+  // Edge IDs (e_<idx>_<hex>) regenerate every pipeline run; stale notes
+  // from a previous run pollute the panel and noise up the console with
+  // "no mesh matched" warnings. Drop any note whose ID is no longer in
+  // the current model.
+  const liveIds = new Set(elements.map(e => e.id));
+  const staleIds = Object.keys(notes).filter(id => !liveIds.has(id));
+  if (!staleIds.length) return;
+  staleIds.forEach(id => { delete notes[id]; });
+  saveNotes();
+  console.log('[bim-viewer] pruned ' + staleIds.length
+              + ' stale notes whose IDs no longer exist in the model');
+}
+
+function buildElements(sem) {
+  const out = [];
+  const graph = sem.wall_graph_debug || {};
+  const nodes = {};
+  (graph.nodes || []).forEach(n => { nodes[n.id] = n; });
+
+  (graph.edges || []).forEach(e => {
+    const a = nodes[e.node_a], b = nodes[e.node_b];
+    if (!a || !b) return;
+    const ax = a.xy[0], ay = a.xy[1], bx = b.xy[0], by = b.xy[1];
+    const len = Math.hypot(bx - ax, by - ay);
+    const thick = e.thickness_m || 0;
+    const ops = e.openings || [];
+    out.push({
+      id: e.id, kind: 'WALL',
+      center: [(ax + bx) / 2, (ay + by) / 2],
+      summary: 'len=' + len.toFixed(2) + 'm  thick=' + thick.toFixed(2) + 'm  ' + (e.wall_type || 'interior') + '  openings=' + ops.length,
+      searchText: (e.id + ' wall ' + (e.wall_type || '')).toLowerCase(),
+      raw: { id: e.id, node_a: e.node_a, node_b: e.node_b,
+             a: a.xy, b: b.xy, length_m: +len.toFixed(3),
+             thickness_m: thick, height_m: e.height_m,
+             wall_type: e.wall_type, source: e.source,
+             attrs: e.attrs, openings: ops.map(o => o.id) },
+    });
+
+    if (len < 1e-6) return;
+    const ux = (bx - ax) / len, uy = (by - ay) / len;
+    ops.forEach(op => {
+      const cx = ax + ux * (op.offset_m || 0);
+      const cy = ay + uy * (op.offset_m || 0);
+      const perp = (op.attrs || {}).perp_distance_m || 0;
+      const perpWarn = perp > 0.30 ? ' !' + perp.toFixed(2) + 'm' : ' ' + perp.toFixed(3) + 'm';
+      out.push({
+        id: op.id, kind: op.kind === 'door' ? 'DOOR' : 'WINDOW',
+        center: [cx, cy],
+        summary: 'width=' + (op.width_m || 0).toFixed(2) + 'm  offset=' + (op.offset_m || 0).toFixed(2) + 'm  perp=' + perpWarn + '  parent=' + e.id,
+        searchText: (op.id + ' ' + op.kind + ' ' + (op.subtype || '') + ' ' + e.id).toLowerCase(),
+        raw: Object.assign({}, op, { parent_edge: e.id, center: [cx, cy] }),
+      });
+    });
+  });
+
+  (sem.rooms || []).forEach((r, i) => {
+    const c = r.center || [0, 0];
+    out.push({
+      id: r.id || ('room_' + i), kind: 'ROOM',
+      center: c,
+      summary: 'label="' + (r.label || '?') + '"  area=' + (r.area_m2 || 0).toFixed(1) + 'm2  bounds=' + ((r.bounding_segments || []).length),
+      searchText: ((r.id || '') + ' room ' + (r.label || '') + ' ' + ((r.meta || {}).room_type || '')).toLowerCase(),
+      raw: r,
+    });
+  });
+
+  return out;
+}
+
+function filterElements() {
+  return elements.filter(el => {
+    if (currentFilter === 'flagged') {
+      if (!(notes[el.id] && notes[el.id].flagged)) return false;
+    } else if (currentFilter !== 'all' && el.kind !== currentFilter) {
+      return false;
+    }
+    if (search && !el.searchText.includes(search) && !el.id.toLowerCase().includes(search)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function updateStats() {
+  const counts = { WALL: 0, DOOR: 0, WINDOW: 0, ROOM: 0 };
+  elements.forEach(e => { counts[e.kind] = (counts[e.kind] || 0) + 1; });
+  const f = flagCount();
+  document.getElementById('stats').innerHTML =
+    '<span>Walls ' + counts.WALL + '</span>' +
+    '<span>Doors ' + counts.DOOR + '</span>' +
+    '<span>Windows ' + counts.WINDOW + '</span>' +
+    '<span>Rooms ' + counts.ROOM + '</span>' +
+    (f ? '<span class="stat-flag">Flagged ' + f + '</span>' : '');
+}
+
+function render() {
+  const list = document.getElementById('list');
+  const filtered = filterElements();
+  document.getElementById('count').textContent = filtered.length + '/' + elements.length + '  flags=' + flagCount();
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">Keine Elemente im Filter</div>';
+    updateStats();
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  filtered.forEach(el => frag.appendChild(buildCard(el)));
+  list.appendChild(frag);
+  updateStats();
+}
+
+function buildCard(el) {
+  const note = notes[el.id] || {};
+  const flagged = !!note.flagged;
+  const card = document.createElement('div');
+  card.className = 'card' + (flagged ? ' flagged' : '') + (el.id === selectedId ? ' selected' : '');
+  card.dataset.id = el.id;
+  card.innerHTML =
+    '<div class="card-header">' +
+      '<span class="card-title">' + escapeHtml(el.id) + '</span>' +
+      '<span class="card-kind kind-' + el.kind + '">' + el.kind + '</span>' +
+    '</div>' +
+    '<div class="card-meta">' + escapeHtml(el.summary) + '</div>' +
+    '<div class="card-json">' + escapeHtml(JSON.stringify(el.raw, null, 2)) + '</div>' +
+    '<div class="card-actions">' +
+      '<button class="toggle-json">JSON</button>' +
+      '<button class="toggle-flag ' + (flagged ? 'active' : '') + '">' + (flagged ? 'flagged' : 'Fehler') + '</button>' +
+      '<button class="focus-view">Zoom</button>' +
+    '</div>' +
+    '<div class="card-note">' +
+      '<textarea placeholder="Was ist hier falsch? (z.B. Wand sollte bis zum Fenster gehen, Tuer sitzt in falschem Raum ...)">' + escapeHtml(note.text || '') + '</textarea>' +
+      '<div class="note-meta">Wird automatisch gespeichert. Export -> JSON fuer Claude.</div>' +
+    '</div>';
+
+  card.querySelector('.toggle-json').addEventListener('click', (e) => {
+    e.stopPropagation();
+    card.classList.toggle('expanded');
+  });
+  card.querySelector('.toggle-flag').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFlag(el.id);
+  });
+  card.querySelector('.focus-view').addEventListener('click', (e) => {
+    e.stopPropagation();
+    focusOn(el);
+  });
+  card.querySelector('textarea').addEventListener('input', (e) => {
+    const wasFlagged = !!(notes[el.id] && notes[el.id].flagged);
+    notes[el.id] = notes[el.id] || {};
+    notes[el.id].flagged = true;
+    notes[el.id].text = e.target.value;
+    notes[el.id].ts = Date.now();
+    saveNotes();
+    if (!wasFlagged) {
+      setFlaggedHighlight(el.id, true);
+      if (selectedId === el.id) highlightSelected(el.id);
+    }
+    if (!card.classList.contains('flagged')) {
+      card.classList.add('flagged');
+      const flagBtn = card.querySelector('.toggle-flag');
+      flagBtn.classList.add('active');
+      flagBtn.textContent = 'flagged';
+      updateStats();
+    }
+  });
+  card.addEventListener('click', () => focusOn(el));
+  return card;
+}
+
+function toggleFlag(id) {
+  notes[id] = notes[id] || {};
+  const willBeFlagged = !notes[id].flagged;
+  if (willBeFlagged) {
+    notes[id].flagged = true;
+    notes[id].ts = Date.now();
+  } else {
+    delete notes[id].flagged;
+    if (!notes[id].text) delete notes[id];
+  }
+  saveNotes();
+  setFlaggedHighlight(id, willBeFlagged);
+  render();
+  if (selectedId === id) highlightSelected(id);
+}
+
+// --- 3D mesh highlighting -------------------------------------------------
+// model-viewer exposes its Three.js scene through Symbol.for('scene'). We
+// traverse, find the mesh(es) whose name contains the element id, clone
+// the material once, and paint it a vivid magenta with strong emissive so
+// it stands out against the default BIM palette.
+const HIGHLIGHT_COLOR = 0xff00ff;   // neon magenta
+const HIGHLIGHT_EMISSIVE = 0xff2be3;
+const HIGHLIGHT_EMISSIVE_INTENSITY = 1.4;
+const FLAGGED_COLOR = 0xf97316;     // orange
+const FLAGGED_EMISSIVE = 0xfb923c;
+const FLAGGED_EMISSIVE_INTENSITY = 0.9;
+
+let lastSelectedMeshes = [];        // [{mesh, orig}]
+let flaggedMeshMap = {};            // elementId -> [{mesh, orig}]
+let modelReady = false;
+let meshNamesCache = null;          // Set<string> for debug logging
+
+function requestRender() {
+  // model-viewer throttles its render loop when idle (tab focused but
+  // no user interaction). Changing material properties won't trigger a
+  // paint on its own. We poke the renderer through two paths:
+  //   1. scene.queueRender() — model-viewer's ModelScene method
+  //   2. toggle a reactive attribute (`exposure`) — always triggers a
+  //      frame even if the queueRender API changes across versions.
+  const mv = document.getElementById('mv');
+  if (!mv) return;
+  const scene = getScene();
+  if (scene && typeof scene.queueRender === 'function') {
+    try { scene.queueRender(); } catch (e) { /* fall through */ }
+  }
+  const prev = mv.exposure;
+  mv.exposure = prev + 0.0001;
+  requestAnimationFrame(() => { mv.exposure = prev; });
+}
+
+function getScene() {
+  const mv = document.getElementById('mv');
+  if (!mv) return null;
+  // Try every known way model-viewer 3.x exposes its Three.js scene.
+  // The internal symbol changes between versions and is sometimes
+  // registered (Symbol.for) and sometimes locally-created.
+  try {
+    // 1. Walk the element's symbol-keyed properties — most robust
+    const syms = Object.getOwnPropertySymbols(mv);
+    for (const s of syms) {
+      const v = mv[s];
+      if (!v) continue;
+      if (v.isObject3D === true || typeof v.traverse === 'function') return v;
+      if (v.scene && (v.scene.isObject3D || typeof v.scene.traverse === 'function')) {
+        return v.scene;
+      }
+      // Some versions: { _scene: Scene }
+      if (v._scene && typeof v._scene.traverse === 'function') return v._scene;
+    }
+  } catch (e) { /* fall through */ }
+
+  // 2. Walk own enumerable + non-enumerable string-keyed properties
+  try {
+    const names = Object.getOwnPropertyNames(mv);
+    for (const n of names) {
+      const v = mv[n];
+      if (v && (v.isObject3D === true || typeof v.traverse === 'function')) {
+        return v;
+      }
+    }
+  } catch (e) { /* fall through */ }
+
+  // 3. Public API some versions expose
+  try { if (mv.model && mv.model.scene) return mv.model.scene; } catch (e) {}
+  try { const s = Symbol.for('scene'); if (mv[s]) return mv[s]; } catch (e) {}
+
+  return null;
+}
+
+function forEachMeshFor(elementId, fn) {
+  const scene = getScene();
+  if (!scene || typeof scene.traverse !== 'function') {
+    console.warn('[bim-viewer] no Three.js scene available for id=' + elementId);
+    return 0;
+  }
+  let hits = 0;
+  // model-viewer 3.4 mangles mesh names from glTF:
+  //   "wall/e_0_1ae2d7"   ->  "walle_0_1ae2d7" (slash stripped)
+  //   plus "_<n>" appended per primitive (e.g. "walle_0_1ae2d7_1").
+  //
+  // Build the explicit set of valid base-names, then accept either the
+  // base or "<base>_<digits>". This is strict enough that id "d1" does
+  // NOT match "d10" or wall id "e_22_d1f4bc" (different prefix).
+  const kinds = ['wall', 'door', 'window', 'room', 'junction'];
+  const validBases = new Set([elementId]);
+  for (const k of kinds) {
+    validBases.add(k + elementId);
+    validBases.add(k + '/' + elementId);
+  }
+  const suffixRe = /_(\d+)$/;
+  scene.traverse(obj => {
+    if (!obj || !obj.isMesh) return;
+    const n = obj.name || '';
+    if (validBases.has(n)) { fn(obj); hits++; return; }
+    const m = n.match(suffixRe);
+    if (m) {
+      const base = n.slice(0, -m[0].length);
+      if (validBases.has(base)) { fn(obj); hits++; }
+    }
+  });
+  if (hits === 0) {
+    console.warn('[bim-viewer] no mesh matched id=' + elementId
+                 + ' (loaded meshes=' + (meshNamesCache ? meshNamesCache.size : 'n/a') + ')');
+  }
+  return hits;
+}
+
+function cloneMaterialOnce(mesh) {
+  if (mesh.userData && mesh.userData._materialCloned) return mesh.material;
+  mesh.material = mesh.material.clone();
+  mesh.userData = mesh.userData || {};
+  mesh.userData._materialCloned = true;
+  return mesh.material;
+}
+
+function snapshotMaterial(mesh) {
+  const m = mesh.material;
+  return {
+    color: m.color ? m.color.clone() : null,
+    emissive: m.emissive ? m.emissive.clone() : null,
+    emissiveIntensity: typeof m.emissiveIntensity === 'number' ? m.emissiveIntensity : 1.0,
+  };
+}
+
+function applyColor(mesh, colorHex, emissiveHex, emissiveI) {
+  const mat = cloneMaterialOnce(mesh);
+  if (mat.color) mat.color.setHex(colorHex);
+  if (mat.emissive) mat.emissive.setHex(emissiveHex);
+  if (typeof mat.emissiveIntensity === 'number') mat.emissiveIntensity = emissiveI;
+  mat.needsUpdate = true;
+}
+
+function restoreMaterial(mesh, snap) {
+  const mat = mesh.material;
+  if (snap.color && mat.color) mat.color.copy(snap.color);
+  if (snap.emissive && mat.emissive) mat.emissive.copy(snap.emissive);
+  if (typeof mat.emissiveIntensity === 'number') mat.emissiveIntensity = snap.emissiveIntensity;
+  mat.needsUpdate = true;
+}
+
+function clearSelectedHighlight() {
+  lastSelectedMeshes.forEach(({mesh, orig}) => restoreMaterial(mesh, orig));
+  lastSelectedMeshes = [];
+  // Re-apply flagged highlights on elements that were temporarily overwritten
+  Object.keys(flaggedMeshMap).forEach(id => {
+    flaggedMeshMap[id].forEach(({mesh}) => {
+      applyColor(mesh, FLAGGED_COLOR, FLAGGED_EMISSIVE, FLAGGED_EMISSIVE_INTENSITY);
+    });
+  });
+}
+
+function highlightSelected(elementId) {
+  clearSelectedHighlight();
+  if (!elementId) { requestRender(); return; }
+  forEachMeshFor(elementId, mesh => {
+    const orig = snapshotMaterial(mesh);
+    applyColor(mesh, HIGHLIGHT_COLOR, HIGHLIGHT_EMISSIVE, HIGHLIGHT_EMISSIVE_INTENSITY);
+    lastSelectedMeshes.push({mesh, orig});
+  });
+  requestRender();
+}
+
+function setFlaggedHighlight(elementId, flagged) {
+  // Remove prior entry regardless of new state
+  if (flaggedMeshMap[elementId]) {
+    flaggedMeshMap[elementId].forEach(({mesh, orig}) => restoreMaterial(mesh, orig));
+    delete flaggedMeshMap[elementId];
+  }
+  if (!flagged) { requestRender(); return; }
+  const entries = [];
+  forEachMeshFor(elementId, mesh => {
+    const orig = snapshotMaterial(mesh);
+    applyColor(mesh, FLAGGED_COLOR, FLAGGED_EMISSIVE, FLAGGED_EMISSIVE_INTENSITY);
+    entries.push({mesh, orig});
+  });
+  if (entries.length) flaggedMeshMap[elementId] = entries;
+  requestRender();
+}
+
+function reapplyAllFlaggedHighlights() {
+  // Called after model load: walk current notes and paint orange.
+  Object.keys(notes).forEach(id => {
+    if (notes[id] && notes[id].flagged) setFlaggedHighlight(id, true);
+  });
+  requestRender();
+}
+
+function focusOn(el) {
+  selectedId = el.id;
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', c.dataset.id === el.id));
+  const card = document.querySelector('.card[data-id="' + CSS.escape(el.id) + '"]');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  highlightSelected(el.id);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const flaggedIds = Object.keys(notes).filter(k => notes[k] && notes[k].flagged);
+  if (!flaggedIds.length) { showToast('Keine Flags zum Exportieren', 'warn'); return; }
+  const out = {
+    exported_at: new Date().toISOString(),
+    count: flaggedIds.length,
+    items: flaggedIds.map(id => {
+      const el = elements.find(e => e.id === id);
+      return {
+        id: id,
+        kind: el ? el.kind : 'unknown',
+        center: el ? el.center : null,
+        summary: el ? el.summary : '',
+        note: (notes[id].text || '').trim(),
+        raw: el ? el.raw : null,
+      };
+    }),
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  a.download = 'bim_review_' + ts + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(flaggedIds.length + ' Flags exportiert');
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (!confirm('Alle Flags und Notizen wirklich loeschen?')) return;
+  // Restore all flagged meshes before clearing state
+  Object.keys(flaggedMeshMap).forEach(id => setFlaggedHighlight(id, false));
+  if (selectedId) { highlightSelected(null); selectedId = null; }
+  notes = {}; saveNotes(); render(); showToast('Alle Flags geloescht');
+});
+
+// When the model loads (async), cache scene metadata + re-apply any
+// persisted flagged highlights so the user sees them immediately on
+// page refresh. Also re-apply the currently-selected highlight in case
+// the user clicked a card before the glTF finished streaming.
+function _scanScene(label) {
+  const scene = getScene();
+  meshNamesCache = new Set();
+  let meshCount = 0;
+  if (scene && typeof scene.traverse === 'function') {
+    scene.traverse(obj => {
+      if (obj && obj.isMesh) {
+        meshCount++;
+        if (obj.name) meshNamesCache.add(obj.name);
+      }
+    });
+  }
+  console.log('[bim-viewer] ' + label + ' scene=' + (scene ? 'ok' : 'MISSING')
+              + ', meshes=' + meshCount
+              + (meshNamesCache.size
+                 ? ', sample=' + Array.from(meshNamesCache).slice(0, 5).join('|')
+                 : ''));
+  return meshCount;
+}
+
+document.getElementById('mv').addEventListener('load', () => {
+  modelReady = true;
+  // Retry up to 3× because model-viewer sometimes fires `load` before
+  // the Three.js scene has been populated with mesh data.
+  const attempt = (n) => {
+    const meshes = _scanScene('load attempt ' + (n + 1) + ':');
+    if (meshes === 0 && n < 3) {
+      setTimeout(() => attempt(n + 1), 200 * (n + 1));
+      return;
+    }
+    reapplyAllFlaggedHighlights();
+    if (selectedId) highlightSelected(selectedId);
+  };
+  attempt(0);
+});
+
+// Manual debug helper — call window.bimDebug() in the console to see
+// what the highlight code currently sees.
+window.bimDebug = () => _scanScene('manual debug:');
+
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.kind;
+    render();
+  });
+});
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  search = e.target.value.toLowerCase().trim();
+  render();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key !== 'j' && e.key !== 'k') return;
+  const f = filterElements();
+  if (!f.length) return;
+  let idx = f.findIndex(x => x.id === selectedId);
+  idx = e.key === 'j' ? (idx + 1) % f.length : (idx - 1 + f.length) % f.length;
+  focusOn(f[idx]);
+});
+
+load();
+</script>
+</body>
+</html>

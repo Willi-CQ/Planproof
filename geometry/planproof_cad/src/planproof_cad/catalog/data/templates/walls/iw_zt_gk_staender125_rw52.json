@@ -1,0 +1,65 @@
+{
+  "template_key": "iw_zt_gk_staender125_rw52",
+  "name": "Zimmertrennwand GK-Doppelständer 125 / R'w 52 dB",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "interior_wall_partition",
+  "layers": [
+    {
+      "material_key": "gkf_12_5",
+      "thickness_mm": 12.5,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "gkf_12_5",
+      "thickness_mm": 12.5,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "zwisparrendaemm_mw_035_180",
+      "thickness_mm": 100.0,
+      "function": "thermal_acoustic_insulation"
+    },
+    {
+      "material_key": "gkf_12_5",
+      "thickness_mm": 12.5,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "gkf_12_5",
+      "thickness_mm": 12.5,
+      "function": "interior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "MFH",
+      "Buero",
+      "Hotel"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 52,
+    "fire_resistance": "REI 90",
+    "u_value": 0.306,
+    "total_thickness_mm": 150.0,
+    "r_total": 3.265
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": false,
+      "LoadBearing": false,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 52 dB",
+      "ThermalTransmittance": 0.306
+    }
+  },
+  "din_references": [
+    "DIN 4109-1",
+    "DIN 4109-33"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"26.7\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"13.3\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">12</text><rect x=\"26.7\" y=\"0\" width=\"26.7\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"40.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">12</text><rect x=\"53.3\" y=\"0\" width=\"213.3\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">100</text><rect x=\"266.7\" y=\"0\" width=\"26.7\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"280.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">12</text><rect x=\"293.3\" y=\"0\" width=\"26.7\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"306.7\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">12</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

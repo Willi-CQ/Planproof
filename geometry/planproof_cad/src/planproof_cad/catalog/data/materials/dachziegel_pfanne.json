@@ -1,0 +1,12 @@
+{
+  "material_key": "dachziegel_pfanne",
+  "name": "Dachpfanne Tonziegel",
+  "category": "cladding",
+  "thickness_mm": 30.0,
+  "properties": {
+    "thermal_conductivity": 1.0,
+    "density": 2000,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

@@ -1,0 +1,56 @@
+{
+  "template_key": "decke_beton200_estrich60_mw",
+  "name": "Geschossdecke Beton 200 + MW-Trittschall + Estrich 60",
+  "element_type": "slab",
+  "ifc_entity_type": "IfcSlab",
+  "category": "ceiling_slab",
+  "layers": [
+    {
+      "material_key": "stahlbeton_decke_200",
+      "thickness_mm": 200.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "trittschall_mw_t_30",
+      "thickness_mm": 30.0,
+      "function": "impact_sound"
+    },
+    {
+      "material_key": "estrich_zement_60",
+      "thickness_mm": 60.0,
+      "function": "screed"
+    }
+  ],
+  "geometry_params": {
+    "is_ground_slab": false,
+    "typical_for": [
+      "MFH",
+      "Buero",
+      "Wohnungstrenndecke"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 56,
+    "impact_sound_ln_w": 48,
+    "fire_resistance": "REI 90",
+    "u_value": 0.981,
+    "total_thickness_mm": 290.0,
+    "r_total": 1.02
+  },
+  "ifc_psets": {
+    "Pset_SlabCommon": {
+      "LoadBearing": true,
+      "IsExternal": false,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 56 dB",
+      "ThermalTransmittance": 0.981
+    }
+  },
+  "din_references": [
+    "DIN 1045",
+    "DIN 4109-1"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"220.7\" height=\"96\" fill=\"#8a8a8a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"110.3\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">200</text><rect x=\"220.7\" y=\"0\" width=\"33.1\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"237.2\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">30</text><rect x=\"253.8\" y=\"0\" width=\"66.2\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"286.9\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">60</text><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

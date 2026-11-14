@@ -1,0 +1,12 @@
+{
+  "material_key": "wdvs_mw_035_140",
+  "name": "WDVS Mineralwolle 035 / 140 mm",
+  "category": "insulation",
+  "thickness_mm": 140.0,
+  "properties": {
+    "thermal_conductivity": 0.035,
+    "density": 90,
+    "fire_class": "A1"
+  },
+  "source": "Planproof"
+}

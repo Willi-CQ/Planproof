@@ -1,0 +1,33 @@
+{
+  "template_key": "t_buero_glas_t30_100_210",
+  "name": "Bürotür Ganzglas T30 100 × 210",
+  "element_type": "door",
+  "ifc_entity_type": "IfcDoorStandardCase",
+  "category": "office_door",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1000,
+    "default_height_mm": 2100,
+    "leaf_type": "tempered_glass_t30",
+    "opening_direction": "single_swing",
+    "typical_for": [
+      "Buero",
+      "Brandabschnitt"
+    ]
+  },
+  "computed_properties": {
+    "fire_resistance": "EI 30"
+  },
+  "ifc_psets": {
+    "Pset_DoorCommon": {
+      "IsExternal": false,
+      "FireRating": "EI 30"
+    }
+  },
+  "din_references": [
+    "DIN 18101"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 18101 (2014)"
+}

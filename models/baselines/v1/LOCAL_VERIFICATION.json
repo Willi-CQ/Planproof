@@ -1,0 +1,54 @@
+{
+  "verified_utc": "2026-11-14T06:31:27.508376+00:00",
+  "device": "local Windows CPU, two threads",
+  "torch_version": "2.5.1+cpu",
+  "onnxruntime_version": "1.20.1",
+  "rtol": 0.001,
+  "atol": 0.0001,
+  "releases": [
+    {
+      "release": "corrected-3500-global",
+      "payload_files_verified": 15,
+      "model_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+      "training_step": 3500,
+      "all_pytorch_heads_finite": true,
+      "published_onnx_outputs": [
+        "masks",
+        "boundary",
+        "centers",
+        "boxes",
+        "types"
+      ],
+      "onnx_dynamic_shape": [
+        96,
+        128
+      ],
+      "onnx_parity_max_abs": {
+        "masks": 3.266334533691406e-05,
+        "boundary": 1.3828277587890625e-05,
+        "centers": 1.0013580322265625e-05,
+        "boxes": 8.58306884765625e-06,
+        "types": 2.110004425048828e-05
+      }
+    },
+    {
+      "release": "cad-objects-3000-global",
+      "payload_files_verified": 11,
+      "model_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+      "training_step": 3000,
+      "all_pytorch_heads_finite": true,
+      "published_onnx_outputs": [
+        "centers",
+        "boxes"
+      ],
+      "onnx_dynamic_shape": [
+        96,
+        128
+      ],
+      "onnx_parity_max_abs": {
+        "centers": 5.7220458984375e-06,
+        "boxes": 4.0531158447265625e-06
+      }
+    }
+  ]
+}

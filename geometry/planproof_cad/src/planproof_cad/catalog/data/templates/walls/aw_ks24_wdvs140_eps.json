@@ -1,0 +1,64 @@
+{
+  "template_key": "aw_ks24_wdvs140_eps",
+  "name": "AW: KS 240 + WDVS 140 EPS",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "exterior_wall_loadbearing",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "ks_1_8_240",
+      "thickness_mm": 240.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "wdvs_eps_035_140",
+      "thickness_mm": 140.0,
+      "function": "thermal_insulation"
+    },
+    {
+      "material_key": "armierungsputz_5",
+      "thickness_mm": 5.0,
+      "function": "exterior_finish"
+    },
+    {
+      "material_key": "mineralputz_aussen_8",
+      "thickness_mm": 8.0,
+      "function": "exterior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 53,
+    "fire_resistance": "REI 90",
+    "u_value": 0.224,
+    "total_thickness_mm": 408.0,
+    "r_total": 4.457
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": true,
+      "LoadBearing": true,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 53 dB",
+      "ThermalTransmittance": 0.224
+    }
+  },
+  "din_references": [
+    "DIN 4108-2",
+    "DIN 1053-1"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"11.8\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"11.8\" y=\"0\" width=\"188.2\" height=\"96\" fill=\"#c8b89a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"105.9\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">240</text><rect x=\"200.0\" y=\"0\" width=\"109.8\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"254.9\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">140</text><rect x=\"309.8\" y=\"0\" width=\"3.9\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"313.7\" y=\"0\" width=\"6.3\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

@@ -1,0 +1,12 @@
+{
+  "material_key": "osb_15",
+  "name": "OSB-Platte 15 mm",
+  "category": "wood",
+  "thickness_mm": 15.0,
+  "properties": {
+    "thermal_conductivity": 0.13,
+    "density": 600,
+    "fire_class": "D"
+  },
+  "source": "Planproof"
+}

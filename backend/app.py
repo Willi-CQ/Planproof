@@ -8,6 +8,7 @@ from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
 from threading import Lock
+from time import perf_counter
 from typing import Annotated, Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -15,17 +16,24 @@ from uuid import uuid4
 
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from PIL import Image, ImageOps
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from deterministic_adapter import EngineState, deterministic_available, run_deterministic
 from engine_runner import enabled_engines, run_engines
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
 from ml_adapter import adapt_ml
+from nemotron_review import nemotron_config, nemotron_key, review_with_nemotron
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 
 
 app = FastAPI(title="PlanProof MVP")
+app.add_middleware(
+    CORSMiddleware, allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type"],
+)
 frontend = Path(__file__).resolve().parents[1] / "plan-checker"
 
 
@@ -102,6 +110,7 @@ class GeminiObservation(BaseModel):
 pages: OrderedDict[str, tuple[int, Page]] = OrderedDict()
 pages_lock = Lock()
 pdf_lock = Lock()
+engine_lock = Lock()
 
 
 def register_page(pdf_bytes: bytes, page_number: int) -> DocumentPage:
@@ -176,6 +185,8 @@ def get_page(document_id: str) -> tuple[int, Page]:
 
 
 def read_with_gemini(png: bytes, label: str) -> Literal["unavailable", "found", "uncertain"]:
+    if os.getenv("PLANPROOF_REVIEW_PROVIDER") == "nemotron" or nemotron_key():
+        return "unavailable"
     config = gemini_config()
     if config is None:
         return "unavailable"
@@ -272,8 +283,26 @@ class DoorCountResponse(Comparison):
     request_id: str
     source: PageFrame
     image_url: str
-    mode: Literal["submitted_results", "executed_engines", "synthetic_demo"]
+    mode: Literal["submitted_results", "executed_engines", "synthetic_demo", "live_engines"]
     gemini: Review
+    nemotron: Review
+
+
+class DoorAnalysisRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ml_detections: dict | None = None
+    allow_gemini_review: bool = False
+    allow_nemotron_review: bool = False
+
+
+class EngineRuns(BaseModel):
+    deterministic: EngineState
+    deterministic_seconds: float
+    ml: Literal["provided", "not_provided"]
+
+
+class DoorAnalysisResponse(DoorCountResponse):
+    engines: EngineRuns
 
 
 def frame_for(document_id: str, number: int, page: Page) -> PageFrame:
@@ -299,34 +328,75 @@ def run_door_count(
         comparison = compare(request.deterministic, ml, source)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-
-    review = Review(status="not_needed")
-    if comparison.status == "NEEDS_REVIEW":
-        config = gemini_config()
-        if not request.allow_gemini_review:
-            review = Review(status="not_authorized")
-        elif os.getenv("GEMINI_ENABLED", "").strip().lower() != "true":
-            review = Review(status="disabled")
-        elif not config:
-            review = Review(status="unavailable")
-        elif len(comparison.disputed_evidence) > MAX_CANDIDATES:
-            review = Review(status="outside_scope")
-        else:
-            with pdf_lock:
-                region = review_crop(page.png, source, comparison.disputed_evidence)
-            if region is None:
-                review = Review(status="outside_scope")
-            else:
-                crop, bounds = region
-                review = review_disagreement(crop, bounds, source.page_index, comparison, *config)
-
     return DoorCountResponse(
         **comparison.model_dump(),
         request_id=uuid4().hex,
         source=source,
         image_url=f"/api/documents/{request.document_id}/image",
         mode="synthetic_demo" if demo else "executed_engines" if loaded_page else "submitted_results",
-        gemini=review,
+        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
+        nemotron=review_comparison(comparison, page, source, request.allow_nemotron_review, provider="nemotron"),
+    )
+
+
+def review_comparison(
+    comparison: Comparison, page: Page, source: PageFrame, allowed: bool,
+    *, provider: Literal["gemini", "nemotron"] = "gemini",
+) -> Review:
+    if comparison.status != "NEEDS_REVIEW":
+        return Review(status="not_needed")
+    if not allowed:
+        return Review(status="not_authorized")
+    if provider == "nemotron":
+        config = nemotron_config()
+        review = review_with_nemotron
+    else:
+        if (os.getenv("PLANPROOF_REVIEW_PROVIDER") == "nemotron" or nemotron_key()
+                or os.getenv("GEMINI_ENABLED", "").strip().lower() != "true"):
+            return Review(status="disabled")
+        config = gemini_config()
+        review = review_disagreement
+    if not config:
+        return Review(status="unavailable")
+    if not 0 < len(comparison.disputed_evidence) <= MAX_CANDIDATES:
+        return Review(status="outside_scope")
+    with pdf_lock:
+        region = review_crop(page.png, source, comparison.disputed_evidence)
+    if region is None:
+        return Review(status="outside_scope")
+    crop, bounds = region
+    return review(crop, bounds, source.page_index, comparison, *config)
+
+
+@app.post("/api/v1/documents/{document_id}/door-analysis")
+def door_analysis(document_id: str, request: DoorAnalysisRequest) -> DoorAnalysisResponse:
+    """Run the deterministic engine on the stored page, then compare it with optional ML detections."""
+    number, page = get_page(document_id)
+    source = frame_for(document_id, number, page)
+    try:
+        ml = adapt_ml(request.ml_detections, source) if request.ml_detections is not None else None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    started = perf_counter()
+    with engine_lock:
+        deterministic, state = run_deterministic(page.png, source)
+    seconds = round(perf_counter() - started, 2)
+    try:
+        comparison = compare(deterministic, ml, source)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return DoorAnalysisResponse(
+        **comparison.model_dump(),
+        request_id=uuid4().hex,
+        source=source,
+        image_url=f"/api/documents/{document_id}/image",
+        mode="live_engines",
+        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
+        nemotron=review_comparison(comparison, page, source, request.allow_nemotron_review, provider="nemotron"),
+        engines=EngineRuns(
+            deterministic=state, deterministic_seconds=seconds,
+            ml="provided" if ml is not None else "not_provided",
+        ),
     )
 
 
@@ -338,20 +408,30 @@ def door_count(request: DoorCountRequest) -> DoorCountResponse:
 
 @app.get("/api/v1/engines")
 def engine_status() -> dict[str, bool]:
-    return {**enabled_engines(), "gemini": (
-        os.getenv("GEMINI_ENABLED", "").strip().lower() == "true" and gemini_config() is not None
-    )}
+    engines = enabled_engines()
+    return {
+        **engines,
+        "deterministic": engines["deterministic"] or deterministic_available(),
+        "nemotron": nemotron_config() is not None,
+    }
 
 
 @app.post("/api/v1/documents/{document_id}/analyze-doors")
-def analyze_doors(document_id: str, allow_gemini_review: bool = False) -> DoorCountResponse:
+def analyze_doors(
+    document_id: str, allow_gemini_review: bool = False, allow_nemotron_review: bool = False,
+) -> DoorCountResponse:
     """Run configured local engines against one page and compare their evidence."""
     loaded_page = get_page(document_id)
     number, page = loaded_page
-    results = run_engines(page.png, frame_for(document_id, number, page))
+    frame = frame_for(document_id, number, page)
+    results = run_engines(page.png, frame)
+    if "deterministic" not in results and deterministic_available():
+        with engine_lock:
+            results["deterministic"], _ = run_deterministic(page.png, frame)
     return run_door_count(DoorCountRequest(
         document_id=document_id, deterministic=results.get("deterministic"), ml=results.get("ml"),
         allow_gemini_review=allow_gemini_review,
+        allow_nemotron_review=allow_nemotron_review,
     ), loaded_page=loaded_page)
 
 
@@ -359,6 +439,7 @@ def analyze_doors(document_id: str, allow_gemini_review: bool = False) -> DoorCo
 def door_count_demo(
     scenario: Literal["agreement", "disputed", "missing_ml"] = "disputed",
     allow_gemini_review: bool = False,
+    allow_nemotron_review: bool = False,
 ) -> DoorCountResponse:
     # Door swing symbols and illustrative boxes generated together for this demo only.
     with pdf_lock, pymupdf.open() as document:
@@ -388,5 +469,5 @@ def door_count_demo(
     )
     return run_door_count(DoorCountRequest(
         document_id=registered.document_id, deterministic=deterministic, ml=ml,
-        allow_gemini_review=allow_gemini_review,
+        allow_gemini_review=allow_gemini_review, allow_nemotron_review=allow_nemotron_review,
     ), demo=True)

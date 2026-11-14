@@ -1,0 +1,7 @@
+{
+  "label_version": "FloorPlanCAD 35-class semanticId; one-based original SVG IDs",
+  "mapping": {"1":"door","2":"door","3":"door","4":"door","5":"door","6":"door",
+              "7":"window","8":"window","9":"window","28":"stairs"},
+  "complete": ["door","window","stairs"],
+  "notes": "Opening symbol (10), elevator (29), escalator (30), wall strokes (33) are not wall-body/stair masks. Supply a separate class map for another release; never apply COCO or remapped IDs to these original SVG semanticId values."
+}

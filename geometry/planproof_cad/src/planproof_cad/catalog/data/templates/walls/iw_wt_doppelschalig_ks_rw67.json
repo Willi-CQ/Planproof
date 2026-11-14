@@ -1,0 +1,65 @@
+{
+  "template_key": "iw_wt_doppelschalig_ks_rw67",
+  "name": "Zweischalige Haustrennwand KS+MW+KS (R'w >= 67 dB)",
+  "element_type": "wall",
+  "ifc_entity_type": "IfcWallStandardCase",
+  "category": "interior_wall_house_separation",
+  "layers": [
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    },
+    {
+      "material_key": "ks_1_8_175",
+      "thickness_mm": 175.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "kerndaemmung_mw_035_60",
+      "thickness_mm": 60.0,
+      "function": "acoustic_decoupling"
+    },
+    {
+      "material_key": "ks_1_8_175",
+      "thickness_mm": 175.0,
+      "function": "structural"
+    },
+    {
+      "material_key": "gipsputz_15",
+      "thickness_mm": 15.0,
+      "function": "interior_finish"
+    }
+  ],
+  "geometry_params": {
+    "default_height_mm": 2750,
+    "typical_for": [
+      "RH",
+      "DH",
+      "Haustrennwand"
+    ]
+  },
+  "computed_properties": {
+    "sound_reduction_rw": 67,
+    "fire_resistance": "REI 90",
+    "u_value": 0.435,
+    "total_thickness_mm": 440.0,
+    "r_total": 2.297
+  },
+  "ifc_psets": {
+    "Pset_WallCommon": {
+      "IsExternal": false,
+      "LoadBearing": true,
+      "FireRating": "REI 90",
+      "AcousticRating": "R'w >= 67 dB",
+      "ThermalTransmittance": 0.435
+    }
+  },
+  "din_references": [
+    "DIN 4109-1",
+    "DIN 4109-32"
+  ],
+  "preview_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"96\" viewBox=\"0 0 320 96\"><rect x=\"0\" y=\"0\" width=\"320\" height=\"96\" fill=\"#ffffff\" stroke=\"#444\" stroke-width=\"1\"/><rect x=\"0.0\" y=\"0\" width=\"10.9\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><rect x=\"10.9\" y=\"0\" width=\"127.3\" height=\"96\" fill=\"#c8b89a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"74.5\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">175</text><rect x=\"138.2\" y=\"0\" width=\"43.6\" height=\"96\" fill=\"#f5d76e\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"160.0\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">60</text><rect x=\"181.8\" y=\"0\" width=\"127.3\" height=\"96\" fill=\"#c8b89a\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"245.5\" y=\"90\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"10\" fill=\"#222\">175</text><rect x=\"309.1\" y=\"0\" width=\"10.9\" height=\"96\" fill=\"#e0e0e0\" stroke=\"#333\" stroke-width=\"0.5\"/><text x=\"4\" y=\"14\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">innen</text><text x=\"316\" y=\"14\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#444\">außen</text></svg>",
+  "source": "Planproof",
+  "reviewed_by": "DIN 4108-4 (2020)"
+}

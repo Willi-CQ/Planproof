@@ -1,0 +1,386 @@
+{
+  "_meta": {
+    "sprint": 3,
+    "scope": "MEDIUM-Priority Normen — Zahlenwerte und Lookup-Tabellen",
+    "normen": ["DIN 18560", "DIN EN ISO 5455", "DIN EN ISO 4157", "DIN 276", "DIN 4103", "DIN 18015", "DIN EN ISO 19650 / VDI 2552", "Fenster-Standardmaße"],
+    "created": "2026-04-14",
+    "status": "VALUES_POPULATED"
+  },
+
+  "din_18560": {
+    "title": "Estriche im Bauwesen — Bodenaufbauhöhen",
+    "beschreibung": "Estrichdicken und typische Bodenaufbauten. Relevant für Differenz OKFR→OKFF und korrekte Geschosshöhen im BIM.",
+
+    "schwimmender_estrich_mindestdicken_mm": {
+      "beschreibung": "Mindestnenndicken für schwimmende Estriche auf Dämmschicht (Wohnungsbau, EL ≤ 2kN, FL ≤ 3kN/m²)",
+      "zementestrich_F4": 45,
+      "zementestrich_F5": 40,
+      "calciumsulfatestrich_F4": 45,
+      "calciumsulfatestrich_F5": 40,
+      "calciumsulfat_fliessestrich_CAF_F4": 40,
+      "calciumsulfat_fliessestrich_CAF_F5": 35,
+      "gussasphaltestrich": 25,
+      "unter_stein_keramik_belag_min": 45,
+      "hinweis": "Ab 2022 gilt min. Estrichdicke unabhängig vom Oberbelag nach Tabelle 1"
+    },
+
+    "heizestrich_dicken_mm": {
+      "beschreibung": "Heizestrich (Fußbodenheizung) — Rohr innerhalb Estrich (Bauart A)",
+      "ueberdeckung_min_ueber_rohr_mm": 45,
+      "rohr_durchmesser_typisch_mm": [14, 16, 17, 20],
+      "gesamtdicke_typisch_mm": [60, 65, 70]
+    },
+
+    "typische_bodenaufbauten_wohnungsbau_mm": {
+      "beschreibung": "Gesamter Bodenaufbau von OKFR (Rohdecke) bis OKFF (Fertigfußboden)",
+
+      "standard_ohne_fbh": {
+        "trittschalldaemmung": 30,
+        "estrich": 45,
+        "bodenbelag": {"parkett": 15, "fliese_plus_kleber": 15, "laminat": 10, "teppich": 8},
+        "gesamthoehe_bereich_mm": [83, 95],
+        "typisch_mm": 90
+      },
+      "standard_mit_fbh": {
+        "trittschalldaemmung": 30,
+        "heizestrich_inkl_rohr": 65,
+        "bodenbelag": {"parkett": 15, "fliese_plus_kleber": 15},
+        "gesamthoehe_bereich_mm": [105, 115],
+        "typisch_mm": 110
+      },
+      "altbau_sanierung": {
+        "hinweis": "Bei Altbausanierung oft Niveauausgleich nötig. Aufbauhöhe 80-150mm je nach Situation.",
+        "gesamthoehe_bereich_mm": [80, 150]
+      },
+      "trockenestrich": {
+        "daemmung": 30,
+        "trockenestrichplatte": 25,
+        "bodenbelag": 12,
+        "gesamthoehe_typisch_mm": 67,
+        "hinweis": "Leichterer Aufbau für Altbau-Holzbalkendecken"
+      }
+    },
+
+    "p2b_anwendung": {
+      "okfr_okff_differenz": "Bodenaufbauhöhe = OKFF - OKFR. Typisch 90-110mm. Für Geschosshöhenberechnung: Rohbau-Geschosshöhe = lichte Raumhöhe + Deckendicke + Bodenaufbau",
+      "geschosshoehe_formel": "Rohbau-GH = OKFF-zu-OKFF = Deckendicke (180-220mm) + Bodenaufbau (90-110mm) + lichte Raumhöhe (2400-3500mm)",
+      "typische_rohbau_geschosshoehen_mm": {
+        "neubau_wohnbau": [2750, 2800, 2900, 3000],
+        "altbau_gruenderzeit": [3200, 3500, 3800, 4000],
+        "altbau_nachkrieg": [2650, 2750, 2800]
+      }
+    }
+  },
+
+  "din_en_iso_5455": {
+    "title": "Technische Zeichnungen — Maßstäbe",
+    "beschreibung": "Standardmaßstäbe für Bauzeichnungen. Basis für Pixel-zu-Meter-Kalibrierung.",
+
+    "massstab_reihen": {
+      "vergroesserung": ["50:1", "20:1", "10:1", "5:1", "2:1"],
+      "originalgroesse": ["1:1"],
+      "verkleinerung": ["1:2", "1:5", "1:10", "1:20", "1:50", "1:100", "1:200", "1:500", "1:1000", "1:2000", "1:5000", "1:10000"]
+    },
+
+    "bauzeichnungen_uebliche_massstaebe": {
+      "staedtebau_lageplan":    {"massstab": "1:500 / 1:1000 / 1:2000", "anwendung": "Lageplan, Bebauungsplan"},
+      "vorentwurf":             {"massstab": "1:200 / 1:100", "anwendung": "Vorentwurfszeichnung, erste Planungsphase"},
+      "entwurf":                {"massstab": "1:100", "anwendung": "Entwurfs- und Genehmigungsplanung"},
+      "ausfuehrung":            {"massstab": "1:50", "anwendung": "Ausführungsplanung, Werkplanung"},
+      "detail":                 {"massstab": "1:20 / 1:10 / 1:5 / 1:1", "anwendung": "Detailzeichnungen, Anschlüsse, Profile"}
+    },
+
+    "p2b_anwendung": {
+      "massstab_erkennung": "1. Schriftfeld OCR → Maßstab-Angabe extrahieren. 2. Alternativ: Referenzmaß im Plan (Bemaßungslinie) → Pixel pro Meter kalibrieren.",
+      "pixel_pro_meter_bei_300dpi": {
+        "1:100": 118,
+        "1:50":  236,
+        "1:200": 59,
+        "1:500": 24
+      },
+      "fallback_heuristik": "Wenn kein Maßstab erkennbar: typische Türbreite (≈875mm Baurichtmaß) als Referenz nutzen → Pixel pro Meter ableiten"
+    }
+  },
+
+  "din_en_iso_4157": {
+    "title": "Zeichnungen für das Bauwesen — Bezeichnungssysteme",
+    "beschreibung": "Standardisierte Raumnamen, -nummern und Gebäudeteil-Bezeichnungen für OCR/Label-Erkennung.",
+
+    "raumbezeichnungen_deutsch": {
+      "wohnen": {
+        "WZ": "Wohnzimmer",
+        "SZ": "Schlafzimmer",
+        "KiZ": "Kinderzimmer",
+        "AZ": "Arbeitszimmer",
+        "GZ": "Gästezimmer",
+        "EZ": "Esszimmer"
+      },
+      "kueche_essen": {
+        "KÜ": "Küche",
+        "WK": "Wohnküche",
+        "KN": "Kochnische"
+      },
+      "sanitaer": {
+        "BA": "Bad / Badezimmer",
+        "DU": "Dusche / Duschbad",
+        "WC": "WC / Toilette",
+        "GWC": "Gäste-WC",
+        "HWR": "Hauswirtschaftsraum"
+      },
+      "erschliessung": {
+        "FL": "Flur / Diele",
+        "DI": "Diele",
+        "WF": "Windfang",
+        "TR": "Treppenraum / Treppenhaus",
+        "VR": "Vorraum"
+      },
+      "nebenraeume": {
+        "AB": "Abstellraum",
+        "KE": "Keller",
+        "SR": "Speis / Speisekammer",
+        "GA": "Garage",
+        "SP": "Stellplatz / Carport",
+        "TE": "Technikraum",
+        "WÄ": "Waschraum / Waschküche"
+      },
+      "dach_sonder": {
+        "DG": "Dachgeschoss",
+        "BLK": "Balkon",
+        "LO": "Loggia",
+        "TER": "Terrasse",
+        "WG": "Wintergarten",
+        "_note": "BA ist in sanitaer fuer Bad reserviert; Balkon nutzt BLK. TE ist in nebenraeume fuer Technikraum reserviert; Terrasse nutzt TER."
+      }
+    },
+
+    "geschoss_bezeichnungen": {
+      "UG":  "Untergeschoss (Keller)",
+      "UG1": "1. Untergeschoss",
+      "UG2": "2. Untergeschoss",
+      "EG":  "Erdgeschoss",
+      "OG":  "Obergeschoss",
+      "1OG": "1. Obergeschoss",
+      "2OG": "2. Obergeschoss",
+      "DG":  "Dachgeschoss",
+      "SG":  "Staffelgeschoss"
+    },
+
+    "hoehenangaben_im_plan": {
+      "OKFF": "Oberkante Fertigfußboden",
+      "OKFR": "Oberkante Rohfußboden",
+      "OKRD": "Oberkante Rohdecke",
+      "UKRD": "Unterkante Rohdecke",
+      "FFB":  "Fertigfußboden (= OKFF)",
+      "OK":   "Oberkante",
+      "UK":   "Unterkante",
+      "LH":   "Lichte Höhe"
+    },
+
+    "p2b_anwendung": {
+      "ocr_label_matching": "OCR-Text im Raum → gegen Raumbezeichnungen matchen → IfcSpace.LongName + ObjectType setzen",
+      "geschoss_erkennung": "Plan-Label (EG, 1OG, DG etc.) → IfcBuildingStorey zuordnen",
+      "nuf_mapping": {
+        "WZ_SZ_KiZ_AZ_GZ_EZ": "NUF_1 (Wohnen und Aufenthalt)",
+        "KÜ_WK_KN": "NUF_1 (Wohnen und Aufenthalt)",
+        "BA_DU_WC_GWC_HWR": "NUF_7 (Sonstige Nutzungen)",
+        "FL_DI_WF_TR_VR": "VF (Verkehrsfläche)",
+        "AB_KE_SR": "NUF_7 (Sonstige Nutzungen)",
+        "TE": "TF (Technikfläche)"
+      }
+    }
+  },
+
+  "din_276": {
+    "title": "Kosten im Bauwesen — Kostengruppen",
+    "ausgabe": "2018-12",
+    "beschreibung": "Kostengliederung für Bauteile. Mapping erkannter BIM-Elemente auf Kostengruppen.",
+
+    "kostengruppen_baukonstruktion": {
+      "310": "Baugrube / Erdbau",
+      "320": "Gründung, Unterbau",
+      "321": "Baugrundverbesserung",
+      "322": "Flachgründungen",
+      "324": "Unterböden und Bodenplatten",
+      "326": "Bauwerksabdichtungen",
+      "330": "Außenwände / Vertikale Baukonstruktionen, außen",
+      "331": "Tragende Außenwände",
+      "332": "Nichttragende Außenwände",
+      "333": "Außenstützen",
+      "334": "Außenwandöffnungen (Fenster, Außentüren)",
+      "335": "Außenwandbekleidungen, außen (Fassade, WDVS)",
+      "336": "Außenwandbekleidungen, innen",
+      "340": "Innenwände / Vertikale Baukonstruktionen, innen",
+      "341": "Tragende Innenwände",
+      "342": "Nichttragende Innenwände",
+      "343": "Innenstützen",
+      "344": "Innenwandöffnungen (Innentüren)",
+      "345": "Innenwandbekleidungen",
+      "350": "Decken / Horizontale Baukonstruktionen",
+      "351": "Deckenkonstruktionen",
+      "352": "Deckenöffnungen (Treppen, Schächte)",
+      "353": "Deckenbeläge (Bodenaufbau, Estrich)",
+      "360": "Dächer",
+      "361": "Dachkonstruktionen",
+      "362": "Dachöffnungen (Dachfenster, Lichtkuppeln)",
+      "363": "Dachbeläge (Eindeckung, Abdichtung)",
+      "370": "Infrastrukturanlagen",
+      "380": "Baukonstruktive Einbauten"
+    },
+
+    "kostengruppen_technische_anlagen": {
+      "410": "Abwasser-, Wasser-, Gasanlagen",
+      "420": "Wärmeversorgungsanlagen",
+      "430": "Raumlufttechnische Anlagen",
+      "440": "Elektrische Anlagen",
+      "450": "Kommunikations-/Sicherheits-/IT-Anlagen",
+      "460": "Förderanlagen (Aufzüge)",
+      "480": "Gebäude- und Anlagenautomation"
+    },
+
+    "p2b_anwendung": {
+      "bauteil_zu_kg_mapping": {
+        "IfcWall_IsExternal_true_LoadBearing_true": "KG 331",
+        "IfcWall_IsExternal_true_LoadBearing_false": "KG 332",
+        "IfcWall_IsExternal_false_LoadBearing_true": "KG 341",
+        "IfcWall_IsExternal_false_LoadBearing_false": "KG 342",
+        "IfcColumn_IsExternal_true": "KG 333",
+        "IfcColumn_IsExternal_false": "KG 343",
+        "IfcDoor_IsExternal_true": "KG 334",
+        "IfcDoor_IsExternal_false": "KG 344",
+        "IfcWindow": "KG 334",
+        "IfcSlab_Decke": "KG 351",
+        "IfcStairFlight": "KG 352",
+        "IfcSpace_Aufzug": "KG 460",
+        "IfcRoof": "KG 361"
+      },
+      "cost_management_feature": "Erkannte Bauteile → KG zuordnen → Mengen (m², Stk, lfm) berechnen → Kostenschätzung auf Basis von Einheitspreisen"
+    }
+  },
+
+  "din_4103": {
+    "title": "Nichttragende innere Trennwände",
+    "beschreibung": "Anforderungen an leichte Trennwände. Relevant für Wandklassifikation im P2B-Pipeline.",
+
+    "mindestdicken_mm": {
+      "mauerwerk_nichttragend": {"min": 50, "typisch": [70, 100, 115]},
+      "gipskarton_einfach_beplankt": {"min": 75, "typisch": 75},
+      "gipskarton_doppelt_beplankt": {"min": 100, "typisch": [100, 125]},
+      "porenbeton_nichttragend": {"min": 50, "typisch": [75, 100, 115]},
+      "gips_wandbauplatten": {"min": 60, "typisch": [60, 80, 100]}
+    },
+
+    "klassifikation": {
+      "stoessfestigkeit_klassen": {
+        "S1": "nur Eigengewicht (Abstellraum, WC)",
+        "S2": "leichte Beanspruchung (Wohnraum)",
+        "S3": "mittlere Beanspruchung (Büro, Schule)"
+      }
+    },
+
+    "p2b_anwendung": "Erkannte Wanddicke < 115mm → sehr wahrscheinlich nichttragende Trennwand → IfcWall LoadBearing=false"
+  },
+
+  "din_18015_installationszonen": {
+    "title": "Elektrische Anlagen in Wohngebäuden — Teil 3: Installationszonen",
+    "beschreibung": "Zonen in Wänden wo elektrische Leitungen verlegt werden dürfen. Relevant für Symbol-Erkennung.",
+
+    "installationszonen_wand_mm": {
+      "waagerecht_oben": {"abstand_von_rohdecke": 150, "breite": 300},
+      "waagerecht_mitte": {"abstand_von_okff": [1000, 1300], "breite": 300},
+      "waagerecht_unten": {"abstand_von_okff": 150, "breite": 300},
+      "senkrecht": {"abstand_von_rohbauecke": 100, "breite": 200}
+    },
+
+    "schalter_steckdosen_hoehen_mm": {
+      "schalter_standard": 1050,
+      "steckdose_standard": 300,
+      "steckdose_kueche_arbeitsflaeche": 1150,
+      "steckdose_bad_spiegel": 1300
+    },
+
+    "p2b_anwendung": {
+      "symbol_erkennung": "Elektrosymbole im Plan (Schalter ⊙, Steckdose ⊡, Verteiler) erkennen und als IfcDistributionPort / IfcOutlet modellieren",
+      "positions_validierung": "Erkannte Symbol-Position gegen Installationszonen prüfen → Plausibilitätscheck"
+    }
+  },
+
+  "din_en_iso_19650_vdi_2552": {
+    "title": "BIM-Standards — Detailierungsgrade (LOD/LOG/LOI)",
+    "beschreibung": "Level of Development für BIM-Modelle. Definiert was Planproof liefern sollte.",
+
+    "lod_stufen": {
+      "LOD_100": {
+        "beschreibung": "Konzeptmodell — Massen und Volumina, keine genaue Geometrie",
+        "p2b": "Nicht relevant (zu ungenau)"
+      },
+      "LOD_200": {
+        "beschreibung": "Generisches Modell — ungefähre Maße, generische Bauteile, Platzhalter",
+        "geometrie": "Ungefähre Abmessungen, Position korrekt, Form vereinfacht",
+        "attribute": "Typ, Material (generisch), Abmessungen (±50mm)",
+        "p2b": "Minimum-Output für Plan-to-BIM: Wände mit Dicke, Türen mit Breite/Höhe, Räume mit Fläche"
+      },
+      "LOD_300": {
+        "beschreibung": "Spezifisches Modell — genaue Maße, spezifische Bauteile, definierte Materialien",
+        "geometrie": "Exakte Abmessungen, korrekte Form, modellierte Öffnungen",
+        "attribute": "Spezifisches Material, Brandschutzklasse, Schalldämmung, U-Wert, KG nach DIN 276",
+        "p2b": "Ziel-Output: Wände mit Material + Schichtaufbau, Türen mit DIN-Norm-Maßen, Räume mit NUF-Kategorie"
+      },
+      "LOD_350": {
+        "beschreibung": "Detailliertes Modell — Anschlüsse, Fugen, Schnittstellen zwischen Gewerken",
+        "p2b": "Erweitert: Zargendetails, Fensterleibungen, Schwellen"
+      },
+      "LOD_400": {
+        "beschreibung": "Fabrikationsmodell — herstellerspezifisch, für Produktion",
+        "p2b": "Nicht Ziel für P2B (erfordert Herstellerdaten)"
+      },
+      "LOD_500": {
+        "beschreibung": "As-Built — tatsächlich gebauter Zustand",
+        "p2b": "Scan-to-BIM Output (As-Built Vergleich)"
+      }
+    },
+
+    "planproof_ziel_lod": {
+      "plan_to_bim": "LOD 200-300 (abhängig von Planqualität und erkannter Information)",
+      "scan_to_bim": "LOD 500 (As-Built)",
+      "hinweis": "LOD ist kein fester Wert pro Modell, sondern pro Bauteil. Manche Bauteile haben LOD 300 (Wände mit erkanntem Material), andere LOD 200 (generische Stütze)"
+    }
+  },
+
+  "fenster_standardmasse": {
+    "title": "Fenster-Standardmaße im deutschen Wohnungsbau (kein einzel-DIN, aber aus DIN 4172 Raster)",
+    "beschreibung": "Fensteröffnungen folgen dem DIN 4172 Raster (Vielfache von 125mm). Häufigste Größen für Erkennung.",
+
+    "haeufige_fenstergroessen_baurichtmass_mm": {
+      "breiten": [500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500, 1750, 2000, 2250, 2500],
+      "hoehen": [500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500, 1625, 1750]
+    },
+
+    "typische_kombinationen": {
+      "kueche_bad_klein": "750 × 500 oder 625 × 750",
+      "standard_wohnraum": "1250 × 1375 oder 1000 × 1250",
+      "grosses_wohnraumfenster": "1500 × 1375 oder 2000 × 1375",
+      "bodentiefes_fenster": "1000 × 2250 oder 1250 × 2250",
+      "terrassentuer": "875 × 2125 oder 1000 × 2125 (einflügelig), 1500-2000 × 2125 (zweiflügelig)"
+    },
+
+    "bruestungshoehen_mm": {
+      "standard": 900,
+      "kueche_arbeitsflaeche": 1150,
+      "bad_oberlichter": 1600,
+      "bodentief": 0,
+      "gelaender_ab_absturzhoehe": true
+    },
+
+    "p2b_anwendung": {
+      "detection": "Fenster im Grundriss als Unterbrechung in Außenwand mit parallelen Linien (Glasdarstellung) erkennbar. Breite messen → nächstes Baurichtmaß aus DIN 4172.",
+      "ifc_mapping": {
+        "entity": "IfcWindow",
+        "properties": {
+          "OverallWidth": "Nennmaß Breite",
+          "OverallHeight": "Nennmaß Höhe (aus Schnitt oder Default 1375mm)",
+          "OperationType": "SINGLE_PANEL | DOUBLE_PANEL | TRIPLE_PANEL"
+        }
+      }
+    }
+  }
+}

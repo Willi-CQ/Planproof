@@ -1,0 +1,36 @@
+{
+  "template_key": "r_keller_unbeheizt",
+  "name": "Kellerraum unbeheizt",
+  "element_type": "space",
+  "ifc_entity_type": "IfcSpace",
+  "category": "basement",
+  "layers": [],
+  "geometry_params": {
+    "space_type": "storage",
+    "nuf_class": "NUF7.1",
+    "min_area_m2": 5,
+    "min_height_mm": 2400,
+    "ventilation": "natural",
+    "typical_for": [
+      "EFH",
+      "MFH"
+    ]
+  },
+  "computed_properties": {},
+  "ifc_psets": {
+    "Pset_SpaceCommon": {
+      "Category": "storage",
+      "GrossPlannedArea": 5
+    },
+    "Pset_SpaceOccupancyRequirements": {
+      "OccupancyType": "storage"
+    }
+  },
+  "din_references": [
+    "DIN 277",
+    "DIN 18599"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN 277 (2021)"
+}

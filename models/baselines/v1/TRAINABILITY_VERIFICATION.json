@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "device": "local CPU",
+  "generated_fixture_only": true,
+  "accuracy_claim": false,
+  "checks": [
+    {
+      "model": "main",
+      "input_checkpoint_sha256": "c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54",
+      "parent_training_step": 3500,
+      "new_run_step": 1,
+      "optimizer_reset": true,
+      "schedule_reset": true,
+      "finite_training_loss": 7.995145797729492,
+      "original_weights_unchanged": true
+    },
+    {
+      "model": "cad",
+      "input_checkpoint_sha256": "0d5af95117cd0bf4a3ba60b4111bd7dfc23778d82560354c1fb1dff520375f03",
+      "parent_training_step": 3000,
+      "new_run_step": 1,
+      "optimizer_reset": true,
+      "schedule_reset": true,
+      "finite_training_loss": 7.0963287353515625,
+      "original_weights_unchanged": true
+    },
+    {
+      "model": "cubicasa-seed",
+      "input_checkpoint_sha256": "8ef0e8c063c87ed0637ac4bd5ec63bbc599deaba941531784bea1ce0f286d73d",
+      "parent_training_step": 1000,
+      "new_run_step": 1,
+      "optimizer_reset": true,
+      "schedule_reset": true,
+      "finite_training_loss": 6.348146915435791,
+      "original_weights_unchanged": true
+    }
+  ]
+}

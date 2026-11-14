@@ -4,3 +4,4 @@ PyMuPDF>=1.26,<2
 Pillow>=12,<13
 python-multipart>=0.0.22,<1
 google-genai>=2.34,<3
+httpx>=0.28,<1

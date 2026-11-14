@@ -1,0 +1,36 @@
+{
+  "template_key": "f_pvc_passiv_120_140",
+  "name": "Fenster Kunststoff Passivhaus 120 × 140 (Uw 0.75)",
+  "element_type": "window",
+  "ifc_entity_type": "IfcWindowStandardCase",
+  "category": "passive_house_window",
+  "layers": [],
+  "geometry_params": {
+    "default_width_mm": 1200,
+    "default_height_mm": 1400,
+    "frame_material": "pvc_passive",
+    "glazing_type": "3_pane_low_e_argon",
+    "opening_direction": "tilt_turn",
+    "typical_for": [
+      "Passivhaus",
+      "KfW40"
+    ]
+  },
+  "computed_properties": {
+    "u_value": 0.75
+  },
+  "ifc_psets": {
+    "Pset_WindowCommon": {
+      "IsExternal": true,
+      "ThermalTransmittance": 0.75,
+      "GlazingAreaFraction": 0.7
+    }
+  },
+  "din_references": [
+    "DIN EN 14351-1",
+    "DIN 4108-2"
+  ],
+  "preview_svg": null,
+  "source": "Planproof",
+  "reviewed_by": "DIN EN 14351-1"
+}

@@ -37,6 +37,7 @@ class Review(Contract):
     advisory: Advisory | None = None
     crop_bbox_xyxy: list[int] | None = None
     model: str | None = None
+    detail: str | None = None
     error_code: Literal[
         "request_rejected", "access_denied", "model_unavailable", "quota",
         "provider_error", "connection", "timeout", "invalid_response",
@@ -61,13 +62,9 @@ def review_crop(png: bytes, frame: PageFrame, evidence: list[Evidence]) -> tuple
     return pixmap.tobytes("png"), [left, top, right, bottom]
 
 
-def review_disagreement(
-    crop: bytes, crop_bbox: list[int], page_index: int, comparison: Comparison, key: str, model: str
-) -> Review:
-    if len(crop) > MAX_CROP_BYTES:
-        return Review(status="outside_scope")
+def review_prompt(crop_bbox: list[int], page_index: int, comparison: Comparison) -> str:
     left, top, _, _ = crop_bbox
-    prompt = json.dumps({
+    return json.dumps({
         "question": "Which disputed markings on this page visibly represent door assemblies?",
         "page_index": page_index,
         "crop_bbox_in_page_pixels": crop_bbox,
@@ -86,6 +83,27 @@ def review_disagreement(
             for item in comparison.disputed_evidence
         ],
     }, ensure_ascii=False)
+
+
+def validate_advisory(text: str, comparison: Comparison) -> Advisory:
+    advisory = Advisory.model_validate_json(text)
+    allowed_ids = {item.id for item in comparison.disputed_evidence}
+    selected_ids = set(advisory.evidence_ids)
+    if len(selected_ids) != len(advisory.evidence_ids) or not selected_ids <= allowed_ids:
+        raise ValueError("Advisory cites invalid evidence IDs.")
+    provider = {"SUPPORTS_DETERMINISTIC": "deterministic", "SUPPORTS_ML": "ml"}.get(advisory.resolution)
+    if provider and not any(item.provider == provider and item.id in selected_ids
+                            for item in comparison.disputed_evidence):
+        raise ValueError("Advisory lacks evidence from the selected analyzer.")
+    return advisory
+
+
+def review_disagreement(
+    crop: bytes, crop_bbox: list[int], page_index: int, comparison: Comparison, key: str, model: str
+) -> Review:
+    if len(crop) > MAX_CROP_BYTES:
+        return Review(status="outside_scope")
+    prompt = review_prompt(crop_bbox, page_index, comparison)
     unavailable = Review(
         status="unavailable", crop_bbox_xyxy=crop_bbox, model=model, error_code="invalid_response",
     )
@@ -106,7 +124,7 @@ def review_disagreement(
             )
         if not result.candidates or result.candidates[0].finish_reason != "STOP" or not result.text:
             return unavailable
-        advisory = Advisory.model_validate_json(result.text)
+        advisory = validate_advisory(result.text, comparison)
     except errors.APIError as exc:
         codes = {400: "request_rejected", 401: "access_denied", 403: "access_denied",
                  404: "model_unavailable", 408: "timeout", 429: "quota", 504: "timeout"}
@@ -115,14 +133,6 @@ def review_disagreement(
         code = "timeout" if isinstance(exc, (TimeoutError, TimeoutException)) else "connection"
         return unavailable.model_copy(update={"error_code": code})
     except ValueError:
-        return unavailable
-    allowed_ids = {item.id for item in comparison.disputed_evidence}
-    selected_ids = set(advisory.evidence_ids)
-    if len(selected_ids) != len(advisory.evidence_ids) or not selected_ids <= allowed_ids:
-        return unavailable
-    provider = {"SUPPORTS_DETERMINISTIC": "deterministic", "SUPPORTS_ML": "ml"}.get(advisory.resolution)
-    if provider and not any(item.provider == provider and item.id in selected_ids
-                            for item in comparison.disputed_evidence):
         return unavailable
     return Review(status="reviewed", advisory=advisory, crop_bbox_xyxy=crop_bbox, model=model)
 

@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "device": "GPU-host CPU, two PyTorch threads",
+  "checks": [
+    {
+      "source": "cubicasa5k",
+      "input_id": "cubicasa5k:0011484c30b29a2dfe260ade",
+      "input_sha256": "1545c57e885cb3f0a4680a14acb32bf70d8023c5062538e3e29e6f02f0d36ee4",
+      "original_size": [
+        1998,
+        1279
+      ],
+      "input_preserved": true,
+      "overlay_size_matches": true,
+      "original_pixel_schema_valid": true,
+      "instance_counts": {
+        "door": 15,
+        "window": 15,
+        "room": 18,
+        "wall": 4
+      },
+      "model_version": "step-3500-c18615119046",
+      "inference_mode": "global",
+      "elapsed_seconds": 12.761495172999275,
+      "outputs": {
+        "detections": "/data/planproof/reviews/corrected3500-cli-check/cubicasa5k/detections.json",
+        "instances": 52
+      }
+    },
+    {
+      "source": "resplan",
+      "input_id": "resplan:0003d37c3058881cf6ee78e6",
+      "input_sha256": "c0b197e93945c86cdcf58a1c274398454229706566df4c804e96bef909ec820a",
+      "original_size": [
+        1024,
+        1024
+      ],
+      "input_preserved": true,
+      "overlay_size_matches": true,
+      "original_pixel_schema_valid": true,
+      "instance_counts": {
+        "window": 8,
+        "door": 10,
+        "room": 5,
+        "wall": 1
+      },
+      "model_version": "step-3500-c18615119046",
+      "inference_mode": "global",
+      "elapsed_seconds": 6.411799008999878,
+      "outputs": {
+        "detections": "/data/planproof/reviews/corrected3500-cli-check/resplan/detections.json",
+        "instances": 24
+      }
+    }
+  ]
+}

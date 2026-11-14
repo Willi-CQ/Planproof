@@ -1,0 +1,12 @@
+{
+  "material_key": "trittschall_eps_t_30",
+  "name": "Trittschall EPS-T / 30 mm",
+  "category": "insulation",
+  "thickness_mm": 30.0,
+  "properties": {
+    "thermal_conductivity": 0.04,
+    "density": 15,
+    "fire_class": "E"
+  },
+  "source": "Planproof"
+}

@@ -1,0 +1,63 @@
+{
+  "pipeline": "dwg_to_bim",
+  "input": "demo.dxf",
+  "metrics": {
+    "unit": "mm",
+    "unit_scale": 0.001,
+    "bbox_m": [
+      10.3,
+      8.3
+    ],
+    "wall_segments": 12,
+    "opening_inserts": 6,
+    "wall_reconstruction": {
+      "mode": "double_line",
+      "input_wall_segments": 12,
+      "centerlines": 6,
+      "matched_ratio": 1.0,
+      "total_wall_length_m": 50.0
+    },
+    "openings": {
+      "inserts_total": 6,
+      "openings_attached": 6,
+      "doors": 3,
+      "windows": 3,
+      "unmatched": 0
+    },
+    "rooms": 3,
+    "scene_components": 19,
+    "template_assignments": {
+      "total": 19,
+      "assigned": 19,
+      "flagged_low_confidence": 0
+    },
+    "din_violations": {
+      "info": 0,
+      "warning": 0,
+      "error": 0
+    },
+    "model_path": "C:\\tmp\\qdemo\\model.glb",
+    "ifc": {
+      "schema": "IFC4",
+      "element_count": 19,
+      "warnings": 0
+    },
+    "quantity_rows": 19,
+    "duration_s": 0.653,
+    "warnings_count": 0
+  },
+  "warnings": [],
+  "template_assignment": {
+    "ok": true,
+    "error": null,
+    "templates_loaded": 119,
+    "seed_files_skipped": 0
+  },
+  "graph_stats": {
+    "nodes": 8,
+    "edges": 10,
+    "doors": 3,
+    "windows": 3,
+    "total_wall_length_m": 50.0
+  }
+}
