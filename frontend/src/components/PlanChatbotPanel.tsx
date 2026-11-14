@@ -29,6 +29,7 @@ interface Props {
   downloading: boolean;
   downloadError?: string;
   onFocusWork: (messageId: string, region: Region) => void;
+  onInspectCandidates: (messageId: string) => void;
   connection?: string;
   messages: Message[];
   drawing: Drawing;
@@ -45,6 +46,7 @@ export function PlanChatbotPanel({
   onNewDrawing,
   onDownload, latestTaskId, downloading, downloadError,
   onFocusWork,
+  onInspectCandidates,
   connection,
   messages,
   drawing,
@@ -186,7 +188,8 @@ export function PlanChatbotPanel({
                     onHighlight={onHighlight}
                   />
                 )}
-                {message.run && !terminal(message.run) && <RunActivity run={message.run} drawing={drawing} connection={connection}
+                {message.run && <RunActivity run={message.run} drawing={drawing} connection={connection}
+                  onInspectCandidates={() => onInspectCandidates(message.id)}
                   onFocus={(region) => onFocusWork(message.id, region)} />}
                 {message.run && terminal(message.run) && !message.result && <p className="answer-help">{message.run.message || "This task could not finish. Its recorded steps are available in Task details."}</p>}
                 {message.id === latestTaskId && message.run && terminal(message.run) && <div className="task-download">

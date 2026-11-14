@@ -8,6 +8,7 @@ export interface SourceFrame {
 }
 export interface Region {
   image_id?: string;
+  sent_size?: number[];
   canonical_bbox: number[];
   page_index: number;
 }

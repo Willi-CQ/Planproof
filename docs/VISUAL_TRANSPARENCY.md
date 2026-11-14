@@ -195,7 +195,50 @@ task to complete and preserved its 30 recorded events.
 
 See [Evidence experience and model-use plan](EVIDENCE_EXPERIENCE_PLAN.md) for the
 proposed correlation, delivery/usage, coverage and claim-link contracts. These
-follow-on changes are planned; the toolbar Follow toggle above is implemented.
+follow-on contracts remain planned. The toolbar Follow toggle and the tool-card
+experience described below are implemented.
+
+## Visible tool execution
+
+The conversation now displays distinct cards for Nemotron, the combined ML/rules
+request, source crops, measurements and agent coordination. Observed families and
+active-step/returned-step counts summarize the run. Batch dispatch belongs to the
+agent; its worker inspections carry the Nemotron labels, avoiding double-counting
+the parent as another active Nemotron worker.
+
+Each card retains its original start sequence/time when the result arrives out
+of order. Recorded start/return offsets and measured durations explain when work
+happened; absent/null timings stay absent. No invented percentage or completion
+estimate. Active inspections and unresolved/failed work remain in the default
+list even when more recent steps arrive; older completed work can be expanded.
+
+Nemotron cards show stable detail numbers, the supplied question, larger clickable
+source previews, recorded sent resolution when available, reported findings and
+uncertainty. More findings and long questions expand in place. Drawing-region
+labels match the detail numbers. All active regions are rendered (the old limit
+of three is removed); these outlines represent requested views, not detections.
+Follow responds when the active region set changes, including out-of-order worker
+completion. It remains optional and pauses on manual drawing navigation.
+
+ML/rules cards explain learned candidates and pixel/geometry cues, including ML
+dependencies. The UI displays the unique recorded delivered-ID count when known;
+missing counts do not become zero. Separate ML/rule timings are not recorded, so
+the UI treats them as one combined request. Cached and pending results remain
+explicit. Pending history describes that particular request, not the final answer.
+"Explore raw ML + rule candidates" opens the existing inspector by explicit user
+action; no inference and no automatic overlays. Layer selection still controls
+what appears on the drawing.
+
+After completion, "Tools and source checks" preserves the same cards in a closed
+recap with a visible attention count. Returned work uses a neutral return marker;
+uncertainty, missing results and partial work retain caution labels. These displays
+do not establish claim-level provenance or model comprehension.
+
+Validation: all42browser scenarios passed, followed by5focused checks after
+refining Follow and pending-history text; TypeScript/build pass. The prior60/63
+event crash reproductions replay through completion/history with zero errors.
+Mocked desktop/390px/320px screenshots were inspected; keyboard access and narrow
+layout pass. Zero provider calls. Concurrent counting changes are separately owned.
 
 ## Running-inspection white-screen regression
 

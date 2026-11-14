@@ -191,7 +191,7 @@ export function PlanCanvas2D({
             aria-label="Source evidence locations"
             data-testid="evidence-overlay"
           >
-            {activity?.regions.slice(0, 3).map((region, i) => (
+            {activity?.regions.map((region, i) => (
               <rect key={`${activity.sequence}-${i}`} data-testid="live-inspection-region" className={activity.currentRegion ? "live-region current" : "live-region"}
                 x={region.canonical_bbox[0]} y={region.canonical_bbox[1]}
                 width={region.canonical_bbox[2] - region.canonical_bbox[0]}
@@ -250,6 +250,8 @@ export function PlanCanvas2D({
               );
             })}
           </svg>
+          {activity?.views.map(({region, label, active}, i) => <span key={`${activity.sequence}-label-${i}`} className="live-region-label" data-active={active}
+            style={{left: `${region.canonical_bbox[0] / drawing.width * 100}%`, top: `${region.canonical_bbox[1] / drawing.height * 100}%`}}>{label}</span>)}
         </div>
       </div>
       {comparisonSplit !== null && comparisonSplit !== undefined && (

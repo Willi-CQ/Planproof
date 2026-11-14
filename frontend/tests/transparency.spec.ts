@@ -528,7 +528,8 @@ test("actual work and requested regions appear on the plan without opening diagn
   await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
   await expect(page.getByTestId("plan-live-activity")).toHaveCount(0);
   await expect(page.getByTestId("live-inspection-region")).toHaveCount(0);
-  await expect(page.locator(".work-recap")).toHaveCount(0);
+  await expect(page.locator(".work-recap")).toHaveCount(1);
+  await expect(page.locator(".work-recap")).not.toHaveAttribute("open", "");
   await page.getByRole("button", {name: "Task details", exact: true}).click();
   await expect(page.locator(".event-list")).toContainText("Remaining page unknown.");
 });
@@ -541,7 +542,7 @@ test("pending algorithms remain honest while source inspection proceeds", async 
   await ask(page);
   const log = page.getByTestId("live-work-log");
   await expect(log).toContainText("Structural analysis continues in the background");
-  await expect(log).toContainText("No algorithm evidence has been supplied yet");
+  await expect(log).toContainText("No algorithm evidence was supplied by this request");
   await expect(log).toContainText("Opening a closer view");
   await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
 });
@@ -611,6 +612,113 @@ test("parallel inspections keep each region and completion associated with its w
   await expect(left).toContainText("Left entry observed");
   await expect(left).not.toHaveClass(/work-current/);
   await expect(page.getByTestId("live-inspection-region")).toHaveAttribute("x", "500");
+});
+
+test("tool cards retain active inspections, original timing and uncertainty through completion", async ({page}) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await setup(page);
+  let phase = 0, id = "", submissions = 0;
+  const requested = {...region, sent_size: [1536, 1024]};
+  const second = {...region, canonical_bbox: [500, 100, 800, 350]};
+  const first = {...events[2], sequence: 1, elapsed: 3, state: "running", seconds: null,
+    inspection_id: "first", advisory: undefined, citations: [], images: [requested], question: "Check the left entrance."};
+  const other = {...first, sequence: 2, elapsed: 4, inspection_id: "other", images: [second], question: "Check the right entrance."};
+  const later = Array.from({length: 6}, (_, i) => ({...events[1], sequence: i + 3, elapsed: i + 5}));
+  const returned = {...first, sequence: 9, elapsed: 12, state: "completed", seconds: 9,
+    advisory: {verdict: "uncertain", findings: ["The entrance symbol is ambiguous.", "A nearby mark may be furniture.", "The lower corner is obscured."]}};
+  const failed = {...other, sequence: 10, elapsed: 14, state: "unavailable", seconds: 10};
+  const snapshot = () => ({request_id: id, source, status: phase === 2 ? "completed" : "running",
+    events: [first, other, ...later, ...(phase > 0 ? [returned] : []), ...(phase === 2 ? [failed] : [])],
+    last_sequence: phase === 2 ? 10 : phase === 1 ? 9 : 8, result: phase === 2 ? result : null});
+  await page.route("**/api/v1/documents/*/runs", r => {submissions++; id = r.request().postDataJSON().request_id; return r.fulfill({json: snapshot()});});
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: snapshot()}));
+  await ask(page);
+  const log = page.getByTestId("live-work-log");
+  await expect(log.locator('[data-tool="nemotron"]')).toHaveCount(2);
+  await expect(log.getByLabel("Tools used in this task")).toContainText("Nemotron2 active");
+  const left = log.locator(".work-log > li").filter({hasText: "Check the left entrance."});
+  await expect(left).toContainText("Nemotron · Detail 1");
+  await expect(left).toContainText("Started +0:03");
+  await expect(left).toContainText("Sent 1536 × 1024 px");
+  await expect(left).not.toContainText("0.0s");
+  await expect(page.locator(".live-region-label")).toHaveText(["Nemotron · Detail 1", "Nemotron · Detail 2"]);
+  await left.getByRole("button", {name: "Inspect work step 1 source 1"}).click();
+  await expect(page.getByTestId("activity-region")).toHaveAttribute("x", "100");
+  await page.getByRole("button", {name: "Follow view", exact: true}).click();
+  phase = 1;
+  await expect(left).toContainText("Returned +0:12");
+  await expect(left).toContainText("Started +0:03");
+  await expect(left).toContainText("uncertainty remains");
+  await expect(page.locator(".live-region-label")).toHaveText("Nemotron · Detail 2");
+  await expect(page.getByTestId("activity-region")).toHaveAttribute("x", "500");
+  await left.getByText("Show 1 more findings", {exact: true}).click();
+  await expect(left.getByText("The lower corner is obscured.", {exact: true})).toBeVisible();
+  await log.getByRole("button", {name: /Show \d+ earlier steps/}).click();
+  await expect(log.locator(".work-log > li")).toHaveCount(8);
+  phase = 2;
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+  const recap = page.locator(".work-recap");
+  await expect(recap.locator(":scope > summary")).toContainText("2 need attention");
+  await recap.locator(":scope > summary").click();
+  await expect(recap).toContainText("Unavailable");
+  await expect(recap).toContainText("This step did not establish a result.");
+  await expect(recap).toContainText("Started +0:03");
+  await page.reload();
+  await expect(page.getByTestId("answer-value")).toHaveText("2 doors");
+  await page.locator(".work-recap > summary").click();
+  await expect(page.locator(".work-recap")).toContainText("Returned +0:12");
+  expect(submissions).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("algorithm card exposes recorded ML and rules only on explicit request", async ({page}) => {
+  await setup(page);
+  let reads = 0, submissions = 0;
+  const algorithm = {...events[0], cached: true, delivered_ids: ["m1", "d1", "m1"]};
+  await page.route("**/api/v1/documents/*/runs", r => {submissions++; return r.fulfill({json: {
+    request_id: r.request().postDataJSON().request_id, source, status: "completed", events: [algorithm], last_sequence: 1, result,
+  }});});
+  await page.route("**/api/v1/runs/*/evidence", r => {reads++; return r.fulfill({json: bundle});});
+  await ask(page);
+  await page.locator(".work-recap > summary").click();
+  const card = page.locator('.work-log > li[data-tool="algorithms"]');
+  await expect(card).toContainText("ML detection");
+  await expect(card).toContainText("Deterministic rules");
+  await expect(card).toContainText("2 evidence items supplied by this request");
+  await expect(card.locator(".work-status")).toHaveText("Reused");
+  expect(reads).toBe(0);
+  await card.getByRole("button", {name: "Explore raw ML + rule candidates"}).click();
+  await expect(page.getByLabel("ML detections", {exact: true})).toBeVisible();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "0");
+  await page.getByLabel("ML detections", {exact: true}).check();
+  await expect(page.getByTestId("algorithm-overlay")).toHaveAttribute("data-shapes", "1");
+  expect(reads).toBe(1);
+  expect(submissions).toBe(1);
+});
+
+test("four active detail views and tool cards fit a narrow screen", async ({page}) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.setViewportSize({width: 320, height: 844});
+  await page.emulateMedia({reducedMotion: "reduce"});
+  await setup(page);
+  const workers = Array.from({length: 4}, (_, i) => ({...events[2], state: "running", sequence: i + 1,
+    elapsed: i, seconds: null, inspection_id: `worker-${i}`, advisory: undefined, citations: [],
+    images: [{...region, canonical_bbox: [50 + i * 220, 100, 200 + i * 220, 350]}], question: `Inspect entrance ${i + 1}.`}));
+  await page.route("**/api/v1/documents/*/runs", r => r.fulfill({json: {request_id: r.request().postDataJSON().request_id, source, status: "running", events: workers, last_sequence: 4}}));
+  await page.route("**/api/v1/runs/*?*", r => r.fulfill({json: {request_id: "fixture", source, status: "running", events: workers, last_sequence: 4}}));
+  await ask(page);
+  await expect(page.getByTestId("live-work-log").locator(".work-log > li")).toHaveCount(4);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", {name: "Inspect work step 1 source 1"}).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("live-inspection-region")).toHaveCount(4);
+  await expect(page.locator(".live-region-label")).toHaveCount(4);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", {name: "Show conversation", exact: true}).click();
+  await expect(page.getByTestId("live-work-log")).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 test("briefing attaches citations to claims and only detection previews follow the text", async ({page}) => {

@@ -63,6 +63,7 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [cacheError, setCacheError] = useState<string | null>(null);
   const [inspectionId, setInspectionId] = useState<string | null>(null);
+  const [inspectionView, setInspectionView] = useState<"steps" | "candidates">("steps");
   const [focusRegion, setFocusRegion] = useState<Region | null>(null);
   const [shapes, setShapes] = useState<EvidenceShape[]>([]);
   const [follow, setFollow] = useState(false);
@@ -88,10 +89,11 @@ export default function App() {
       setSelectedEvidence(null);
       setFocusRegion(activeView.regions[0]);
     }
-  }, [activeRun?.request_id, activeView?.sequence, followLive]);
+  }, [activeRun?.request_id, activeView?.focusKey, followLive]);
   const closeInspector = () => {
     setComparisonSplit(null);
     setInspectionId(null);
+    setInspectionView("steps");
     setFocusRegion(null);
     setShapes([]);
     setFollow(false);
@@ -705,6 +707,7 @@ export default function App() {
             {inspectionId ? (
               <EvidenceInspector
                 key={inspectionId}
+                initialView={inspectionView}
                 run={inspected?.run}
                 drawing={drawing}
                 frame={drawing.source}
@@ -727,6 +730,13 @@ export default function App() {
                 onNewDrawing={() => input.current?.click()}
                 connection={connection}
                 onFocusWork={focusWork}
+                onInspectCandidates={(id) => {
+                  closeInspector();
+                  setInspectionId(id);
+                  setInspectionView("candidates");
+                  setLayerError("");
+                  setMobileTab("ask");
+                }}
                 onDownload={() => void downloadReport()}
                 latestTaskId={latestTask?.id}
                 downloading={reportState.busy}

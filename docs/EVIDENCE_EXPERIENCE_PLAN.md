@@ -1,8 +1,11 @@
 # Evidence experience and model-use plan
 
-Status: proposed follow-on work, 14 November 2026. The toolbar Follow toggle is
-implemented now; the remaining behavior below is a plan, not a shipped contract.
-Coordinate the specialist integration with the active Nemotron-routing work.
+Status: partly implemented, 14 November 2026. The toolbar Follow toggle and live
+tool cards are implemented: roles, recorded times, numbered source views, parallel
+activity, explicit candidate exploration and a retained recap. See
+[implemented behavior](VISUAL_TRANSPARENCY.md#visible-tool-execution).
+Delivery receipts, full coverage/claim contracts and measurement overlays below
+remain proposed. Coordinate those contracts with the active backend work.
 
 ## Outcome and current baseline
 

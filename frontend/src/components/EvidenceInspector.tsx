@@ -86,6 +86,7 @@ export function CropPreview({
   );
 }
 interface Props {
+  initialView?: "steps" | "candidates";
   run?: AgentRun;
   drawing: Drawing;
   frame?: SourceFrame;
@@ -101,6 +102,7 @@ interface Props {
   onFollow: (value: boolean) => void;
 }
 export function EvidenceInspector({
+  initialView = "steps",
   run,
   drawing,
   frame,
@@ -115,13 +117,13 @@ export function EvidenceInspector({
   follow,
   onFollow,
 }: Props) {
-  const [tab, setTab] = useState<"steps" | "layers">("steps");
+  const [tab, setTab] = useState<"steps" | "layers">(initialView === "candidates" ? "layers" : "steps");
   const [selected, setSelected] = useState<number | null>(null);
   const [layers, setLayers] = useState<string[]>([]);
   const [filter, setFilter] = useState("all");
   const [objectId, setObjectId] = useState<string | null>(null);
   const [compare, setCompare] = useState(false);
-  const [diagnostics, setDiagnostics] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(initialView === "candidates");
   const [split, setSplit] = useState(50);
   const [limit, setLimit] = useState(50);
   const bound = sameSource(run?.source, frame);
