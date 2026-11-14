@@ -7,18 +7,6 @@
                                              "url":  "https://zenodo.org/records/2613548/files/cubicasa5k.zip",
                                              "name":  "cubicasa5k.zip",
                                              "bytes":  5469495706
-                                         },
-                                         {
-                                             "name":  "train.txt",
-                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/train.txt"
-                                         },
-                                         {
-                                             "name":  "val.txt",
-                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/val.txt"
-                                         },
-                                         {
-                                             "name":  "test.txt",
-                                             "url":  "https://raw.githubusercontent.com/CubiCasa/CubiCasa5k/master/data/test.txt"
                                          }
                                      ],
                        "access":  "Use original upstream release independently of Stoa package; retain dataset-specific NC-SA terms",

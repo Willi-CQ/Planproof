@@ -89,7 +89,7 @@ def test_inspection_renders_ground_truth_and_regroup_preserves_holdout(tmp_path)
     assert records["fixture:0"]["split"] == records["fixture:3"]["split"] == "test"
 
 
-def test_cubicasa_fetch_preserves_publisher_split_sidecars(tmp_path, monkeypatch):
+def test_cubicasa_fetch_uses_embedded_publisher_splits(tmp_path, monkeypatch):
     class Response:
         def raise_for_status(self):
             pass
@@ -112,17 +112,18 @@ def test_cubicasa_fetch_preserves_publisher_split_sidecars(tmp_path, monkeypatch
     def fake_download(url, destination, *args):
         destination.parent.mkdir(parents=True, exist_ok=True)
         calls.append(destination.name)
-        if destination.suffix == ".zip":
-            with zipfile.ZipFile(destination, "w") as archive:
-                archive.writestr("sample/example.txt", "generated test only")
-        else:
-            destination.write_text("high_quality/1/F1_scaled.png\n")
+        assert destination.suffix == ".zip", "Publisher splits are inside the original ZIP"
+        with zipfile.ZipFile(destination, "w") as archive:
+            for split in ("train", "val", "test"):
+                archive.writestr(f"cubicasa5k/{split}.txt", f"high_quality/{split}/\n")
         return "fixture-digest"
 
     monkeypatch.setattr(acquire, "download", fake_download)
     acquire.fetch("cubicasa5k", tmp_path, extract=True)
-    assert set(calls) == {"cubicasa5k.zip", "train.txt", "val.txt", "test.txt"}
-    assert (tmp_path / "extracted/cubicasa5k/train.txt").is_file()
+    assert calls == ["cubicasa5k.zip"]
+    for split in ("train", "val", "test"):
+        path = tmp_path / "extracted/cubicasa5k/cubicasa5k" / f"{split}.txt"
+        assert path.read_text() == f"high_quality/{split}/\n"
 
 
 def test_unknown_room_category_counts_as_false_negative_and_missing_objects_fail_gate():

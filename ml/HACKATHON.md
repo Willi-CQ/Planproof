@@ -14,6 +14,10 @@ Confirm the actual 2x console quote; storage/taxes are additional.
 
 Start only with original CubiCasa. Do not delay first weights to import every
 source. Preserve groups and held-out splits, audit and inspect real annotations.
+The original publisher ZIP contains its train/val/test lists. For a host with
+sufficient RAM, `prepare --workers 8` converts CubiCasa in bounded parallel
+processes; the default is one worker. Its annotations use F1_scaled raster pixels,
+not SVG viewport fitting. Review actual overlays before training.
 
 ## Short runs
 

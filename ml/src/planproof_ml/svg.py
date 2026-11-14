@@ -75,7 +75,9 @@ def primitive_points(node):
     return np.empty((0, 2)), False
 
 
-def read_svg(path, image_size, class_map=None):
+def read_svg(path, image_size, class_map=None, coordinate_space="viewport"):
+    if coordinate_space not in {"viewport", "pixels"}:
+        raise ValueError("SVG coordinate space must be viewport or pixels")
     content = path.read_text(encoding="utf-8-sig")
     if "<!ENTITY" in content.upper():
         raise ValueError("SVG entity declarations are not supported")
@@ -96,6 +98,10 @@ def read_svg(path, image_size, class_map=None):
     if root.attrib.get("preserveAspectRatio", "").strip() != "none":
         sx = sy = min(sx, sy)
     base = np.array([[sx, 0, (w - vw * sx) / 2 - vx * sx], [0, sy, (h - vh * sy) / 2 - vy * sy], [0, 0, 1]])
+    if coordinate_space == "pixels":
+        # CubiCasa polygons already use F1_scaled raster pixels. Its SVG viewport
+        # can be smaller than the raster and must not rescale/center annotations.
+        base = np.eye(3)
     groups, ignored = defaultdict(list), defaultdict(list)
     strokes = []
     mapping = class_map["mapping"] if class_map else {}
@@ -180,7 +186,12 @@ def read_svg(path, image_size, class_map=None):
         raise ValueError(
             f"No supported annotations in {path}; inspect schema rather than making empty labels"
         )
-    return features, ignore_regions, strokes, {"recognized": len(features), "numeric": numeric}
+    return (
+        features,
+        ignore_regions,
+        strokes,
+        {"recognized": len(features), "numeric": numeric, "coordinate_space": coordinate_space},
+    )
 
 
 def render_strokes(size, strokes):

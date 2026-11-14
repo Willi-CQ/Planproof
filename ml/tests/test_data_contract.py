@@ -155,11 +155,35 @@ def test_preparation_original_split_and_manifest_audit(tmp_path):
     report = json.loads((prepared / "manifest.audit.json").read_text())
     assert report["splits"] == {"train": 1, "val": 1, "test": 1}
     assert report["publisher_reassignments"] == 0
+    prepare("cubicasa5k", raw, tmp_path / "parallel", workers=3)
+    assert (prepared / "manifest.jsonl").read_text() == (tmp_path / "parallel/manifest.jsonl").read_text()
+    with pytest.raises(ValueError, match="workers"):
+        prepare("cubicasa5k", raw, tmp_path / "invalid", workers=0)
 
 
 def test_stoa_archive_path_is_rejected(tmp_path):
     with pytest.raises(ValueError, match="Stoa"):
         prepare("cubicasa5k", tmp_path / "junction-dataset-preview", tmp_path / "out")
+
+
+def test_cubicasa_uses_scaled_raster_pixels_when_svg_viewport_differs(tmp_path):
+    raw = tmp_path / "upstream"
+    drawing = raw / "colorful" / "1"
+    drawing.mkdir(parents=True)
+    Image.fromarray(np.full((100, 120, 3), 255, np.uint8)).save(drawing / "F1_scaled.png")
+    (drawing / "model.svg").write_text(
+        '<svg viewBox="0 0 80 60"><g id="Wall"><polygon points="10,20 40,20 40,25 10,25"/></g></svg>'
+    )
+    (raw / "train.txt").write_text("/colorful/1/\n")
+    prepare("cubicasa5k", raw, tmp_path / "prepared")
+    record = json.loads((tmp_path / "prepared/manifest.jsonl").read_text())
+    with np.load(tmp_path / "prepared" / record["targets"]) as labels:
+        yy, xx = np.where(labels["masks"][0])
+    assert (xx.min(), xx.max(), yy.min(), yy.max()) == (10, 40, 20, 25)
+    assert record["metadata"]["svg"]["coordinate_space"] == "pixels"
+    (drawing / "F1_scaled.png").rename(drawing / "F1_original.png")
+    with pytest.raises(ValueError, match="Missing paired image"):
+        prepare("cubicasa5k", raw, tmp_path / "other")
 
 
 def test_padding_is_not_supervised_background(tmp_path):

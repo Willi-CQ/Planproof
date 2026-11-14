@@ -165,10 +165,7 @@ def render_layout(features, size=1024):
     )
 
 
-def svg_samples(source, raw, class_map=None):
-    svg_paths = sorted(raw.rglob("model.svg")) if source == "cubicasa5k" else sorted(raw.rglob("*.svg"))
-    if not svg_paths:
-        raise ValueError(f"No annotated SVG files under {raw}")
+def publisher_splits(source, raw):
     split_lookup = {}
     for name in ("train", "val", "test"):
         lists = list(raw.rglob(name + ".txt")) if source == "cubicasa5k" else []
@@ -181,6 +178,16 @@ def svg_samples(source, raw, class_map=None):
                     if key in split_lookup and split_lookup[key] != name:
                         raise ValueError("Publisher split files overlap")
                     split_lookup[key] = name
+    return split_lookup
+
+
+def svg_samples(source, raw, class_map=None, svg_paths=None, split_lookup=None):
+    if svg_paths is None:
+        svg_paths = sorted(raw.rglob("model.svg")) if source == "cubicasa5k" else sorted(raw.rglob("*.svg"))
+    if not svg_paths:
+        raise ValueError(f"No annotated SVG files under {raw}")
+    if split_lookup is None:
+        split_lookup = publisher_splits(source, raw)
     for path in svg_paths:
         if "coco_vis" in path.parts:
             continue
@@ -193,6 +200,8 @@ def svg_samples(source, raw, class_map=None):
         candidates.extend(
             path.parent.parent / d / path.with_suffix(".png").name for d in ("png", "pngs", "png_gt")
         )
+        if source == "cubicasa5k":
+            candidates = [path.parent / "F1_scaled.png"]
         image_path = next((p for p in candidates if p.is_file()), None)
         if image_path:
             image = load_image(image_path)
@@ -209,7 +218,9 @@ def svg_samples(source, raw, class_map=None):
             image = None
         else:
             raise ValueError(f"Missing paired image for {path}")
-        features, ignored, strokes, info = read_svg(path, size, class_map)
+        features, ignored, strokes, info = read_svg(
+            path, size, class_map, coordinate_space="pixels" if source == "cubicasa5k" else "viewport"
+        )
         if image is None:
             image = render_strokes(size, strokes)
         key = (

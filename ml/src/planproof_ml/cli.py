@@ -41,6 +41,7 @@ def parser():
     q.add_argument("--class-map", type=Path)
     q.add_argument("--trust-pickle", action="store_true")
     q.add_argument("--limit", type=int, help="Explicit diagnostic import only; not a full training corpus")
+    q.add_argument("--workers", type=int, default=1, help="Bounded CPU import workers (1-16)")
     q = sub.add_parser("audit")
     q.add_argument("--manifest", type=Path, required=True)
     q.add_argument("--deep", action="store_true")
@@ -148,7 +149,9 @@ def execute(args):
 
         if args.limit is not None and args.limit < 1:
             raise ValueError("--limit must be positive")
-        return prepare(args.source, args.raw, args.out, args.class_map, args.trust_pickle, args.limit)
+        return prepare(
+            args.source, args.raw, args.out, args.class_map, args.trust_pickle, args.limit, args.workers
+        )
     if command == "audit":
         from .audit import audit_manifest
 

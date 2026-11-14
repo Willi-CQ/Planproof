@@ -31,3 +31,22 @@ run status and health warnings. Ruff lint/format and Bash syntax checks passed.
 The initial launch profile now uses 512px, 2000 updates maximum and explicit
 session time limits. See [HACKATHON.md](HACKATHON.md). GPU performance and actual
 training quality remain unmeasured until a host is connected.
+
+## First A100 validation — 2026-11-14
+
+The pinned Linux container built on an A100-SXM4-80GB with driver580.178.04.
+The CUDA forward/backward smoke passed with finite gradients; the ImageNet
+encoder initialized and cached successfully. Original CubiCasa ZIP verified
+against the publisher's MD5 and extracted on persistent GPU storage.
+
+Real overlays exposed a CubiCasa coordinate bug: polygons already use
+F1_scaled raster pixels, while SVG viewport dimensions can differ. The source
+adapter now preserves those pixels and requires the matching scaled raster.
+Eight corrected ground-truth overlays were visually checked. The original ZIP
+also contains train/val/test lists; nonexistent supplemental GitHub URLs were
+removed. Regression coverage checks pixel alignment and embedded split files.
+
+Preparation accepts 1-16 bounded CPU workers; CubiCasa workers parse and convert
+drawings in separate processes, preserving deterministic record order. Serial
+and parallel fixtures produce identical manifests. The full corpus import and
+real-data model accuracy are still pending at this checkpoint.
