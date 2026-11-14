@@ -208,6 +208,12 @@ def test_overlap_loss_recipe_checkpoints_with_unchanged_inference_encoding(tmp_p
     cfg.write_text(yaml.safe_dump(config))
     with pytest.raises(ValueError, match="box_loss"):
         load_config(cfg)
+    config["box_loss"] = "giou"
+    for weight in (-1, float("nan"), float("inf")):
+        config["box_loss_weight"] = weight
+        cfg.write_text(yaml.safe_dump(config))
+        with pytest.raises(ValueError, match="box_loss_weight"):
+            load_config(cfg)
 
 
 def test_onnx_export_parity_and_original_coordinate_detection(tmp_path):

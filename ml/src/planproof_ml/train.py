@@ -274,7 +274,12 @@ def train(
                 with synchronization:
                     with torch.autocast(device_type="cuda", dtype=dtype, enabled=amp):
                         predictions = model(batch["image"])
-                        loss, parts = detection_loss(predictions, batch, cfg.get("box_loss", "smooth_l1"))
+                        loss, parts = detection_loss(
+                            predictions,
+                            batch,
+                            cfg.get("box_loss", "smooth_l1"),
+                            cfg.get("box_loss_weight", 2.0),
+                        )
                     scaler.scale(loss / accumulation).backward()
                 total_loss += float(loss.detach()) / accumulation
             scaler.unscale_(optimizer)

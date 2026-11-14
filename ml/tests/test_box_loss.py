@@ -55,3 +55,14 @@ def test_giou_detection_update_is_finite_for_real_encoding():
     assert torch.isfinite(loss)
     assert 0 <= parts["box"] <= 2
     assert model.box_head.weight.grad.abs().sum() > 0
+
+
+def test_box_weight_changes_only_its_task_contribution():
+    example = check_example()
+    example["boxes"][:4, 32, 32] = [0.02, 0.05, 0.1, -0.2]
+    example["box_valid"][0, 32, 32] = 1
+    batch = tensor_batch([example, example], "cpu")
+    prediction = Detector(None)(batch["image"])
+    original, parts = detection_loss(prediction, batch, "giou", 2.0)
+    balanced, _ = detection_loss(prediction, batch, "giou", 0.5)
+    torch.testing.assert_close(original - balanced, original.new_tensor(1.5 * parts["box"]))

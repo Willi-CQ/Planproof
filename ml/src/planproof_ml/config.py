@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 import yaml
@@ -31,6 +32,9 @@ def load_config(path: Path) -> dict:
         raise ValueError("data_workers must be between 0 and 16")
     if cfg.get("box_loss", "smooth_l1") not in {"smooth_l1", "giou"}:
         raise ValueError("box_loss must be smooth_l1 or giou")
+    box_weight = cfg.get("box_loss_weight", 2.0)
+    if not isinstance(box_weight, (int, float)) or not math.isfinite(box_weight) or box_weight < 0:
+        raise ValueError("box_loss_weight must be finite and nonnegative")
     cfg["image_size"] = size
     return cfg
 

@@ -42,7 +42,7 @@ def giou_boxes(encoded, target, valid):
     return (1 - giou).mean()
 
 
-def detection_loss(pred, batch, box_loss="smooth_l1"):
+def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0):
     logits = pred["masks"].float()
     gt, valid = batch["masks"], batch["valid"]
     bce = masked_mean(F.binary_cross_entropy_with_logits(logits, gt, reduction="none"), valid)
@@ -91,7 +91,7 @@ def detection_loss(pred, batch, box_loss="smooth_l1"):
                 )
                 weak_count += 1
     weak = weak / max(1, weak_count)
-    total = mask_loss + types + 0.5 * boundary + 0.5 * centers + 2 * boxes + 0.25 * weak
+    total = mask_loss + types + 0.5 * boundary + 0.5 * centers + box_loss_weight * boxes + 0.25 * weak
     if not torch.isfinite(total):
         raise FloatingPointError("Nonfinite detection loss")
     return total, {
