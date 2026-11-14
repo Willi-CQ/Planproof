@@ -19,13 +19,14 @@ from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from PIL import Image, ImageOps
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, StringConstraints, model_serializer
 
 from deterministic_adapter import EngineState, deterministic_available, run_deterministic
 from engine_runner import enabled_engines, run_engines
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
 from ml_adapter import adapt_ml
 from nemotron_review import nemotron_config, nemotron_key, review_with_nemotron
+from stoa_assistant import AssistantResponse, assistant_config, synthesize_assistant
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 
 
@@ -284,8 +285,17 @@ class DoorCountResponse(Comparison):
     source: PageFrame
     image_url: str
     mode: Literal["submitted_results", "executed_engines", "synthetic_demo", "live_engines"]
-    gemini: Review
-    nemotron: Review
+    gemini: Review | None = None
+    nemotron: Review | None = None
+    assistant: AssistantResponse | None = None
+
+    @model_serializer(mode="wrap", when_used="json")
+    def serialize_reviews(self, serialize):
+        payload = serialize(self)
+        for key in ("gemini", "nemotron", "assistant"):
+            if payload.get(key) is None:
+                payload.pop(key, None)
+        return payload
 
 
 class DoorAnalysisRequest(BaseModel):
@@ -293,6 +303,7 @@ class DoorAnalysisRequest(BaseModel):
     ml_detections: dict | None = None
     allow_gemini_review: bool = False
     allow_nemotron_review: bool = False
+    allow_assistant_review: bool | None = None
 
 
 class EngineRuns(BaseModel):
@@ -334,9 +345,26 @@ def run_door_count(
         source=source,
         image_url=f"/api/documents/{request.document_id}/image",
         mode="synthetic_demo" if demo else "executed_engines" if loaded_page else "submitted_results",
-        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
-        nemotron=review_comparison(comparison, page, source, request.allow_nemotron_review, provider="nemotron"),
+        **review_for_request(comparison, page, source, request),
     )
+
+
+def review_for_request(
+    comparison: Comparison, page: Page, source: PageFrame, request: DoorCountRequest | DoorAnalysisRequest,
+) -> dict[str, Review | AssistantResponse]:
+    if request.allow_assistant_review is None:
+        return {
+            "gemini": review_comparison(comparison, page, source, request.allow_gemini_review),
+            "nemotron": review_comparison(
+                comparison, page, source, request.allow_nemotron_review, provider="nemotron",
+            ),
+        }
+    if not request.allow_assistant_review:
+        return {"assistant": AssistantResponse(status="not_authorized")}
+    review = Review(status="not_needed")
+    if assistant_config():
+        review = review_comparison(comparison, page, source, True, provider="nemotron")
+    return {"assistant": synthesize_assistant(comparison, review)}
 
 
 def review_comparison(
@@ -391,8 +419,7 @@ def door_analysis(document_id: str, request: DoorAnalysisRequest) -> DoorAnalysi
         source=source,
         image_url=f"/api/documents/{document_id}/image",
         mode="live_engines",
-        gemini=review_comparison(comparison, page, source, request.allow_gemini_review),
-        nemotron=review_comparison(comparison, page, source, request.allow_nemotron_review, provider="nemotron"),
+        **review_for_request(comparison, page, source, request),
         engines=EngineRuns(
             deterministic=state, deterministic_seconds=seconds,
             ml="provided" if ml is not None else "not_provided",
@@ -412,13 +439,14 @@ def engine_status() -> dict[str, bool]:
     return {
         **engines,
         "deterministic": engines["deterministic"] or deterministic_available(),
-        "nemotron": nemotron_config() is not None,
+        "assistant": assistant_config() is not None,
     }
 
 
 @app.post("/api/v1/documents/{document_id}/analyze-doors")
 def analyze_doors(
     document_id: str, allow_gemini_review: bool = False, allow_nemotron_review: bool = False,
+    allow_assistant_review: bool | None = None,
 ) -> DoorCountResponse:
     """Run configured local engines against one page and compare their evidence."""
     loaded_page = get_page(document_id)
@@ -432,6 +460,7 @@ def analyze_doors(
         document_id=document_id, deterministic=results.get("deterministic"), ml=results.get("ml"),
         allow_gemini_review=allow_gemini_review,
         allow_nemotron_review=allow_nemotron_review,
+        allow_assistant_review=allow_assistant_review,
     ), loaded_page=loaded_page)
 
 
@@ -440,6 +469,7 @@ def door_count_demo(
     scenario: Literal["agreement", "disputed", "missing_ml"] = "disputed",
     allow_gemini_review: bool = False,
     allow_nemotron_review: bool = False,
+    allow_assistant_review: bool | None = None,
 ) -> DoorCountResponse:
     # Door swing symbols and illustrative boxes generated together for this demo only.
     with pdf_lock, pymupdf.open() as document:
@@ -470,4 +500,5 @@ def door_count_demo(
     return run_door_count(DoorCountRequest(
         document_id=registered.document_id, deterministic=deterministic, ml=ml,
         allow_gemini_review=allow_gemini_review, allow_nemotron_review=allow_nemotron_review,
+        allow_assistant_review=allow_assistant_review,
     ), demo=True)

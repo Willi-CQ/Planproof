@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=stoa-nemotron" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -107,7 +107,13 @@
                   </div>
                   <div class="preview-foot"><span><span class="legend-dot"></span> Murs détectés</span><span><span class="legend-dot window-legend"></span> Ouvertures</span><span class="scale-label">Aperçu vectoriel</span></div>
                 </div>
-                <div class="analysis-options"><label>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label><label><input id="nemotronPermission" type="checkbox" disabled /> Autoriser NVIDIA Nemotron à examiner la zone en désaccord</label></div>
+                <div class="analysis-options">
+                  <label>Page PDF <input id="pageNumber" type="number" min="1" value="1" disabled /></label>
+                  <div>
+                    <label><input id="assistantPermission" type="checkbox" disabled aria-describedby="assistantConsent" /> Demander une explication à l’assistant Stoa</label>
+                    <small id="assistantConsent">En cas de désaccord, un service externe peut examiner la zone concernée.</small>
+                  </div>
+                </div>
                 <div class="plan-actions"><button class="button button-quiet" id="runDemo" type="button">Tester le plan d’exemple</button><button class="button button-primary" id="runAnalysis" type="button" disabled>Analyser le plan <span class="button-arrow">→</span></button></div>
                 <div class="plan-card-footer"><span class="secure-icon">♢</span> Aucune clé API n’est stockée dans votre navigateur.</div>
               </div>
@@ -135,21 +141,32 @@
 
             <aside class="assistant-column">
               <div class="card assistant-card">
-                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Stoa</b><small><span class="online-dot"></span> Revue des désaccords</small></div></div>
+                <div class="assistant-header"><div class="assistant-avatar"><span>✳</span><i></i></div><div class="assistant-title"><b>Assistant Stoa</b><small><span class="online-dot"></span> Explication de l’analyse</small></div></div>
                 <div class="assistant-context"><span class="context-icon">▧</span><span><b id="assistantContextTitle">Aucun plan analysé</b><small id="assistantPage"></small></span></div>
                 <div class="chat-body" id="chatBody" aria-live="polite">
-                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><div class="message-author">Avis NVIDIA Nemotron</div><p id="reviewMessage">L’avis apparaît ici après la revue d’une zone en désaccord.</p></div></div>
+                  <div class="assistant-message"><span class="message-avatar">✳</span><div class="message-content"><p id="reviewMessage">Activez l’assistant pour obtenir une explication du résultat.</p></div></div>
                 </div>
                 <div class="assistant-disclaimer">Les résultats doivent être validés par un professionnel.</div>
               </div>
-              <div class="integration-card" id="integrations"><div class="integration-top"><span class="integration-icon">⌘</span><div><b>Intégrations</b><small>Configuration des moteurs</small></div></div><div class="integration-items"><span class="integration-item"><i class="status-check">✦</i><b>NVIDIA</b><span class="connector-state" id="nemotronState">—</span></span><span class="integration-item"><i class="status-check">ƒ</i><b>Déterministe</b><span class="connector-state" id="detState">—</span></span><span class="integration-item"><i class="status-check ml-mini">✳</i><b>ML</b><span class="connector-state" id="mlState">—</span></span></div><a class="configure-link" id="how-it-works" href="/docs">Documentation API ↗</a></div>
+              <div class="integration-card" id="integrations">
+                <div class="integration-top"><span class="integration-icon">⌘</span><div><b>Intégrations</b><small>Disponibilité des services</small></div></div>
+                <div class="integration-items">
+                  <span class="integration-item"><i class="status-check">✦</i><b>Assistant Stoa</b><span class="connector-state" id="assistantState">—</span></span>
+                  <span class="integration-item"><i class="status-check">ƒ</i><b>Déterministe</b><span class="connector-state" id="detState">—</span></span>
+                  <span class="integration-item"><i class="status-check ml-mini">✳</i><b>ML</b><span class="connector-state" id="mlState">—</span></span>
+                </div>
+                <details id="how-it-works">
+                  <summary>Comment vérifier un résultat</summary>
+                  <p>Sélectionnez une zone dans le résultat pour la retrouver sur le plan. Les zones signalées restent à vérifier.</p>
+                </details>
+              </div>
             </aside>
           </div>
-          <footer class="page-footer"><span>STOA <span>·</span> Prototype d’analyse</span><span><a href="#how-it-works">Documentation</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
+          <footer class="page-footer"><span>STOA <span>·</span> Prototype d’analyse</span><span><a href="#how-it-works">Aide</a><a href="#integrations">Intégrations</a><span class="version">v0.1.0</span></span></footer>
         </section>
       </main>
     </div>
     <div class="toast" id="toast" role="status"></div>
-    <script src="app.js?v=stoa-nemotron" type="module"></script>
+    <script src="app.js?v=stoa-assistant" type="module"></script>
   </body>
 </html>

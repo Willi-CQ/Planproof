@@ -15,6 +15,7 @@ const reasons = {
 
 let selectedFile;
 let analysis;
+let assistantAvailable = false;
 let busy = false;
 let currentJsonTab = 'cross';
 
@@ -41,6 +42,7 @@ function updateControls() {
     $(`#${id}`).disabled = busy;
   }
   $('#pageNumber').disabled = busy || selectedFile?.type !== 'application/pdf';
+  $('#assistantPermission').disabled = busy || !assistantAvailable;
   $('#runAnalysis').disabled = busy || !selectedFile;
 }
 
@@ -56,7 +58,7 @@ function resetResult() {
   }
   $('#assistantContextTitle').textContent = selectedFile?.name || 'Aucun plan analysé';
   $('#assistantPage').textContent = '';
-  $('#reviewMessage').textContent = 'L’avis apparaît ici après la revue d’une zone en désaccord.';
+  $('#reviewMessage').textContent = 'Activez l’assistant pour obtenir une explication du résultat.';
   $('#evidenceList').replaceChildren();
   $('#jsonPanel').hidden = true;
   $('#jsonButton').disabled = true;
@@ -73,6 +75,7 @@ function setFile(file) {
   $('#fileRow').hidden = false;
   dropzone.hidden = true;
   $('#pageNumber').value = 1;
+  $('#assistantPermission').checked = false;
   const placeholder = document.createElement('div');
   placeholder.className = 'pdf-placeholder';
   placeholder.textContent = 'La page analysée apparaîtra ici.';
@@ -87,7 +90,7 @@ function resetApp() {
   fileInput.value = '';
   dropzone.hidden = false;
   $('#fileRow').hidden = true;
-  $('#nemotronPermission').checked = false;
+  $('#assistantPermission').checked = false;
   drawing.innerHTML = initialDrawing;
   setPreviewLabel('PLAN D’EXEMPLE', '');
   resetResult();
@@ -149,7 +152,17 @@ function renderEvidence(result) {
 function jsonForTab() {
   if (currentJsonTab === 'det') return analysis.deterministic;
   if (currentJsonTab === 'ml') return analysis.ml;
-  return analysis;
+  const {
+    status, answer, reasons, deterministic, ml, matched_pairs, matched_evidence, disputed_evidence,
+    unverified_evidence, schema_version, request_id, source, image_url, mode, assistant,
+  } = analysis;
+  return {
+    status, answer, reasons, deterministic, ml, matched_pairs, matched_evidence, disputed_evidence,
+    unverified_evidence, schema_version, request_id, source, image_url, mode,
+    assistant: assistant && {
+      status: assistant.status, message: assistant.message, evidence_ids: assistant.evidence_ids,
+    },
+  };
 }
 
 function render(result, fileName) {
@@ -171,18 +184,15 @@ function render(result, fileName) {
   }
   $('#assistantContextTitle').textContent = fileName;
   $('#assistantPage').textContent = `Page ${result.source.page_index + 1}`;
-  const review = result.nemotron;
-  const advisory = review.advisory;
-  const reviewStates = {
-    not_needed: 'Ce résultat ne nécessite pas de revue NVIDIA.',
-    not_authorized: 'La revue NVIDIA n’a pas été autorisée pour cette demande.',
-    disabled: 'La revue NVIDIA est désactivée.',
-    outside_scope: 'La zone de désaccord est trop large pour la revue.',
-    unavailable: 'La revue NVIDIA est indisponible.',
+  const assistant = result.assistant;
+  const assistantStates = {
+    not_needed: 'Ce résultat ne nécessite pas d’explication supplémentaire.',
+    not_authorized: 'Activez l’assistant si vous souhaitez une explication.',
+    unavailable: 'L’assistant est indisponible. Vous pouvez toujours consulter le résultat et les zones.',
   };
-  $('#reviewMessage').textContent = advisory
-    ? `${advisory.reason} ${advisory.evidence_ids.length ? `Références : ${advisory.evidence_ids.join(', ')}.` : ''}`
-    : reviewStates[review.status];
+  const references = assistant?.evidence_ids?.join(', ');
+  const message = assistant?.message || assistantStates[assistant?.status] || assistantStates.unavailable;
+  $('#reviewMessage').textContent = references ? `${message} Références ${references}.` : message;
   renderEvidence(result);
   $('#jsonOutput').textContent = JSON.stringify(jsonForTab(), null, 2);
   $('#jsonButton').disabled = false;
@@ -192,11 +202,13 @@ async function analyze(demo = false) {
   if (busy || (!demo && !selectedFile)) return;
   busy = true;
   updateControls();
-  const permission = $('#nemotronPermission').checked;
+  const permission = assistantAvailable && $('#assistantPermission').checked;
   $('#runAnalysis').textContent = 'Analyse…';
+  if (permission) $('#reviewMessage').textContent = 'L’assistant Stoa prépare son explication…';
   try {
     let path = '/api/v1/demo/door-count';
-    const params = new URLSearchParams({ allow_nemotron_review: String(permission) });
+    const params = new URLSearchParams();
+    params.set('allow_assistant_review', String(permission));
     if (demo) params.set('scenario', 'disputed');
     if (!demo) {
       const form = new FormData();
@@ -223,10 +235,12 @@ async function readConfig() {
     $('#modeLabel').textContent = config.deterministic || config.ml ? 'Moteurs configurés' : 'En attente des moteurs';
     $('#detState').textContent = config.deterministic ? 'Configuré' : 'Indisponible';
     $('#mlState').textContent = config.ml ? 'Configuré' : 'Indisponible';
-    $('#nemotronState').textContent = config.nemotron ? 'Disponible' : 'Désactivé';
-    $('#nemotronPermission').disabled = !config.nemotron;
+    assistantAvailable = Boolean(config.assistant);
+    $('#assistantState').textContent = assistantAvailable ? 'Disponible' : 'Indisponible';
+    updateControls();
   } catch {
     $('#modeLabel').textContent = 'API indisponible';
+    $('#assistantState').textContent = 'Indisponible';
   }
 }
 

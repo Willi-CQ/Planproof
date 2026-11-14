@@ -68,6 +68,7 @@ class DoorCountRequest(Contract):
     ml_detections: dict | None = None
     allow_gemini_review: bool = False
     allow_nemotron_review: bool = False
+    allow_assistant_review: bool | None = None
 
     @model_validator(mode="after")
     def single_ml_input(self):
