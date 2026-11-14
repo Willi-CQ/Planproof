@@ -2,6 +2,8 @@
 
 Owner: **project owner/Codex pair**. This is the harder workstream. Start with
 [the architecture](README.md) and [shared contracts](CONTRACTS.md).
+Use [the algorithm catalogue](ALGORITHMS.md) as the implementation inventory:
+T2-01 through T2-30 specify inputs, rules, failures and immediate fixture work.
 
 Your result must make quantities and disagreements defensible. A clean-looking
 polygon is not enough: connectivity, units, object membership and evidence lineage

@@ -24,6 +24,8 @@ Do not build a general construction platform or repair unrelated legacy systems.
 
 1. This architecture and delivery sequence.
 2. [Shared contracts and examples](CONTRACTS.md).
+   Then [the algorithm catalogue and rules](ALGORITHMS.md):30 Track2 stages,
+   proposed parameters and fixtures that can be prepared before Track1 finishes.
 3. Your workstream: [Track 1: pixels](TRACK-1-PIXELS.md) or
    [Track 2: vectors and comparisons](TRACK-2-GEOMETRY.md).
 4. [Research and reference-code assessment](RESEARCH.md).
@@ -88,7 +90,7 @@ update the fixture and consumer together.
 - Track 1 owns package/CLI scaffolding, frame types, raster code and the ML adapter.
   Track 2 owns vector code, comparison/measurement logic, final evidence assembly,
   and the first generated inter-track fixture. Both agree contracts before code.
-- Base tools: NumPy, OpenCV headless, Pillow, Shapely, scikit-image, pypdfium2 and
+- Base tools: NumPy, SciPy, OpenCV headless, Pillow, Shapely, scikit-image, pypdfium2 and
   pdfplumber. OCR uses pytesseract plus the separately installed Tesseract binary
   and configured language packs. Keep PyTorch/model loading optional and external
   to the CPU geometry package. Pin the tested dependency versions during setup.
