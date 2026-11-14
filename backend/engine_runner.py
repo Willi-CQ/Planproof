@@ -64,8 +64,12 @@ def run_engine(name: str, image: Path, frame: PageFrame, work: Path) -> Analyzer
         env.pop("PYTHONHOME", None)
         env.setdefault("OMP_NUM_THREADS", "4")
         env.setdefault("MKL_NUM_THREADS", "4")
-        subprocess.run(command, env=env, check=True, timeout=120,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # A separate session lets Windows workers launch from a detached web server.
+        subprocess.run(
+            command, env=env, check=True, timeout=120,
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
         raw = read_result(result_path)
         if name == "ml":
             return adapt_ml(raw, frame)
