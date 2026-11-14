@@ -1,8 +1,10 @@
 # Connecting the training GPU
 
-For the active hackathon deadline, start with [HACKATHON.md](HACKATHON.md):
-short 512px runs, session time caps, independent GPU experiments and supervision.
-The 40k-update baseline commands below remain the longer research workflow.
+For the actual trained release, start with [TRAINING_RESULTS.md](TRAINING_RESULTS.md).
+The validated model uses a 1024-pixel global view and mode-bound calibration;
+include `--global-view` in inference and evaluation commands for that release.
+[HACKATHON.md](HACKATHON.md) describes the earlier bounded-run workflow. The
+baseline commands below are preparation examples, not the completed run history.
 
 The training implementation is prepared on branch **ml-training-preparation**.
 The deterministic code remains on its separate branch. The root README stays empty.
@@ -15,10 +17,11 @@ grouped splits/audits, detector, baseline/curriculum recipes, training and resum
 validation/calibration, test reports, original-pixel inference/overlays, raw
 probability artifacts, ONNX export and an isolated wall-logit export.
 
-Local checks use CPU PyTorch and generated fixtures. They verify execution and
-contracts, not accuracy. CUDA kernels, GPU memory limits, the Linux image build,
-and imports of real publisher archives must be verified on the GPU host.
-Passing code tests does not meet the model's accuracy targets.
+CPU checks cover contracts; the pinned Linux image, CUDA forward/backward,
+real-source imports, bounded training, validation, trained-weight ONNX parity and
+local artifact backup have also been verified on the A100 host. See the measured
+report for source counts and quality limits. Passing execution checks does not
+meet the model's provisional accuracy targets.
 
 ## Host
 
@@ -32,7 +35,8 @@ The supplied image pins **PyTorch 2.5.1 / CUDA 12.4**. Confirm GPU architecture
 and driver compatibility. Newer GPUs requiring newer CUDA/PyTorch need a separately
 validated image rather than bypassing the CUDA probe.
 
-No credentials, paid resources or remote GPU have been configured or provisioned.
+An authorized remote A100 is configured. Machine access details stay in private
+local operational notes, outside this source handoff.
 
 ## Obtain code
 

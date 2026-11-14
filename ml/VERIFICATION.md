@@ -1,6 +1,7 @@
 # Local verification — 2026-11-13
 
-Status: ready to connect a GPU host for CUDA and real-source validation.
+Current status: see the supervised release verification below and
+[TRAINING_RESULTS.md](TRAINING_RESULTS.md). Earlier entries record prior gates.
 
 - Python 3.12.13; PyTorch 2.5.1+cpu; Windows x86_64.
 - 40 tests passed. Coverage includes dataset adapters, coverage masking, grouped
@@ -66,3 +67,27 @@ The initial 512-pixel model learns walls and rooms but has weak opening-box
 localization. A bounded overlap-loss refinement is evaluated independently;
 previous baseline weights are preserved. Final numerical claims belong in the
 measured run report after matched-cohort validation, not this readiness record.
+
+## Supervised release verification — 14 November 2026
+
+72 CPU tests pass, with Ruff lint and format checks. Coverage now includes exact
+resume, fresh cross-dataset initialization, deterministic threaded prefetch,
+real publisher schema regressions, class-balanced GIoU/relative-size losses,
+known-object supervision in otherwise ignored pixels, calibration cache parity,
+global/tiled calibration guards, slim checkpoint equality and ONNX parity.
+
+On the A100 host, original CubiCasa, ResPlan and usable FloorPlanCAD imports passed
+deep content audits and visual label review. Training completed finite CUDA
+updates, checkpoints and matched validation comparisons. The selected fallback
+was confirmed on 128 validation drawings per source with fixed thresholds.
+
+Its actual trained weights exported to full and wall-only ONNX. Every output
+matched PyTorch on a real 1024-pixel drawing within rtol=1e-3/atol=1e-4.
+The inference-only PyTorch checkpoint has identical parameters, rebound
+calibration and explicit normalization/coordinate metadata. All copied release
+files passed local SHA256 verification; the actual released weights also passed
+a finite five-head forward on the local CPU.
+
+Root README remains empty. No dataset, weight, credential, private brain or
+instruction file is tracked. Source commits are local; no GitHub push occurred.
+Real multi-GPU DDP and end-to-end Stoa/Gemini question answering remain unverified.
