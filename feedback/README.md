@@ -7,11 +7,11 @@ An existing environment variable of the same name takes precedence.
 The personal `VERDA_INFERENCE_KEY` can remain in the private file, but this
 Nemotron deployment explicitly uses the separate event-issued credential.
 
-From the parent Planproof workspace in PowerShell:
+From the repository root in PowerShell, after installing this package's environment:
 
 ```powershell
-.\_planproof_nemotron\nemotron.cmd check
-.\_planproof_nemotron\nemotron.cmd benchmark
+.\nemotron.cmd check
+.\nemotron.cmd benchmark
 ```
 
 `check` authenticates and checks `/v1/models`; the benchmark makes the actual
