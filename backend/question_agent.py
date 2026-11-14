@@ -19,6 +19,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from gemini_transport import ResilientGeminiTransport, failure_info, response_candidate
 from token_recovery import compact_observations, select_detail_images
+from measurements import (
+    AreaRequest,
+    PolygonRequest,
+    calculate_area,
+    measure_polygon,
+    normalize_unit,
+)
 
 from planproof_feedback.artifacts import write_json
 from planproof_feedback.config import read_env
@@ -53,8 +60,35 @@ records checks and remaining uncertainty, not hidden reasoning or proof of corre
 optional for obvious answers and does not force algorithms or a specialist call.
 Optional review_answer is a bounded visual feedback loop and can
 be used WITHOUT algorithms. Do not force review for obvious answers or repeat a failed tool.
-Measure only with a visibly verified scale/dimension; no area from pixels alone. For printed
-areas prefer the source label. Never infer scale, unseen pages, categories or absent symbols.
+AREA AND SIZE QUESTIONS: First locate the requested room/use on this page and inspect a
+clean detail crop, relevant dimension strings/extension lines, area schedule and drawing notes.
+Prefer a printed area explicitly belonging to that room, not a whole-wing/common-space total.
+In auto/visual_only mode use calculate_area for a printed area/conversion or rectangles whose
+lengths and widths actually bound the target. Supply literal source text (including feet,
+inches and fractions), tight citations for every input, a region citation, and boundary_basis.
+Unitless numbers need unit_context AND a citation to the drawing's unit note. Do not guess.
+For comma-separated numbers set number_format to decimal_point or decimal_comma based on
+the source convention; do not silently interpret an ambiguous separator.
+If dimensions bound only the larger building/wing, do NOT multiply them as the room's size.
+Instead use measure_polygon to estimate the visible room boundary calibrated with at least
+two distinct dimension anchors in the SAME drawing view. Polygon, holes, view_bbox and anchor
+endpoints all use normalized 0..1000 ORIGINAL PAGE coordinates, even when read from crops.
+Trace the actual floor boundary, not a room's bounding box; exclude voids/open-to-below and
+unrelated circulation. For irregular rooms use a polygon with holes or disjoint dimensioned
+rectangles; never double-count overlapping pieces. Anchors must connect the actual extension
+line endpoints for the written lengths; a scale-ratio title alone supplies no pixel scale.
+Never use typical furniture/door sizes or assume image DPI. If calibration disagrees, inspect
+the endpoint locations and scope; do not adjust dimensions just to make the tool pass.
+Raster measurements are ALWAYS approximate. Also mark dimension calculations approximate when
+the source is conceptual/approximate. Distinguish net/internal, gross/external and unknown
+boundary basis. If the target boundary or units cannot be supported, abstain and state what
+is missing. A valid calculation does not certify the model's reading or room identification.
+For an area answer in auto/visual_only, submit the returned measurement_id, numeric value and
+unit exactly; explain the method and relevant limitations. Host attaches all source citations.
+Keep the area explanation to 2-4 sentences: result, boundary basis, calibration and limits.
+Do not add equipment inventories or alternative numeric areas that no tool calculated.
+In direct mode only clearly printed area labels can be answered; derived areas require tools.
+Never infer scale, unseen pages, categories or absent symbols.
 Use short registered room IDs from get_algorithms. Tool crop boxes use [x0,y0,x1,y1] in
 0..1000 normalized ORIGINAL PAGE coordinates; citations use SENT IMAGE PIXELS and image_id
 from supplied metadata. Cite the actual evidence tightly. A citation is a proposed location,
@@ -92,6 +126,7 @@ class FinalAnswer(BaseModel):
     citations: list[Citation] = Field(max_length=100)
     coverage: str = Field(min_length=1, max_length=2000)
     uncertainties: list[str] = Field(max_length=20)
+    measurement_id: str | None = Field(default=None, max_length=40)
 
 
 def settings():
@@ -132,6 +167,20 @@ def declarations(mode, allow_nemotron):
     ]
     if mode == "direct":
         return result
+    result.extend(
+        [
+            types.FunctionDeclaration(
+                name="calculate_area",
+                description="Calculate/convert a cited printed area or add/subtract dimensioned rectangular areas. Feet/inches/fractions supported. No pixel scale needed. Source readings and boundary interpretation remain advisory.",
+                parameters_json_schema=AreaRequest.model_json_schema(),
+            ),
+            types.FunctionDeclaration(
+                name="measure_polygon",
+                description="Estimate room area from its traced polygon minus holes and at least two distinct cited length anchors in the same view. All geometry is normalized 0..1000 on ORIGINAL PAGE. Rejects conflicting scales and invalid polygons. Always approximate.",
+                parameters_json_schema=PolygonRequest.model_json_schema(),
+            ),
+        ]
+    )
     result.append(
         declaration(
             "reflect",
@@ -290,6 +339,7 @@ class DrawingAgent:
         self.reflection_count = 0
         self.crop_cache = {}
         self.tool_cache = {}
+        self.measurements = {}
         self.recovery_used = False
         self.token_repair_used = False
         self.delegated_recovery_calls = 0
@@ -300,9 +350,7 @@ class DrawingAgent:
         }
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
         self.original = Image.open(io.BytesIO(page.png)).convert("RGB")
-        self.add_image(
-            self.original, "overview", [0, 0, page.width, page.height]
-        )
+        self.add_image(self.original, "overview", [0, 0, page.width, page.height])
         if isinstance(self.transport, ResilientGeminiTransport):
             self.transport.on_attempt = self.checkpoint
 
@@ -355,6 +403,17 @@ class DrawingAgent:
     def execute(self, name, args, *, timeout_seconds=None):
         if name not in self.allowed or name == "submit_answer":
             raise ValueError("Unknown or disabled tool")
+        if name in ("calculate_area", "measure_polygon"):
+            images = list(self.images.values())
+            result = (
+                calculate_area(args, images)
+                if name == "calculate_area"
+                else measure_polygon(args, images, (self.page.width, self.page.height))
+            )
+            measurement_id = f"M{len(self.measurements) + 1}"
+            result["measurement_id"] = measurement_id
+            self.measurements[measurement_id] = result
+            return result, []
         expected = {
             "reflect": {"draft", "checks", "unresolved", "next_action"},
             "get_algorithms": {"classes"},
@@ -562,6 +621,52 @@ class DrawingAgent:
 
     def finish(self, result):
         result = FinalAnswer.model_validate(result).model_dump()
+        measurement_id = result.get("measurement_id")
+        if result["status"] == "answered":
+            is_area = normalize_unit(result["unit"] or "") in {
+                "ft2",
+                "m2",
+                "in2",
+                "cm2",
+                "mm2",
+            }
+            if self.request.mode != "direct" and is_area and not measurement_id:
+                raise ValueError(
+                    "Area answers require a successful measurement tool and measurement_id"
+                )
+            if measurement_id:
+                measurement = self.measurements.get(measurement_id)
+                if measurement is None:
+                    raise ValueError("Unknown measurement_id")
+                if (
+                    not isinstance(result["answer"], (float, int))
+                    or result["answer"] != measurement["value"]
+                    or normalize_unit(result["unit"] or "") != measurement["unit"]
+                ):
+                    raise ValueError(
+                        "Final area must match the calculated value and unit"
+                    )
+                result["unit"] = measurement["unit"]
+                citations = list(measurement["citations"])
+                for citation in result["citations"]:
+                    if citation not in citations and len(citations) < 100:
+                        citations.append(citation)
+                result["citations"] = citations
+                if measurement["approximate"]:
+                    result["uncertainties"] = list(
+                        dict.fromkeys(
+                            [
+                                "Approximate area; source readings and the selected room boundary need verification.",
+                                *result["uncertainties"],
+                            ]
+                        )
+                    )[:20]
+                    if "approx" not in result["explanation"].lower():
+                        result["explanation"] = (
+                            "Approximate area. " + result["explanation"][:3982]
+                        )
+        elif measurement_id:
+            raise ValueError("Abstention must not assert a measurement")
         validate_output(result, "answer", list(self.images.values()))
         return result
 
@@ -876,6 +981,15 @@ class DrawingAgent:
                         },
                         [],
                     )
+                    if function.name in (
+                        "calculate_area",
+                        "measure_polygon",
+                    ) and isinstance(exc, ValueError):
+                        # These tools are local and consume no credentials/provider text.
+                        # A concise validation reason allows the model to repair its inputs.
+                        result["instruction"] = (
+                            str(exc)[:600] + ". Recheck the source or abstain."
+                        )
                 self.tool_log.append(
                     {
                         "name": function.name,
@@ -938,6 +1052,7 @@ class DrawingAgent:
             "model": self.transport.model,
             "source_raster_sha256": self.page.raster_sha256,
             "citation_verification": "Image identity and bounds validated; semantic support is model proposed.",
+            "measurement": self.measurements.get(answer.get("measurement_id")),
             "reliability": {
                 "recovery_used": self.recovery_used,
                 "token_repair_used": self.token_repair_used,

@@ -24,7 +24,7 @@ flowchart TD
 | How many floor layouts are displayed? | Gemini overview, potentially direct answer | Displayed layouts do not establish the building's total storeys. |
 | How many bathtubs? | Gemini visual search; optionally room proposals, clean crops and Nemotron | The detector has no bathtub class. Missing detections cannot mean zero. |
 | How many windows? | Structural proposals and disagreement checks may help, then source inspection | Neither raw candidate counts nor method agreement is ground truth. |
-| What is the room's printed area? | Read its label from a clean crop | No metric area calculation from pixels without verified calibration. |
+| What is the room's area? | Read its own area label, calculate from cited dimensions, or measure a traced boundary against two consistent dimension anchors | Raster takeoffs are approximate; units, boundary and source readings must be supported. See [plan measurements](PLAN_MEASUREMENTS.md). |
 
 Three selectable modes allow a controlled comparison:
 
@@ -79,6 +79,8 @@ The host still retains all hashes/transforms and source artifacts for verificati
 | `inspect_nemotron` | registered image IDs, focused question | Real Nemotron visual answer for those images only. |
 | `review_answer` | draft and registered image IDs | One optional Nemotron visual feedback pass. Works without any algorithms. |
 | `reflect` | short draft, evidence checks, unresolved issues, next action | One optional recorded Gemini self-check; no provider call and no hidden reasoning trace. |
+| `calculate_area` | cited area label or dimensioned rectangular components, target/boundary basis, output unit | Host computes area and unit conversion; no inferred scale. |
+| `measure_polygon` | traced polygon/holes and two distinct cited dimension anchors in one view | Host checks geometry/scale consistency and computes an explicitly approximate area. |
 | `submit_answer` | answer/abstention, citations, coverage, uncertainties | Host validates output and maps citations back to original page coordinates. |
 
 Registered images carry sent size, source identity, pixel scaling, canonical crop

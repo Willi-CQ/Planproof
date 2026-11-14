@@ -69,6 +69,24 @@ def _record(entry, index):
         fields = _SPECIALIST_FIELDS
     elif name in ("crop_region", "crop_room"):
         fields = _CROP_FIELDS
+    elif name in ("calculate_area", "measure_polygon"):
+        fields = (
+            "status",
+            "measurement_id",
+            "method",
+            "target",
+            "value",
+            "unit",
+            "approximate",
+            "boundary_basis",
+            "formula",
+            "citations",
+            "canonical_citations",
+            "verification",
+            "calibration",
+            "error_code",
+            "instruction",
+        )
     else:
         # Reflection, proposed final answers and unknown tools are not evidence.
         return None

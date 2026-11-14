@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from pathlib import Path, PurePosixPath
 
 
@@ -11,7 +12,17 @@ def write_json(path: Path, value):
     temporary.write_text(
         json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8"
     )
-    temporary.replace(path)
+    # Windows readers/sync clients can briefly deny replacing an open file.
+    # Keep the complete old artifact visible and retry only that transient error;
+    # persistent permission failures still propagate, with the new .tmp retained.
+    for attempt in range(6):
+        try:
+            temporary.replace(path)
+            break
+        except PermissionError:
+            if attempt == 5:
+                raise
+            time.sleep(0.05 * 2**attempt)
 
 
 def fingerprint(value):
