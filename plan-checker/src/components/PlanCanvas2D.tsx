@@ -233,43 +233,30 @@ export function PlanCanvas2D({
   return (
     <section
       aria-label="2D Plan Viewer"
-      className="flex flex-col rounded-lg border border-slate-200 bg-white overflow-hidden md:h-full"
+      className="flex flex-col overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.035)] md:h-full"
     >
       {/* Plan Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-[#F8FAFC] px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[0.06] bg-white px-4 py-3">
         <div className="min-w-0">
           {uploadedPlan ? (
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-semibold text-[#1E40AF]">
-                CUSTOM UPLOAD
-              </span>
-              <span className="truncate text-sm font-semibold text-slate-900">
+              <span className="truncate text-sm font-medium text-[#1d1d1f]">
                 {uploadedPlan.name}
               </span>
               <button
                 type="button"
                 onClick={onClearUpload}
                 aria-label="Remove uploaded 2D plan"
-                className="inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#86868b] hover:bg-[#f5f5f5] hover:text-[#1d1d1f] cursor-pointer"
               >
                 <X className="h-3 w-3" aria-hidden="true" />
-                <span>Reset sheet</span>
               </button>
             </div>
           ) : (
-            <div>
-              <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-500 tabular-nums">
-                <span className="font-semibold text-[#1E40AF]">{plan.code}</span>
-                <span aria-hidden="true">·</span>
-                <span>{plan.discipline}</span>
-                <span aria-hidden="true">·</span>
-                <span>{plan.revision}</span>
-                <span aria-hidden="true">·</span>
-                <span>Scale {plan.scale}</span>
-              </div>
-              <h1 className="truncate font-display text-base font-semibold text-slate-900">
-                {plan.title}
-              </h1>
+            <div className="flex items-center gap-2 text-xs text-[#6e6e73]">
+              <span className="font-medium text-[#1d1d1f]">{plan.code}</span>
+              <span aria-hidden="true">·</span>
+              <span>{plan.discipline}</span>
             </div>
           )}
         </div>
@@ -281,13 +268,13 @@ export function PlanCanvas2D({
             onClick={() => onZoomChange(clampZoom(zoom - 25))}
             disabled={zoom <= MIN_ZOOM}
             aria-label="Zoom out 2D plan"
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#6e6e73] hover:bg-[#f5f5f5] disabled:opacity-40 cursor-pointer"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
           <span
             data-testid="zoom-level"
-            className="min-w-12 text-center font-mono text-xs font-medium text-slate-700 tabular-nums"
+            className="min-w-10 text-center text-[11px] font-medium text-[#6e6e73] tabular-nums"
           >
             {zoom}%
           </span>
@@ -296,7 +283,7 @@ export function PlanCanvas2D({
             onClick={() => onZoomChange(clampZoom(zoom + 25))}
             disabled={zoom >= MAX_ZOOM}
             aria-label="Zoom in 2D plan"
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#6e6e73] hover:bg-[#f5f5f5] disabled:opacity-40 cursor-pointer"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -305,78 +292,40 @@ export function PlanCanvas2D({
             onClick={() => onZoomChange(100)}
             disabled={zoom === 100}
             aria-label="Reset zoom to 100%"
-            className="inline-flex min-h-9 items-center gap-1 rounded border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+            className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-[11px] text-[#6e6e73] hover:bg-[#f5f5f5] disabled:opacity-40 cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Reset</span>
+            <span>Réinitialiser</span>
           </button>
         </div>
       </div>
 
       {/* Interactive Scanned 2D Viewport */}
-      <div className="relative flex-1 overflow-auto bg-[#DDE1E6] p-5 sm:p-6">
+      <div className="relative flex-1 overflow-auto bg-[#f5f5f7] p-4 sm:p-6">
         <div
-          className="mx-auto flex items-center justify-center transition-transform duration-150 origin-top-left"
+            className="mx-auto flex items-center justify-center origin-top-left"
           style={{
             width: `${zoom}%`,
             minWidth: '100%',
           }}
         >
           {uploadedPlan ? (
-            <div className="relative inline-block -rotate-[0.65deg] overflow-hidden rounded-[2px] border border-[#C6C1B5] bg-[#F5F1E6] p-3 shadow-[0_6px_20px_rgba(15,23,42,0.14)]">
+            <div className="relative inline-block overflow-hidden rounded-lg border border-black/[0.08] bg-white p-2 shadow-[0_8px_28px_rgba(0,0,0,0.07)]">
               <img
                 src={uploadedPlan.previewUrl}
                 alt={`Scanned 2D plan: ${uploadedPlan.name}`}
                 referrerPolicy="no-referrer"
-                className="max-h-[520px] w-auto object-contain contrast-[1.06] sepia-[0.15] brightness-[0.98]"
-              />
-              <div
-                aria-hidden="true"
-                className="stoa-anim-scan pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[#1E40AF]/35"
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 shadow-[inset_0_0_28px_rgba(68,58,42,0.12)]"
+                className="max-h-[620px] w-auto object-contain"
               />
             </div>
           ) : (
-            <div className="relative w-full max-w-[820px] -rotate-[0.6deg] overflow-hidden rounded-[2px] border border-[#C6C1B5] bg-[#F6F2E7] p-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.15)]">
+            <div className="relative w-full max-w-[920px] overflow-hidden rounded-lg border border-black/[0.08] bg-white p-2 shadow-[0_8px_28px_rgba(0,0,0,0.07)]">
               <svg
                 viewBox="0 0 800 520"
                 role="img"
                 aria-label={`Scanned 2D CAD drawing for ${plan.code} ${plan.title}`}
-                className="w-full bg-[#FAF7EF]"
+                className="w-full bg-white"
               >
-                <defs>
-                  {/* Paper grain / scanner toner texture */}
-                  <filter id="stoa-scan-paper" x="0%" y="0%" width="100%" height="100%">
-                    <feTurbulence
-                      type="fractalNoise"
-                      baseFrequency="0.75"
-                      numOctaves="3"
-                      seed="7"
-                      result="noise"
-                    />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0.25  0 0 0 0 0.22  0 0 0 0 0.16  0 0 0 0.055 0"
-                      in="noise"
-                      result="grain"
-                    />
-                  </filter>
-
-                  {/* Subtle scanner edge vignette */}
-                  <radialGradient id="stoa-scan-vignette" cx="50%" cy="50%" r="70%">
-                    <stop offset="72%" stopColor="#FAF7EF" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#8C8270" stopOpacity="0.16" />
-                  </radialGradient>
-                </defs>
-
-                {/* Subtle archival sheet border & crop ticks */}
-                <rect x="8" y="8" width="784" height="504" fill="none" stroke="#B8B1A3" strokeWidth="0.9" />
-                <line x1="400" y1="0" x2="400" y2="520" stroke="#D8D1C2" strokeWidth="1" opacity="0.55" />
-                <line x1="0" y1="260" x2="800" y2="260" stroke="#D8D1C2" strokeWidth="1" opacity="0.55" />
-
                 {/* Structural Gridlines */}
                 {[
                   { x: 160, label: 'A' },
@@ -394,7 +343,7 @@ export function PlanCanvas2D({
                       strokeDasharray="4 4"
                       strokeWidth="1"
                     />
-                    <circle cx={g.x} cy="28" r="11" fill="#FAF7EF" stroke="#64748B" strokeWidth="1" />
+                    <circle cx={g.x} cy="28" r="11" fill="#FFFFFF" stroke="#64748B" strokeWidth="1" />
                     <text
                       x={g.x}
                       y="32"
@@ -424,7 +373,7 @@ export function PlanCanvas2D({
                       strokeDasharray="4 4"
                       strokeWidth="1"
                     />
-                    <circle cx="30" cy={g.y} r="11" fill="#FAF7EF" stroke="#64748B" strokeWidth="1" />
+                    <circle cx="30" cy={g.y} r="11" fill="#FFFFFF" stroke="#64748B" strokeWidth="1" />
                     <text
                       x="30"
                       y={g.y + 4}
@@ -473,7 +422,7 @@ export function PlanCanvas2D({
                           fill="none"
                           stroke="#1E40AF"
                           strokeWidth="1.5"
-                          className="stoa-anim-beacon pointer-events-none"
+                          className="pointer-events-none"
                         />
                       )}
                       <rect
@@ -510,50 +459,6 @@ export function PlanCanvas2D({
                   );
                 })}
 
-                {/* Physical Archival Ink Stamp */}
-                <g transform="translate(24, 464) rotate(-2.5)" opacity="0.45">
-                  <rect x="0" y="0" width="152" height="28" rx="2" fill="none" stroke="#991B1B" strokeWidth="1.4" />
-                  <text
-                    x="76"
-                    y="17"
-                    textAnchor="middle"
-                    fontSize="8.5"
-                    fontWeight="600"
-                    letterSpacing="0.8"
-                    fill="#991B1B"
-                    fontFamily="IBM Plex Mono, monospace"
-                  >
-                    ISSUED FOR CONSTRUCTION
-                  </text>
-                </g>
-
-                {/* CAD Sheet Title Block */}
-                <g transform="translate(530, 466)">
-                  <rect x="0" y="0" width="220" height="36" fill="#F4EFE2" stroke="#94A3B8" strokeWidth="1" />
-                  <text x="10" y="15" fontSize="9.5" fontWeight="600" fill="#1E293B" fontFamily="IBM Plex Mono, monospace">
-                    {plan.code} · {plan.revision} · {plan.scale}
-                  </text>
-                  <text x="10" y="28" fontSize="9" fill="#475569" fontFamily="Public Sans, sans-serif">
-                    {plan.project}
-                  </text>
-                </g>
-
-                {/* Scanner Grain & Edge Vignette Overlay */}
-                <rect x="0" y="0" width="800" height="520" filter="url(#stoa-scan-paper)" pointerEvents="none" />
-                <rect x="0" y="0" width="800" height="520" fill="url(#stoa-scan-vignette)" pointerEvents="none" />
-
-                {/* Subtle Optical Scan Sweep Line */}
-                <line
-                  x1="0"
-                  y1="14"
-                  x2="800"
-                  y2="14"
-                  stroke="#1E40AF"
-                  strokeWidth="1.2"
-                  opacity="0.3"
-                  className="stoa-anim-scan"
-                  pointerEvents="none"
-                />
               </svg>
             </div>
           )}
@@ -562,11 +467,8 @@ export function PlanCanvas2D({
 
       {/* Quick Zone Index + Active Callout Inspector Strip */}
       {!uploadedPlan && (
-        <div className="border-t border-slate-200 bg-white px-4 py-3">
+        <div className="border-t border-black/[0.06] bg-white px-4 py-3">
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="2D plan callout zones">
-            <span className="mr-1 text-xs font-medium text-slate-500">
-              Tagged Zones:
-            </span>
             {plan.zones.map((zone) => {
               const isSelected = zone.id === selectedZoneId;
               return (
@@ -575,14 +477,14 @@ export function PlanCanvas2D({
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => onSelectZone(isSelected ? null : zone.id)}
-                  className={`inline-flex min-h-8 items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     isSelected
-                      ? 'border-[#1E40AF] bg-[#1E40AF] text-white'
-                      : 'border-slate-200 bg-[#F8FAFC] text-slate-700 hover:border-[#1E40AF]/50 hover:text-[#1E40AF]'
+                      ? 'bg-[#4968e8] text-white'
+                      : 'bg-[#f5f5f7] text-[#6e6e73] hover:bg-[#ededf0] hover:text-[#1d1d1f]'
                   }`}
                 >
                   <span>{zone.tag}</span>
-                  <span className="opacity-70">· {zone.gridRef}</span>
+                  <span className="opacity-65">· {zone.gridRef}</span>
                 </button>
               );
             })}
@@ -591,23 +493,23 @@ export function PlanCanvas2D({
           {selectedZone && (
             <div
               data-testid="zone-detail-strip"
-              className="mt-2.5 flex flex-col gap-2 rounded-md border border-slate-200 bg-[#F8FAFC] p-3 sm:flex-row sm:items-center sm:justify-between"
+              className="mt-2.5 flex flex-col gap-2 rounded-xl bg-[#f7f7f8] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <div className="font-mono text-xs text-[#1E40AF]">
-                  {selectedZone.tag} · {selectedZone.gridRef} · {selectedZone.title}
+                <div className="text-xs font-medium text-[#1d1d1f]">
+                  {selectedZone.tag} · {selectedZone.title}
                 </div>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-700">
+                <p className="mt-0.5 text-xs leading-relaxed text-[#6e6e73]">
                   {selectedZone.spec}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onAskAboutZone(selectedZone)}
-                className="inline-flex min-h-9 items-center gap-1.5 self-start rounded bg-[#0F172A] px-3 py-1.5 text-xs font-medium text-white whitespace-nowrap shrink-0 hover:bg-[#1E40AF] transition-colors cursor-pointer sm:self-center"
+                className="inline-flex min-h-8 items-center gap-1.5 self-start rounded-full bg-[#1d1d1f] px-3 py-1.5 text-[11px] font-medium text-white whitespace-nowrap shrink-0 hover:bg-[#3a3a3c] transition-colors cursor-pointer sm:self-center"
               >
                 <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Ask about {selectedZone.tag}</span>
+                <span>Demander</span>
               </button>
             </div>
           )}

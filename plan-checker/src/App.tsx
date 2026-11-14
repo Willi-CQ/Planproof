@@ -15,60 +15,12 @@ function formatNowTime(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-const INITIAL_PLAN_MESSAGES: Record<string, PlanChatMessage[]> = {
-  'plan-a101': [
-    {
-      id: 'seed-a101-u',
-      role: 'user',
-      content: 'What is the clear corridor width along Gridline B?',
-      timestamp: '09:10',
-    },
-    {
-      id: 'seed-a101-a',
-      role: 'assistant',
-      content:
-        'Main Egress Corridor (Grid B–C) maintains a minimum clear unobstructed width of **1,850 mm** between finished acoustic wall linings, with honed terrazzo over 40 mm acoustic screed [[Z1|COR-01 · Grid B-2]].',
-      timestamp: '09:10',
-    },
-  ],
-  'plan-m301': [
-    {
-      id: 'seed-m301-u',
-      role: 'user',
-      content: 'What maintenance clearance is required around CH-01?',
-      timestamp: '10:05',
-    },
-    {
-      id: 'seed-m301-a',
-      role: 'assistant',
-      content:
-        'Chiller Skid **CH-01** requires a minimum **1,200 mm** service and tube-pull clearance on all four sides of its 6.4 m x 2.2 m C40/50 inertia plinth [[Z1|CH-01 · Grid A-1]].',
-      timestamp: '10:05',
-    },
-  ],
-  'plan-s204': [
-    {
-      id: 'seed-s204-u',
-      role: 'user',
-      content: 'What span and thickness apply to the CLT deck panels?',
-      timestamp: '11:15',
-    },
-    {
-      id: 'seed-s204-a',
-      role: 'assistant',
-      content:
-        'Level 03 uses **240 mm** 7-ply spruce CLT panels spanning **7,200 mm** clear between primary glulam beams, with core moisture kept below 15.5% prior to enclosure [[Z2|CLT-03 · Grid B-1]].',
-      timestamp: '11:15',
-    },
-  ],
-};
-
 export default function App() {
   const [activePlanId, setActivePlanId] = useState<string>(COMPANY_PLANS[0].id);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>('Z1');
   const [zoom, setZoom] = useState<number>(100);
   const [messagesByPlan, setMessagesByPlan] =
-    useState<Record<string, PlanChatMessage[]>>(INITIAL_PLAN_MESSAGES);
+    useState<Record<string, PlanChatMessage[]>>({});
   const [uploadedPlan, setUploadedPlan] = useState<UploadedPlanFile | null>(null);
   const [uploadedMessages, setUploadedMessages] = useState<PlanChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,7 +51,7 @@ export default function App() {
 
     const validation = validatePlanImageFile({ type: file.type, size: file.size });
     if (!validation.valid) {
-      setErrorMessage(validation.error ?? 'Invalid 2D plan image.');
+      setErrorMessage(validation.error ?? 'Format de plan non pris en charge.');
       return;
     }
 
@@ -108,7 +60,7 @@ export default function App() {
       const result = typeof reader.result === 'string' ? reader.result : '';
       const base64Data = result.split(',')[1] ?? '';
       if (!base64Data) {
-        setErrorMessage('Could not read the selected image file.');
+        setErrorMessage('Impossible de lire ce fichier.');
         return;
       }
       setErrorMessage(null);
@@ -151,7 +103,7 @@ export default function App() {
     setIsLoading(true);
     try {
       if (!stoaApiUrl) {
-        throw new Error('STOA chat API is not configured. Set VITE_STOA_API_BASE_URL in the Pages workflow variables.');
+        throw new Error('L’assistant n’est pas encore connecté.');
       }
       const response = await fetch(`${stoaApiUrl}/api/chat`, {
         method: 'POST',
@@ -220,27 +172,21 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F5F6F8] text-[#0F172A] md:h-screen md:overflow-hidden">
-      {/* Compact 3-Zone Top Bar */}
-      <header className="border-b border-slate-200 bg-white shrink-0">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 md:flex-nowrap md:gap-6 md:px-5 md:py-3">
-          {/* Zone 1: Brand Wordmark */}
+    <div className="flex min-h-screen flex-col bg-[#f5f5f3] text-[#1d1d1f] md:h-screen md:overflow-hidden">
+      <header className="shrink-0 border-b border-black/[0.06] bg-white/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-5 py-3 sm:px-8">
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
               handleSelectPlan(COMPANY_PLANS[0].id);
             }}
-            className="font-display text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0"
+            className="font-display text-[19px] font-semibold tracking-[-0.06em] text-[#1d1d1f]"
           >
-            Stoa
+            stoa<span className="text-[#4968e8]">.</span>
           </a>
 
-          {/* Zone 2: 2D Plan Sheet Tabs */}
-          <nav
-            aria-label="Company 2D plan sheets"
-            className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-[#F8FAFC] p-1"
-          >
+          <nav aria-label="Plans" className="flex items-center gap-1 rounded-full bg-[#f2f2f2] p-1">
             {COMPANY_PLANS.map((plan) => {
               const isActive = !uploadedPlan && plan.id === activePlan.id;
               return (
@@ -249,59 +195,53 @@ export default function App() {
                   type="button"
                   aria-current={isActive ? 'page' : undefined}
                   onClick={() => handleSelectPlan(plan.id)}
-                  className={`min-h-8 rounded px-2.5 py-1 font-mono text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`min-h-8 rounded-full px-3.5 text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-[#0F172A] text-white'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                      ? 'bg-white text-[#1d1d1f] shadow-sm'
+                      : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                   }`}
                 >
-                  {plan.shortLabel}
+                    {plan.code}
                 </button>
               );
             })}
           </nav>
 
-          {/* Zone 3: Primary Action (Upload 2D Plan) */}
           <div className="shrink-0">
             <input
               ref={fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/webp"
               onChange={handleFileChange}
-              aria-label="Upload 2D plan image file"
+              aria-label="Importer un plan 2D"
               className="sr-only"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#1E40AF] px-3.5 py-2 text-xs font-medium text-white whitespace-nowrap shrink-0 hover:bg-[#1E3A8A] transition-colors cursor-pointer"
+              className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#1d1d1f] px-4 text-xs font-medium text-white transition-colors hover:bg-[#3a3a3c] cursor-pointer"
             >
               <Upload className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Upload 2D Plan</span>
+              <span>Importer</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Single-Page Split Workspace: Chatbot Left, Scanned 2D Plan Right */}
-      <main className="mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 gap-4 p-4 md:min-h-0 md:grid-cols-12">
-        <div className="md:col-span-5 md:min-h-0">
-          <PlanChatbotPanel
-            plan={activePlan}
-            uploadedPlan={uploadedPlan}
-            messages={activeMessages}
-            onSendMessage={sendMessage}
-            onClearChat={handleClearChat}
-            selectedZoneId={selectedZoneId}
-            onHighlightZone={(id) => setSelectedZoneId(id)}
-            isLoading={isLoading}
-            errorMessage={errorMessage}
-            onDismissError={() => setErrorMessage(null)}
-            inputRef={chatInputRef}
-          />
+      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-5 px-5 py-6 sm:px-8 md:min-h-0 md:py-8">
+        <div className="flex shrink-0 items-end justify-between gap-4">
+          <div>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[#86868b]">Espace de travail</p>
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.045em] sm:text-[30px]">
+              {uploadedPlan ? uploadedPlan.name : activePlan.title}
+            </h1>
+          </div>
+          <span className="mb-1 hidden rounded-full bg-white px-3 py-1.5 text-xs text-[#6e6e73] shadow-sm sm:inline-flex">
+            {uploadedPlan ? 'Nouveau plan' : `${activePlan.code} · ${activePlan.revision}`}
+          </span>
         </div>
 
-        <div className="md:col-span-7 md:min-h-0">
+        <div className="grid flex-1 grid-cols-1 gap-4 md:min-h-0 md:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px]">
           <PlanCanvas2D
             plan={activePlan}
             uploadedPlan={uploadedPlan}
@@ -314,6 +254,20 @@ export default function App() {
             zoom={zoom}
             onZoomChange={setZoom}
             onAskAboutZone={handleAskAboutZone}
+          />
+
+          <PlanChatbotPanel
+            plan={activePlan}
+            uploadedPlan={uploadedPlan}
+            messages={activeMessages}
+            onSendMessage={sendMessage}
+            onClearChat={handleClearChat}
+            selectedZoneId={selectedZoneId}
+            onHighlightZone={(id) => setSelectedZoneId(id)}
+            isLoading={isLoading}
+            errorMessage={errorMessage}
+            onDismissError={() => setErrorMessage(null)}
+            inputRef={chatInputRef}
           />
         </div>
       </main>

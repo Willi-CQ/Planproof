@@ -1,12 +1,5 @@
 import { useRef, useState, type FormEvent, type RefObject } from 'react';
-import {
-  AlertCircle,
-  Compass,
-  MapPin,
-  RotateCcw,
-  SendHorizontal,
-  X,
-} from 'lucide-react';
+import { AlertCircle, MapPin, Send, Sparkles, Trash2, X } from 'lucide-react';
 import type { PlanChatMessage, PlanSheet, UploadedPlanFile } from '../lib/plansData';
 import { parsePlanMessage, type InlineRun } from '../lib/stoaEngine';
 
@@ -40,153 +33,109 @@ export function PlanChatbotPanel({
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const ask = async (query: string) => {
+    await onSendMessage(query);
+    requestAnimationFrame(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
     if (!trimmed || isLoading) return;
     setDraft('');
-    await onSendMessage(trimmed);
-    requestAnimationFrame(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    });
+    await ask(trimmed);
   };
 
-  const handleStarter = async (promptText: string) => {
-    if (isLoading) return;
-    setDraft('');
-    await onSendMessage(promptText);
-    requestAnimationFrame(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    });
-  };
+  const suggestionLabels = plan.id === 'plan-a101'
+    ? ['Largeur du couloir', 'Porte D-04']
+    : plan.id === 'plan-m301'
+      ? ['Dégagement CH-01', 'Réseau hydraulique']
+      : ['Portée du plancher', 'Assemblage B-2'];
+  const suggestions = plan.starterPrompts.slice(0, 2);
 
   return (
     <section
-      aria-label="Stoa 2D Plan Assistant"
-      className="flex flex-col rounded-lg border border-slate-200 bg-white overflow-hidden md:h-full"
+      aria-label="Assistant Stoa"
+      className="flex min-h-[440px] flex-col overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.035)] md:h-full md:min-h-0"
     >
-      {/* Chat Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-        <div className="min-w-0">
-          <h2 className="truncate font-display text-base font-semibold text-slate-900">
-            {uploadedPlan ? `Ask about ${uploadedPlan.name}` : `Ask Stoa · ${plan.code}`}
-          </h2>
-          <p className="truncate text-xs text-slate-500">
-            {uploadedPlan
-              ? 'Custom uploaded 2D sheet · Visual drawing inspection'
-              : `${plan.project} · ${plan.zones.length} tagged zones indexed`}
-          </p>
+      <div className="flex items-center justify-between border-b border-black/[0.06] px-4 py-3.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef1ff] text-[#4968e8]">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold tracking-[-0.02em]">Assistant Stoa</h2>
+            <p className="truncate text-[11px] text-[#86868b]">
+              {uploadedPlan ? uploadedPlan.name : plan.code}
+            </p>
+          </div>
         </div>
-
         <button
           type="button"
           onClick={onClearChat}
           disabled={messages.length === 0 || isLoading}
-          aria-label="Clear chat"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 whitespace-nowrap shrink-0 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          aria-label="Effacer la conversation"
+          title="Effacer la conversation"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#86868b] transition-colors hover:bg-[#f5f5f5] hover:text-[#1d1d1f] disabled:opacity-30 cursor-pointer disabled:cursor-default"
         >
-          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Clear</span>
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 
-      {/* Conversation Stream */}
       <div
         ref={scrollRef}
         aria-live="polite"
         data-testid="plan-chat-messages"
-        className="flex-1 space-y-4 overflow-y-auto px-4 py-4 min-h-[280px] bg-white"
+        className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
       >
         {messages.length === 0 ? (
-          <div className="flex h-full min-h-[220px] flex-col items-center justify-center px-4 text-center">
-            <Compass className="h-7 w-7 text-slate-400" aria-hidden="true" />
-            <p className="mt-3 font-display text-base font-semibold text-slate-900">
-              Ask about any dimension, tag, or detail
-            </p>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
-              {uploadedPlan
-                ? 'Ask Stoa to read dimensions, room tags, or notes on your uploaded 2D drawing.'
-                : 'Select a zone on the 2D drawing or ask a question below. Citations highlight directly on the plan.'}
-            </p>
+          <div className="flex h-full min-h-[250px] flex-col items-center justify-center px-3 text-center">
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#f5f5f7] text-[#6e6e73]">
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <p className="text-sm font-medium tracking-[-0.02em]">Que souhaitez-vous vérifier&nbsp;?</p>
+            <p className="mt-1 text-xs text-[#86868b]">Sélectionnez une zone ou posez une question.</p>
           </div>
         ) : (
           messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex flex-col ${
-                msg.role === 'user' ? 'items-end' : 'items-start'
-              }`}
-            >
-              <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-400 tabular-nums">
-                <span className="font-medium text-slate-600">
-                  {msg.role === 'user' ? 'You' : 'Stoa'}
-                </span>
-                <span aria-hidden="true">·</span>
-                <span>{msg.timestamp}</span>
-              </div>
-
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-[88%] rounded-lg bg-[#0F172A] px-3.5 py-2.5 text-sm leading-relaxed text-white">
+                <div className="max-w-[88%] rounded-2xl rounded-br-md bg-[#f2f2f2] px-3.5 py-2.5 text-sm leading-relaxed text-[#1d1d1f]">
                   {msg.content}
                 </div>
               ) : (
-                <div className="max-w-[94%] space-y-2 rounded-lg border border-slate-200 bg-[#F8FAFC] px-3.5 py-3 text-sm leading-relaxed text-slate-800">
-                  {parsePlanMessage(msg.content, uploadedPlan ? [] : plan.zones).map(
-                    (block, blockIdx) => {
-                      const renderRuns = (runs: InlineRun[]) =>
-                        runs.map((run, runIdx) => {
-                          if (run.type === 'text') {
-                            return run.bold ? (
-                              <strong key={runIdx} className="font-semibold text-slate-900">
-                                {run.text}
-                              </strong>
-                            ) : (
-                              <span key={runIdx}>{run.text}</span>
-                            );
-                          }
-                          const { citation } = run;
-                          const isActive = selectedZoneId === citation.zone?.id;
-                          return (
-                            <button
-                              key={runIdx}
-                              type="button"
-                              onClick={() => {
-                                if (citation.zone) {
-                                  onHighlightZone(citation.zone.id);
-                                }
-                              }}
-                              title={`Highlight ${citation.label} on 2D plan`}
-                              className={`ml-1.5 mr-0.5 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 align-baseline font-mono text-xs font-medium tabular-nums transition-colors cursor-pointer ${
-                                isActive
-                                  ? 'border-[#1E40AF] bg-[#1E40AF] text-white'
-                                  : 'border-[#1E40AF]/30 bg-white text-[#1E40AF] hover:border-[#1E40AF] hover:bg-[#1E40AF]/8'
-                              }`}
-                            >
-                              <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              <span>{citation.label}</span>
-                            </button>
-                          );
-                        });
-
-                      if (block.type === 'bullet') {
-                        return (
-                          <div key={blockIdx} className="flex items-start gap-2 pl-0.5">
-                            <span
-                              aria-hidden="true"
-                              className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400"
-                            />
-                            <p className="flex-1">{renderRuns(block.runs)}</p>
-                          </div>
-                        );
+                <div className="max-w-[96%] space-y-2 text-sm leading-relaxed text-[#3a3a3c]">
+                  {parsePlanMessage(msg.content, uploadedPlan ? [] : plan.zones).map((block, blockIdx) => {
+                    const renderRuns = (runs: InlineRun[]) => runs.map((run, runIdx) => {
+                      if (run.type === 'text') {
+                        return run.bold ? (
+                          <strong key={runIdx} className="font-semibold text-[#1d1d1f]">{run.text}</strong>
+                        ) : <span key={runIdx}>{run.text}</span>;
                       }
+                      const { citation } = run;
+                      const isActive = selectedZoneId === citation.zone?.id;
+                      return (
+                        <button
+                          key={runIdx}
+                          type="button"
+                          onClick={() => citation.zone && onHighlightZone(citation.zone.id)}
+                          title={`Afficher ${citation.label} sur le plan`}
+                          className={`mx-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 align-baseline text-[11px] font-medium transition-colors cursor-pointer ${
+                            isActive ? 'bg-[#4968e8] text-white' : 'bg-[#eef1ff] text-[#405fd5] hover:bg-[#e2e8ff]'
+                          }`}
+                        >
+                          <MapPin className="h-3 w-3" aria-hidden="true" />
+                          {citation.label}
+                        </button>
+                      );
+                    });
 
-                      return <p key={blockIdx}>{renderRuns(block.runs)}</p>;
-                    }
-                  )}
+                    return block.type === 'bullet' ? (
+                      <p key={blockIdx} className="pl-2">· {renderRuns(block.runs)}</p>
+                    ) : <p key={blockIdx}>{renderRuns(block.runs)}</p>;
+                  })}
                 </div>
               )}
             </div>
@@ -194,81 +143,60 @@ export function PlanChatbotPanel({
         )}
 
         {isLoading && (
-          <div
-            aria-label="Stoa is checking the 2D plan"
-            className="max-w-[85%] space-y-2 rounded-lg border border-slate-200 bg-[#F8FAFC] p-3.5"
-          >
-            <div className="h-3 w-1/3 animate-pulse rounded bg-slate-200" />
-            <div className="h-3 w-5/6 animate-pulse rounded bg-slate-200" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
+          <div aria-label="Analyse du plan en cours" className="max-w-[85%] space-y-2 py-1">
+            <div className="h-2.5 w-1/3 animate-pulse rounded-full bg-[#e9e9eb]" />
+            <div className="h-2.5 w-5/6 animate-pulse rounded-full bg-[#e9e9eb]" />
+            <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-[#e9e9eb]" />
           </div>
         )}
       </div>
 
-      {/* Error Alert */}
       {errorMessage && (
-        <div
-          role="alert"
-          className="mx-4 mb-2 flex items-center justify-between gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
-        >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-700" aria-hidden="true" />
+        <div role="alert" className="mx-3 mb-2 flex items-start justify-between gap-2 rounded-xl bg-[#fff1f0] px-3 py-2.5 text-xs text-[#a12622]">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{errorMessage}</span>
           </div>
-          <button
-            type="button"
-            onClick={onDismissError}
-            aria-label="Dismiss error"
-            className="rounded p-1 text-red-700 hover:bg-red-100 cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
+          <button type="button" onClick={onDismissError} aria-label="Fermer" className="rounded p-0.5 hover:bg-red-100 cursor-pointer">
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       )}
 
-      {/* Starter Prompts & Input */}
-      <div className="border-t border-slate-200 bg-[#F8FAFC] p-4">
-        {!uploadedPlan && (
+      <div className="border-t border-black/[0.06] p-3.5">
+        {messages.length === 0 && !uploadedPlan && (
           <div className="mb-2.5 flex flex-wrap gap-1.5">
-            {plan.starterPrompts.map((promptText) => (
+            {suggestions.map((promptText, index) => (
               <button
                 key={promptText}
                 type="button"
                 disabled={isLoading}
-                onClick={() => handleStarter(promptText)}
-                className="rounded border border-slate-200 bg-white px-2.5 py-1 text-left text-xs font-medium text-slate-700 hover:border-[#1E40AF]/50 hover:text-[#1E40AF] disabled:opacity-50 transition-colors cursor-pointer"
+                onClick={() => void ask(promptText)}
+                className="rounded-full bg-[#f5f5f7] px-3 py-1.5 text-[11px] text-[#6e6e73] transition-colors hover:bg-[#ededf0] hover:text-[#1d1d1f] disabled:opacity-50 cursor-pointer"
               >
-                {promptText}
+                {suggestionLabels[index]}
               </button>
             ))}
           </div>
         )}
-
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <label htmlFor="stoa-plan-input" className="sr-only">
-            Ask a question about {uploadedPlan ? uploadedPlan.name : plan.code}
-          </label>
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 rounded-full bg-[#f5f5f7] p-1.5 pl-4 focus-within:ring-2 focus-within:ring-[#4968e8]/25">
+          <label htmlFor="stoa-plan-input" className="sr-only">Votre question sur le plan</label>
           <input
             ref={inputRef}
             id="stoa-plan-input"
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={
-              uploadedPlan
-                ? `Ask about ${uploadedPlan.name}...`
-                : `Ask about ${plan.code} (${plan.discipline})...`
-            }
-            className="min-h-11 flex-1 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1E40AF] focus:outline-none"
+            placeholder="Poser une question…"
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#1d1d1f] outline-none placeholder:text-[#a1a1a6]"
           />
           <button
             type="submit"
             disabled={isLoading || !draft.trim()}
-            aria-label="Send question about 2D plan"
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-[#1E40AF] px-4 py-2 text-sm font-medium text-white whitespace-nowrap shrink-0 hover:bg-[#1E3A8A] disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            aria-label="Envoyer"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4968e8] text-white transition-colors hover:bg-[#3654ce] disabled:bg-[#d2d2d7] cursor-pointer disabled:cursor-default"
           >
-            <span>Ask</span>
-            <SendHorizontal className="h-4 w-4" aria-hidden="true" />
+            <Send className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </form>
       </div>

@@ -1,9 +1,10 @@
-name: Publish Stoa front on GitHub Pages
+name: Publish Stoa and pre-prod preview
 
 on:
   push:
     branches:
       - front
+      - preprod
     paths:
       - "plan-checker/index.html"
       - "plan-checker/src/**"
@@ -30,8 +31,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out front
+      - name: Check out published front
         uses: actions/checkout@v4
+        with:
+          ref: front
+          path: front-source
+
+      - name: Check out pre-production front
+        uses: actions/checkout@v4
+        with:
+          ref: preprod
+          path: preprod-source
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -41,18 +51,33 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Build static frontend
-        working-directory: plan-checker
+      - name: Build published front
+        working-directory: front-source/plan-checker
         env:
           VITE_STOA_API_BASE_URL: ${{ vars.VITE_STOA_API_BASE_URL }}
         run: |
           bun install --frozen-lockfile
           bun run build
 
+      - name: Build pre-production front
+        working-directory: preprod-source/plan-checker
+        env:
+          VITE_STOA_API_BASE_URL: ${{ vars.VITE_STOA_API_BASE_URL }}
+          VITE_BASE_PATH: /Planproof/preprod/
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p site/preprod
+          cp -R front-source/plan-checker/dist/. site/
+          cp -R preprod-source/plan-checker/dist/. site/preprod/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: plan-checker/dist
+          path: site
 
       - name: Publish preview
         id: deployment

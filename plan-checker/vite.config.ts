@@ -8,7 +8,7 @@ const projectDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
   return {
-    base: process.env.GITHUB_ACTIONS === 'true' ? '/Planproof/' : '/',
+    base: process.env.VITE_BASE_PATH ?? (process.env.GITHUB_ACTIONS === 'true' ? '/Planproof/' : '/'),
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
