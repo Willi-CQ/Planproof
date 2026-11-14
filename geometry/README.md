@@ -1,8 +1,26 @@
 # Planproof geometry
 
-This folder holds the deterministic drawing readers and the 3D pipeline for Planproof. Nothing here is installed or called yet.
+## Start here: current PNG/PDF evidence work
 
-A new detection model will be trained outside this snapshot. These packages stay so they can run after that model exists. No learned weights, training notebooks, or YOLO code are included.
+**Read [the implementation handoff](../docs/deterministic-evidence/README.md) before writing code.**
+It defines the current architecture, two-person ownership, interfaces, research,
+and acceptance checks. The owner/Codex pair takes **Track 2: vector geometry,
+measurements and ML cross-checking**. The teammate takes Track 1: pixel evidence.
+
+The ML baseline already exists on the separate
+[`ml/trained-baseline-v1` branch](https://github.com/Willi-CQ/Planproof/tree/ml/trained-baseline-v1).
+This branch contains reference code, not a completed deterministic evidence engine.
+The new engine is PNG-first with PDF support and produces JSON, 2D overlays and
+crops. It does not create BIM or 3D models or implement Gemini/Jev inference.
+
+**Everything below is a historical reference inventory.** Existing modules were
+extracted from a larger application and contain assumptions unsuitable for this
+task. Do not install or connect the entire legacy pipeline. Selectively adapt
+algorithms into the new standalone package, with tests and preserved attribution.
+The older statements about training a model later, production 3D entry points and
+which CAD package to keep do not define the current implementation scope.
+
+## Historical inventory
 
 ## What to use later
 

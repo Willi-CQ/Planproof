@@ -29,3 +29,12 @@ AGENTS.md
 *.log
 Thumbs.db
 .DS_Store
+
+# Local inference/evaluation artifacts and Python environments/caches.
+.artifacts/
+.venv/
+__pycache__/
+*.py[cod]
+*.npz
+.pytest_cache/
+.ruff_cache/
