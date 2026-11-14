@@ -5,32 +5,54 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from verification import AnalyzerResult, PageFrame, validate_source
 
 
+class RawInstance(BaseModel):
+    model_config = ConfigDict(strict=True)
+    id: str
+    kind: str = Field(alias="class")
+    bbox: list[float]
+
+
+class RawDetections(BaseModel):
+    model_config = ConfigDict(strict=True)
+    schema_version: str
+    document_id: str
+    coordinate_system: str
+    page_index: int
+    image_size: list[int]
+    model_version: str
+    intended_classes: list[str] | None = None
+    instances: list[RawInstance]
+
+
 def adapt_ml(raw: dict[str, Any], frame: PageFrame) -> AnalyzerResult:
+    predictions = RawDetections.model_validate(raw)
     if (
-        raw.get("schema_version") != "planproof-detection-v1"
-        or raw.get("coordinate_system") != frame.coordinate_system
-        or raw.get("page_index") != frame.page_index
-        or raw.get("image_size") != [frame.width, frame.height]
+        predictions.schema_version != "planproof-detection-v1"
+        or predictions.coordinate_system != frame.coordinate_system
+        or predictions.page_index != frame.page_index
+        or predictions.image_size != [frame.width, frame.height]
     ):
         raise ValueError("Expected planproof-detection-v1 for this page and coordinate frame.")
     # Omitting --document-id makes Willi's launcher record the RGB input SHA256 here.
-    if raw.get("document_id") != frame.raster_sha256:
+    if predictions.document_id != frame.raster_sha256:
         raise ValueError("Run inference on the canonical PNG and omit --document-id to record the raster hash.")
-    if "intended_classes" in raw and "door" not in raw["intended_classes"]:
+    if predictions.intended_classes is not None and "door" not in predictions.intended_classes:
         raise ValueError("This model profile does not cover doors.")
     result = AnalyzerResult.model_validate({
         "schema_version": "planproof-door-result-v1",
         "source": frame,
-        "version": raw["model_version"],
+        "version": predictions.model_version,
         "status": "ok",
         "mode": "independent",
         "complete": False,
         "detections": [
-            {"id": item["id"], "bbox": item["bbox"]}
-            for item in raw["instances"] if item["class"] == "door"
+            {"id": item.id, "bbox": item.bbox}
+            for item in predictions.instances if item.kind == "door"
         ],
     })
     validate_source(result, frame)

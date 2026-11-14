@@ -1,6 +1,6 @@
 # Gemini review of disputed door detections
 
-The first V3 workflow compares door assemblies on one selected PDF page. Both engines work on the same raster. Python compares the door regions one by one. If the engines report a localized discrepancy, Gemini can inspect the original crop and return an advisory with evidence IDs. The API keeps the result at `NEEDS_REVIEW` after an advisory. A model opinion alone cannot establish the exact count or full-page coverage.
+The first V3 workflow compares door assemblies on one selected drawing page. Both engines work on the same raster. Python compares the door regions one by one. If the engines report a localized discrepancy, Gemini can inspect the original crop and return an advisory with evidence IDs. The API keeps the result at `NEEDS_REVIEW` after an advisory. A model opinion alone cannot establish the exact count or full-page coverage.
 
 ## Run the demo
 
@@ -39,17 +39,40 @@ The backend submits one original PNG crop, the two counts, the reason for review
 
 ## Connect the engines
 
-1. Upload a PDF and select a page using **POST /api/documents**. Save its `image_url` as `page.png`.
-2. Save **GET /api/v1/documents/{document_id}/frame** as `frame.json`. The frame identifies the source PDF and the exact decoded RGB image. Page indexes start at zero. Boxes use pixel edges from the top left, ordered `[x0, y0, x1, y1]`.
-3. Run Willi's documented `planproof-ml infer` command on that PNG, with the same `--page-index` and **without `--document-id`**. This makes the release record the input RGB hash. Convert the resulting `detections.json`:
+1. Upload a PDF, PNG or JPEG using **POST /api/documents** and select the page for a PDF. Save its `image_url` as `page.png`.
+2. Fetch **GET /api/v1/documents/{document_id}/frame**. The frame identifies the original file and the exact decoded RGB image. Page indexes start at zero. Boxes use pixel edges from the top left, ordered `[x0, y0, x1, y1]`.
+3. Run Willi's documented `planproof-ml infer` command on that PNG, with the same `--page-index` and **without `--document-id`**. This makes the release record the input RGB hash.
+4. Post an object with the upload's `document_id`, the original `detections.json` object under `ml_detections`, and the normalized result of the independent engine under `deterministic` to **POST /api/v1/door-count**. Set `allow_gemini_review` only for an authorized drawing. The fields are described under `AnalyzerResult` in the API docs. The deterministic adapter records the frame it processed, its version and mode, and door IDs and boxes in the same coordinates. Use `mode: "hybrid"` when the result depends on the other engine.
 
-   ```powershell
-   python backend/ml_adapter.py detections.json frame.json
-   ```
+The API also accepts a normalized ML result under `ml` in place of `ml_detections`. The CLI `python backend/ml_adapter.py detections.json frame.json` remains available for inspecting that normalized result. Provide outputs from trusted local engine runners. The API checks the reported frame against its registered page. The ML adapter checks the release's recorded raster hash and leaves coverage unknown. With one engine unavailable, its counterpart's boxes appear in `unverified_evidence` and the answer is null. A count is supported only when both independent results report complete coverage and match one-to-one without ambiguous duplicates. The initial box overlap threshold is IoU 0.5. Tune it on real annotated drawings before relying on it.
 
-4. Post an object with the upload's `document_id`, the normalized result under `ml`, and the deterministic engine's result under `deterministic` to **POST /api/v1/door-count**. The fields can be inspected under `AnalyzerResult` in the API docs. The deterministic adapter should record the frame it actually processed, declare its version and mode, and return door IDs and boxes in the same coordinates. Omit an unavailable engine. Use `mode: "hybrid"` when the result depends on the other engine.
+For an ML-only smoke test, start the backend and prepare the canonical raster:
 
-Only provide normalized outputs from trusted local engine runners. The API checks the reported frame against its registered page. The ML adapter checks the release's recorded raster hash and leaves coverage unknown. A count is supported only when both independent results report complete coverage and match one-to-one without ambiguous duplicates. The initial box overlap threshold is IoU 0.5. Tune it on real annotated drawings before relying on it.
+```powershell
+$api = 'http://127.0.0.1:8000'
+$doc = curl.exe --silent --show-error --fail -F 'file=@plan.pdf' -F 'page=1' "$api/api/documents" | ConvertFrom-Json
+$frame = Invoke-RestMethod "$api/api/v1/documents/$($doc.document_id)/frame"
+Invoke-WebRequest "$api$($doc.image_url)" -OutFile page.png
+```
+
+In Willi's Python 3.11/3.12 ML environment, from the clone of his baseline branch, run the verified main bundle on that raster. Use absolute paths for the input and output when the two clones live in different directories.
+
+```powershell
+$bundle = 'models/baselines/v1/corrected-3500-global'
+planproof-ml infer --checkpoint "$bundle/detector.pt" --calibration "$bundle/calibration.json" --global-view --image 'C:/path/to/page.png' --page-index 0 --out 'C:/path/to/ml-output' --device cpu
+```
+
+Return to the PowerShell session that holds `$doc`. Post the detections as JSON:
+
+```powershell
+$body = @{
+    document_id = $doc.document_id
+    ml_detections = (Get-Content -Raw 'C:/path/to/ml-output/detections.json' | ConvertFrom-Json)
+} | ConvertTo-Json -Depth 30
+Invoke-RestMethod "$api/api/v1/door-count" -Method Post -ContentType 'application/json' -Body $body
+```
+
+An ML-only result should show `INSUFFICIENT_EVIDENCE`, the observed candidate count in `ml.detected_count`, and any candidate boxes in `unverified_evidence`. A zero candidate count alone does not establish that no door is present.
 
 ## Verify locally
 

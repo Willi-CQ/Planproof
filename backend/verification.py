@@ -1,7 +1,7 @@
 from math import isfinite
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 
 Digest = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
@@ -65,7 +65,14 @@ class DoorCountRequest(Contract):
     document_id: Name
     deterministic: AnalyzerResult | None = None
     ml: AnalyzerResult | None = None
+    ml_detections: dict | None = None
     allow_gemini_review: bool = False
+
+    @model_validator(mode="after")
+    def single_ml_input(self):
+        if self.ml is not None and self.ml_detections is not None:
+            raise ValueError("Provide either ml or ml_detections.")
+        return self
 
 
 class Evidence(Contract):
@@ -90,6 +97,7 @@ class Comparison(Contract):
     matched_pairs: list[tuple[str, str]] = Field(default_factory=list)
     matched_evidence: list[Evidence] = Field(default_factory=list)
     disputed_evidence: list[Evidence] = Field(default_factory=list)
+    unverified_evidence: list[Evidence] = Field(default_factory=list)
 
 
 def validate_source(result: AnalyzerResult | None, actual: PageFrame) -> None:
@@ -134,16 +142,23 @@ def possible_duplicates(detections: list[DoorDetection]) -> set[str]:
 def compare(
     deterministic: AnalyzerResult | None, ml: AnalyzerResult | None, source: PageFrame
 ) -> Comparison:
-    for result in (deterministic, ml):
+    evidence_by_provider: dict[Provider, list[Evidence]] = {}
+    for provider, result in (("deterministic", deterministic), ("ml", ml)):
         validate_source(result, source)
+        evidence_by_provider[provider] = [
+            Evidence(id=f"{provider}:{item.id}", provider=provider, bbox_xyxy=item.bbox)
+            for item in sorted(result.detections, key=lambda detection: detection.id)
+        ] if result is not None else []
     decision = Comparison(status="INSUFFICIENT_EVIDENCE",
                           deterministic=summarize(deterministic), ml=summarize(ml))
     if (deterministic is None or ml is None or
             "unavailable" in (decision.deterministic.status, decision.ml.status)):
         decision.reasons = ["analyzer_unavailable"]
+        decision.unverified_evidence = evidence_by_provider["deterministic"] + evidence_by_provider["ml"]
         return decision
     if deterministic.mode != "independent" or ml.mode != "independent":
         decision.reasons = ["non_independent"]
+        decision.unverified_evidence = evidence_by_provider["deterministic"] + evidence_by_provider["ml"]
         return decision
 
     a = sorted(deterministic.detections, key=lambda item: item.id)
@@ -165,9 +180,8 @@ def compare(
         and len(b_matches[rights[0]]) == 1
     ]
     matched = {item_id for pair in decision.matched_pairs for item_id in pair}
-    for provider, detections in (("deterministic", a), ("ml", b)):
-        for item in detections:
-            evidence = Evidence(id=f"{provider}:{item.id}", provider=provider, bbox_xyxy=item.bbox)
+    for evidence_items in evidence_by_provider.values():
+        for evidence in evidence_items:
             if evidence.id in matched:
                 decision.matched_evidence.append(evidence)
             else:

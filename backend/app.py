@@ -5,6 +5,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from hashlib import sha256
+from io import BytesIO
 from threading import Lock
 from typing import Annotated, Literal
 from urllib.error import URLError
@@ -14,9 +15,11 @@ from uuid import uuid4
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import RedirectResponse
+from PIL import Image, ImageOps
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from gemini_review import MAX_CANDIDATES, Review, gemini_config, review_crop, review_disagreement
+from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 
 
@@ -29,6 +32,7 @@ def root():
 
 
 MAX_UPLOAD = 10 * 1024 * 1024
+MAX_IMAGE_PIXELS = 16_000_000
 Label = Annotated[str, StringConstraints(
     strip_whitespace=True, pattern=r"^[A-Za-z0-9]+(?:[-._][A-Za-z0-9]+)*$", max_length=40
 )]
@@ -105,6 +109,36 @@ def register_page(pdf_bytes: bytes, page_number: int) -> DocumentPage:
     except (RuntimeError, ValueError, ZeroDivisionError) as exc:
         raise HTTPException(422, "The selected PDF page could not be read.") from exc
 
+    return store_page(rendered, page_number)
+
+
+def register_image(payload: bytes, page_number: int) -> DocumentPage:
+    if page_number != 1:
+        raise HTTPException(422, "PNG and JPEG files have one page.")
+    try:
+        with Image.open(BytesIO(payload), formats=("PNG", "JPEG")) as original:
+            if original.width * original.height > MAX_IMAGE_PIXELS:
+                raise HTTPException(413, "Image exceeds 16 million pixels.")
+            if getattr(original, "n_frames", 1) != 1:
+                raise HTTPException(422, "Upload a single-frame image.")
+            oriented = ImageOps.exif_transpose(original) if original.format == "JPEG" else original
+            background = Image.new("RGBA", oriented.size, "white")
+            background.alpha_composite(oriented.convert("RGBA"))
+            rgb = background.convert("RGB")
+            canonical = BytesIO()
+            rgb.save(canonical, format="PNG")
+            page = Page(
+                canonical.getvalue(), {}, rgb.width, rgb.height,
+                sha256(payload).hexdigest(), sha256(rgb.tobytes()).hexdigest(),
+            )
+    except Image.DecompressionBombError as exc:
+        raise HTTPException(413, "Image exceeds 16 million pixels.") from exc
+    except (OSError, ValueError) as exc:
+        raise HTTPException(422, "The uploaded image could not be read.") from exc
+    return store_page(page, page_number)
+
+
+def store_page(rendered: Page, page_number: int) -> DocumentPage:
     document_id = uuid4().hex
     with pages_lock:
         pages[document_id] = (page_number, rendered)
@@ -165,13 +199,15 @@ def read_with_gemini(png: bytes, label: str) -> Literal["unavailable", "found", 
 
 
 @app.post("/api/documents")
-def upload_pdf(file: Annotated[UploadFile, File()], page: Annotated[int, Form(ge=1)] = 1) -> DocumentPage:
-    pdf_bytes = file.file.read(MAX_UPLOAD + 1)
-    if len(pdf_bytes) > MAX_UPLOAD:
-        raise HTTPException(413, "PDF exceeds 10 MiB.")
-    if not pdf_bytes.startswith(b"%PDF-"):
-        raise HTTPException(415, "Upload a PDF.")
-    return register_page(pdf_bytes, page)
+def upload_document(file: Annotated[UploadFile, File()], page: Annotated[int, Form(ge=1)] = 1) -> DocumentPage:
+    payload = file.file.read(MAX_UPLOAD + 1)
+    if len(payload) > MAX_UPLOAD:
+        raise HTTPException(413, "File exceeds 10 MiB.")
+    if payload.startswith(b"%PDF-"):
+        return register_page(payload, page)
+    if payload.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff")):
+        return register_image(payload, page)
+    raise HTTPException(415, "Upload a PDF, PNG, or JPEG.")
 
 
 @app.post("/api/demo")
@@ -242,7 +278,8 @@ def run_door_count(request: DoorCountRequest, *, demo: bool = False) -> DoorCoun
     number, page = get_page(request.document_id)
     source = frame_for(request.document_id, number, page)
     try:
-        comparison = compare(request.deterministic, request.ml, source)
+        ml = adapt_ml(request.ml_detections, source) if request.ml_detections is not None else request.ml
+        comparison = compare(request.deterministic, ml, source)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 

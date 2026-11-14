@@ -3,12 +3,14 @@ import json
 import os
 import unittest
 from hashlib import sha256
+from io import BytesIO
 from unittest.mock import patch
 
 import pymupdf
 from fastapi.testclient import TestClient
 from google.genai import Client as GeminiClient, errors, types
 from httpx import Client, MockTransport, ReadTimeout, Response
+from PIL import Image
 
 from app import app
 from check_gemini import DEFAULT_MODEL
@@ -200,6 +202,60 @@ class DoorCountTests(unittest.TestCase):
         self.assertEqual([door.id for door in result.detections], ["door-4"])
         with self.assertRaisesRegex(ValueError, "raster hash"):
             adapt_ml({**raw, "document_id": "f" * 64}, frame)
+
+    def test_upload_png_and_submit_willi_json_directly(self):
+        source_image = BytesIO()
+        Image.new("RGBA", (20, 10), (200, 0, 0, 0)).save(source_image, format="PNG")
+        content = source_image.getvalue()
+        upload = self.client.post("/api/documents", files={"file": ("page.png", content, "image/png")})
+        self.assertEqual(upload.status_code, 200, upload.text)
+        uploaded = upload.json()
+        doc_id = uploaded["document_id"]
+        frame = self.client.get(f"/api/v1/documents/{doc_id}/frame").json()
+        self.assertEqual(frame["source_sha256"], sha256(content).hexdigest())
+        self.assertEqual(frame["raster_sha256"], sha256(b"\xff" * (20 * 10 * 3)).hexdigest())
+        raster = self.client.get(uploaded["image_url"]).content
+        with Image.open(BytesIO(raster)) as image:
+            self.assertEqual(image.mode, "RGB")
+            self.assertEqual(sha256(image.tobytes()).hexdigest(), frame["raster_sha256"])
+
+        raw = {
+            "schema_version": "planproof-detection-v1",
+            "document_id": frame["raster_sha256"],
+            "page_index": 0,
+            "image_size": [20, 10],
+            "coordinate_system": frame["coordinate_system"],
+            "model_version": "test-release",
+            "instances": [{"id": "door-1", "class": "door", "bbox": [1, 2, 5, 7]}],
+        }
+        body = {"document_id": doc_id, "ml_detections": raw}
+        comparison = self.client.post("/api/v1/door-count", json=body)
+        self.assertEqual(comparison.status_code, 200, comparison.text)
+        self.assertEqual(comparison.json()["ml"]["detected_count"], 1)
+        self.assertFalse(comparison.json()["ml"]["complete"])
+        self.assertEqual(comparison.json()["unverified_evidence"][0]["id"], "ml:door-1")
+        self.generate.assert_not_called()
+        invalid = self.client.post("/api/v1/door-count", json={
+            **body, "ml_detections": {**raw, "document_id": "0" * 64},
+        })
+        self.assertEqual(invalid.status_code, 422)
+        both = self.client.post("/api/v1/door-count", json={**body, "ml": self.result(frame, [])})
+        self.assertEqual(both.status_code, 422)
+        malformed = self.client.post("/api/v1/door-count", json={
+            **body, "ml_detections": {**raw, "instances": [None]},
+        })
+        self.assertEqual(malformed.status_code, 422)
+
+    def test_jpeg_orientation_changes_canonical_dimensions(self):
+        source_image = BytesIO()
+        metadata = Image.Exif()
+        metadata[274] = 6
+        Image.new("RGB", (20, 10)).save(source_image, format="JPEG", exif=metadata)
+        files = {"file": ("page.jpg", source_image.getvalue(), "image/jpeg")}
+        upload = self.client.post("/api/documents", files=files)
+        self.assertEqual(upload.status_code, 200, upload.text)
+        self.assertEqual((upload.json()["width"], upload.json()["height"]), (10, 20))
+        self.assertEqual(self.client.post("/api/documents", data={"page": 2}, files=files).status_code, 422)
 
 
 if __name__ == "__main__":
