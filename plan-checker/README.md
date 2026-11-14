@@ -2,6 +2,10 @@
 
 Prototype d’interface Stoa en français pour déposer un plan 2D, comparer les sorties des deux algorithmes, expliquer les écarts avec leurs sources et solliciter Gemini ou JEV en complément.
 
+## Aperçu GitHub Pages
+
+Le workflow `.github/workflows/pages-preview.yml` publie uniquement `index.html`, `app.js` et `styles.css` depuis la branche `front`. Cet aperçu est statique : il reste en mode démonstration, n’analyse pas le fichier déposé et ne publie ni le serveur ni les clés d’intégration. Un administrateur du dépôt doit sélectionner **GitHub Actions** dans **Settings → Pages** pour activer la publication.
+
 ## Lancer l’application
 
 1. Installer Node.js 20 ou une version plus récente.

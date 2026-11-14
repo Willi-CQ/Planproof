@@ -1,0 +1,48 @@
+name: Publish Stoa preview
+
+on:
+  push:
+    branches:
+      - front
+    paths:
+      - "plan-checker/index.html"
+      - "plan-checker/app.js"
+      - "plan-checker/styles.css"
+      - ".github/workflows/pages-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out front
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare static interface only
+        run: |
+          mkdir -p site
+          cp plan-checker/index.html plan-checker/app.js plan-checker/styles.css site/
+
+      - name: Upload preview artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish preview
+        id: deployment
+        uses: actions/deploy-pages@v4
