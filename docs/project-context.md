@@ -70,7 +70,9 @@ python -m uvicorn app:app --app-dir backend
 
 Pour un essai réel Gemini, `python backend/check_gemini.py --serve` invite à saisir la clé du projet dans le terminal. Le script envoie un seul recadrage de la démo synthétique et lance le serveur local sur le port 8001 si l’appel réussit. Le 14 novembre, l’équipe a observé une réponse réelle `SUPPORTS_DETERMINISTIC` citant `deterministic:2`, avec statut PlanProof `NEEDS_REVIEW`. Le résultat des moteurs sur cette page était simulé. Le guide explique comment raccorder les sorties du ML et de Gemini. [Commandes de démo et intégration](gemini-arbitration.md)
 
-Les tests automatisés couvrent l’import et le repère de coordonnées, les divergences de position, les doublons, les entrées invalides et les réponses Gemini simulées. Le transport simulé vérifie aussi la sérialisation effective du PNG et du schéma par le SDK Google.
+Le backend a passé 12 tests automatisés. Ils couvrent l’import et le repère de coordonnées, les divergences de position, les doublons, les entrées invalides et les réponses Gemini simulées. Le transport simulé vérifie aussi la sérialisation effective du PNG et du schéma par le SDK Google.
+
+Un essai séparé a exécuté le vrai modèle `step-3500-c18615119046` avec Torch CPU et le profil de calibration du bundle, sur le PNG de la démo synthétique. La commande a pris 36,4 secondes sur cette machine, démarrage et chargement du modèle inclus. Elle a produit zéro instance sur ce dessin. L’API a accepté le JSON natif lié au raster et a renvoyé `INSUFFICIENT_EVIDENCE` avec une réponse nulle. Cet essai valide le raccordement ML à l’API, et ne constitue ni une mesure de précision ni un test des deux moteurs réels.
 
 ## Priorités de l’audit Claude Code
 
