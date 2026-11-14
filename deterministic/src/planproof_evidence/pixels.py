@@ -176,8 +176,8 @@ def extract_line_segments(mask: np.ndarray) -> List[Dict]:
         
         if lines is not None:
             for line in lines:
-                # HoughLinesP returns shape (N, 4) where each line is [x1, y1, x2, y2]
-                x1, y1, x2, y2 = line[0], line[1], line[2], line[3]
+                # Normalize OpenCV line coordinates before unpacking.
+                x1, y1, x2, y2 = line.reshape(4)
                 length = math.hypot(x2 - x1, y2 - y1)
                 if length > 10:
                     segments.append({

@@ -190,8 +190,8 @@ def detect_non_floorplan(image: Image.Image) -> Tuple[bool, str]:
         horizontal_lines = 0
         vertical_lines = 0
         for line in lines:
-            # HoughLinesP returns shape (N, 4) where each line is [x1, y1, x2, y2]
-            x1, y1, x2, y2 = line[0], line[1], line[2], line[3]
+            # Normalize OpenCV line coordinates before unpacking.
+            x1, y1, x2, y2 = line.reshape(4)
             angle = abs(np.arctan2(y2-y1, x2-x1)) * 180 / np.pi
             if angle < 10 or angle > 170:
                 horizontal_lines += 1
