@@ -37,6 +37,9 @@ def load_config(path: Path) -> dict:
         raise ValueError("class_balanced_heads must be boolean")
     if not isinstance(box_weight, (int, float)) or not math.isfinite(box_weight) or box_weight < 0:
         raise ValueError("box_loss_weight must be finite and nonnegative")
+    size_weight = cfg.get("box_size_loss_weight", 0.0)
+    if not isinstance(size_weight, (int, float)) or not math.isfinite(size_weight) or size_weight < 0:
+        raise ValueError("box_size_loss_weight must be finite and nonnegative")
     cfg["image_size"] = size
     return cfg
 

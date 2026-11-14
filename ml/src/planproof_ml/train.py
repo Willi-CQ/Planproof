@@ -280,6 +280,7 @@ def train(
                             cfg.get("box_loss", "smooth_l1"),
                             cfg.get("box_loss_weight", 2.0),
                             cfg.get("class_balanced_heads", False),
+                            cfg.get("box_size_loss_weight", 0.0),
                         )
                     scaler.scale(loss / accumulation).backward()
                 total_loss += float(loss.detach()) / accumulation

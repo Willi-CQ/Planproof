@@ -54,7 +54,29 @@ def giou_boxes(encoded, target, valid, balance_classes=False):
     return losses.mean()
 
 
-def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balance_classes=False):
+def logarithmic_box_size(encoded, target, valid, balance_classes=False):
+    """Relative size supervision remains strong for small boxes inside large GT."""
+    selected = valid.bool()
+    if not selected.any():
+        return encoded.sum() * 0
+    prediction = encoded.permute(0, 1, 3, 4, 2)[selected][:, :2]
+    truth = target.permute(0, 1, 3, 4, 2)[selected][:, :2]
+    losses = F.smooth_l1_loss(
+        prediction.clamp_min(1e-6).log(), truth.clamp_min(1e-6).log(), reduction="none"
+    ).mean(1)
+    if balance_classes:
+        classes = torch.arange(valid.shape[1], device=valid.device)[None, :, None, None].expand_as(valid)[
+            selected
+        ]
+        return torch.stack(
+            [losses[classes == c].mean() for c in range(valid.shape[1]) if (classes == c).any()]
+        ).mean()
+    return losses.mean()
+
+
+def detection_loss(
+    pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balance_classes=False, box_size_loss_weight=0.0
+):
     logits = pred["masks"].float()
     gt, valid = batch["masks"], batch["valid"]
     bce = masked_mean(F.binary_cross_entropy_with_logits(logits, gt, reduction="none"), valid)
@@ -83,6 +105,11 @@ def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balan
         boxes = masked_mean(F.smooth_l1_loss(encoded, target, reduction="none"), box_valid)
     else:
         raise ValueError("box_loss must be smooth_l1 or giou")
+    size_loss = (
+        logarithmic_box_size(encoded, target, batch["box_valid"], balance_classes)
+        if box_size_loss_weight
+        else encoded.sum() * 0
+    )
     known = batch["types"] != 255
     types = (
         F.cross_entropy(pred["types"].float().permute(0, 2, 3, 1)[known], batch["types"][known])
@@ -103,7 +130,15 @@ def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balan
                 )
                 weak_count += 1
     weak = weak / max(1, weak_count)
-    total = mask_loss + types + 0.5 * boundary + 0.5 * centers + box_loss_weight * boxes + 0.25 * weak
+    total = (
+        mask_loss
+        + types
+        + 0.5 * boundary
+        + 0.5 * centers
+        + box_loss_weight * boxes
+        + box_size_loss_weight * size_loss
+        + 0.25 * weak
+    )
     if not torch.isfinite(total):
         raise FloatingPointError("Nonfinite detection loss")
     return total, {
@@ -112,5 +147,6 @@ def detection_loss(pred, batch, box_loss="smooth_l1", box_loss_weight=2.0, balan
         "boundary": float(boundary.detach()),
         "center": float(centers.detach()),
         "box": float(boxes.detach()),
+        "box_size": float(size_loss.detach()),
         "weak_type": float(weak.detach()),
     }

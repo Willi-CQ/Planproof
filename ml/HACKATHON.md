@@ -164,3 +164,12 @@ recipes retain their original reductions. It samples 50% CubiCasa, 10% ResPlan,
 including CAD stairs absent from the original eight-example preview. Start with
 250 updates, inspect per-class changes and regressions, then decide whether to
 continue. Keep the validated ResPlan checkpoint as the fallback.
+
+`structural-refine.yaml` independently refines the validated model with 80% real
+CubiCasa and 20% ResPlan, avoiding inheritance of CAD regressions.
+`scale-refine.yaml` tests a small log-width/height loss alongside GIoU, with
+60/10/30% replay. Stair diagnostics showed predicted boxes contained inside much
+larger targets, where overlap gradients are weak. The relative-size term is
+scale invariant and does not change inference encoding. Its default weight is
+zero, preserving exact-resume behavior for all earlier recipes. Both recipes
+start with a bounded probe and retain the previous validated checkpoint.
