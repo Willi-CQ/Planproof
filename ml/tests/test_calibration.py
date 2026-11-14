@@ -98,3 +98,47 @@ def test_cli_refuses_global_calibration_in_tiled_inference(tmp_path, monkeypatch
     )
     with pytest.raises(ValueError, match="inference mode differs"):
         execute(args)
+
+
+def test_component_area_sweep_matches_production_and_checks_binding(tmp_path):
+    import importlib.util
+    from pathlib import Path
+    import torch
+    from planproof_ml.schema import sha256, write_json
+
+    path = Path(__file__).resolve().parents[1] / "scripts/calibrate_component_area.py"
+    spec = importlib.util.spec_from_file_location("area_calibration", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    manifest = check_corpus(tmp_path / "data")
+    model = Detector(None).eval()
+    calibration = calibrate(model, manifest, "cpu", 64, limit_per_source=1, tiled=False)
+    checkpoint = tmp_path / "model.pt"
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "model_metadata": model.metadata(),
+            "config": {"image_size": 64},
+            "manifest_fingerprint": calibration["manifest_fingerprint"],
+            "step": 9,
+        },
+        checkpoint,
+    )
+    calibration["checkpoint_sha256"] = sha256(checkpoint)
+    source = tmp_path / "calibration.json"
+    write_json(source, calibration)
+    result = module.calibrate_area(checkpoint, manifest, source, [4, 32], 1, "cpu")
+    ordinary = evaluate(model, manifest, "val", "cpu", 64, result["thresholds"], 1, tiled=False)
+    assert result["validation_report"] == ordinary
+    assert result["validation_score"] == max(
+        report["selection_score"] for report in result["component_area_candidates"].values()
+    )
+    assert result["component_area_forward_passes"] == 1
+    assert result["component_area_confirmation_passes"] == 1
+    assert result["checkpoint_step"] == 9
+    with pytest.raises(ValueError, match="positive integers"):
+        module.calibrate_area(checkpoint, manifest, source, [0], 1, "cpu")
+    calibration["tiled"] = True
+    write_json(source, calibration)
+    with pytest.raises(ValueError, match="matching global-view"):
+        module.calibrate_area(checkpoint, manifest, source, [4], 1, "cpu")
