@@ -65,6 +65,27 @@ def test_invalid_specialist_evidence_cannot_reach_agent_as_valid(change):
     assert result["status"] == "invalid_output" and result["result"] is None
 
 
+@pytest.mark.parametrize(
+    "change,code",
+    [
+        ({"answer": [1, 2]}, "InvalidInspectionSchema"),
+        ({"objects": [{"private_payload": "never export"}]}, "InvalidObjectInventory"),
+        ({"citations": None}, "InvalidCitationList"),
+        (
+            {"citations": [{"image_id": "unknown", "bbox": [0, 0, 100, 100]}]},
+            "InvalidLocalCoordinates",
+        ),
+        ({"citations": []}, "MissingBoundedEvidence"),
+    ],
+)
+def test_invalid_evidence_has_safe_actionable_diagnostic(change, code):
+    specialist, _, image = setup({**observation(), **change})
+    result = specialist.answer("Inspect", [image])
+    assert result["error_code"] == code
+    assert result["result"] is None
+    assert "never export" not in json.dumps(result)
+
+
 def test_review_sends_draft_but_keeps_local_frame():
     specialist, backend, image = setup(observation())
     specialist.review("Windows?", [image], candidate="2 windows")

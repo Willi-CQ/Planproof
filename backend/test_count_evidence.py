@@ -12,6 +12,29 @@ from test_specialist_routing import orchestrator, target as base_target
 from test_visual_specialist import observation, setup
 
 
+@pytest.mark.parametrize(
+    "question,expected",
+    [
+        (
+            "How many doors are there? Exclude openings without a door leaf.",
+            "door_opening",
+        ),
+        ("Count doorways that have leaves; ignore open passages.", "door_opening"),
+        (
+            "How many doors are shown? Do not count door leaves individually.",
+            "door_opening",
+        ),
+        ("What is the number of individual door leaves?", "door_leaf"),
+        ("Count each door leaf separately.", "door_leaf"),
+        ("Count the leaves of the doors.", "door_leaf"),
+        ("Where is the door leaf?", None),
+        ("How many windows are visible?", None),
+    ],
+)
+def test_counting_convention_comes_from_requested_noun(question, expected):
+    assert door_count_unit(question) == expected
+
+
 def target(*args, **kwargs):
     return {**base_target(*args, **kwargs), "purpose": "count"}
 
@@ -274,7 +297,9 @@ def test_supported_total_requires_exact_localized_ids_and_replaces_aggregate_pro
     assert result["answer"]["answer"] == 2
     assert result["count_evidence"]["complete"]
     assert len(result["canonical_citations"]) == 2
-    assert result["answer"]["unit"] == "door openings"
+    assert result["answer"]["unit"] == "count"
+    assert result["answer"]["count_basis"]["unit"] == "door_opening"
+    assert "door openings" in result["answer"]["explanation"]
     assert result["answer"]["briefing"][0]["citations"] == [1, 2]
 
 

@@ -19,9 +19,18 @@ def door_count_unit(question):
     if re.search(r"\b(doors?|doorways?|türen|tueren)\b", question, re.I) and re.search(
         r"how many|count|number|amount|quantity|wie viele|anzahl", question, re.I
     ):
+        # Count the requested noun, not words in eligibility/exclusion clauses.
+        # "Doorways ... without a door leaf do not count" still asks for openings.
+        target = re.search(
+            r"\b(?:how\s+many|count|number\s+of|amount\s+of|quantity\s+of)\s+"
+            r"(?:(?:the|all|individual|visible|separate|each|every)\s+)*"
+            r"(?P<noun>(?:door\s+)?(?:leaves|leaf)|doorways?|doors?)\b",
+            question,
+            re.I,
+        )
         return (
             "door_leaf"
-            if re.search(r"\blea(f|ves)\b", question, re.I)
+            if target and re.search(r"\b(?:leaf|leaves)\b", target["noun"], re.I)
             else "door_opening"
         )
     return None

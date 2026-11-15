@@ -138,8 +138,10 @@ class VisualSpecialist:
                 },
             ]
         )
+        error_code = "InvalidInspectionJSON"
         try:
             result = parse_object(completion["content"])
+            error_code = "InvalidInspectionSchema"
             if (
                 result.get("status") not in ("observed", "uncertain")
                 or not scalar(result.get("answer"))
@@ -149,11 +151,13 @@ class VisualSpecialist:
                 or not all(isinstance(x, str) for x in result["findings"])
             ):
                 raise ValueError("Invalid inspection schema")
+            error_code = "InvalidObjectInventory"
             objects = result.get("objects", [])
             if not isinstance(objects, list) or len(objects) > 80:
                 raise ValueError("Invalid object inventory")
             objects = [CountObject.model_validate(o).model_dump() for o in objects]
             if counting:
+                error_code = "WrongCountingConvention"
                 expected_unit = (
                     "door_leaf"
                     if "COUNT_UNIT=door_leaf" in question
@@ -168,6 +172,7 @@ class VisualSpecialist:
                             status="uncertain",
                             reason="Box covers much of the view; individual symbol localization needs checking.",
                         )
+            error_code = "InvalidCitationList"
             citations = result.get("citations")
             if not isinstance(citations, list):
                 raise ValueError("Invalid citations")
@@ -180,6 +185,7 @@ class VisualSpecialist:
                 replace(i, metadata={**i.metadata, "sent_size": [1000, 1000]})
                 for i in images
             ]
+            error_code = "InvalidLocalCoordinates"
             validate_citations(citations, normalized)
             validate_citations(object_citations, normalized)
             if counting:
@@ -194,6 +200,7 @@ class VisualSpecialist:
                     and all(o["status"] == "supported" for o in objects)
                 )
                 result["answer"] = None
+            error_code = "MissingBoundedEvidence"
             if (
                 len(citations) > 100
                 or (
@@ -215,6 +222,7 @@ class VisualSpecialist:
                 }
                 for c in citations
             ]
+            error_code = "InvalidPixelCoordinates"
             validate_citations(pixel_citations, images)
             pixel_objects = [
                 {
@@ -229,6 +237,7 @@ class VisualSpecialist:
         except ValueError:
             return {
                 "status": "invalid_output",
+                "error_code": error_code,
                 "result": None,
                 "canonical_citations": [],
                 "completion": {"usage": completion.get("usage", {})},

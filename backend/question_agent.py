@@ -1182,6 +1182,7 @@ class DrawingAgent:
         self.record_inspection(result, counting=bool(count_question))
         return {
             "status": result["status"],
+            "error_code": result.get("error_code"),
             "advisory": result.get("result"),
             "canonical_citations": result.get("canonical_citations", []),
             "usage": result.get("completion", {}).get("usage", {}),
@@ -1289,11 +1290,10 @@ class DrawingAgent:
             if not self.count_complete:
                 result.update(status="abstain", answer=None, unit=None)
             else:
-                result["unit"] = (
-                    "door openings"
-                    if self.count_unit == "door_opening"
-                    else "door leaves"
-                )
+                # Machine-readable count unit stays compatible with the public
+                # answer/scoring contract. The counted entity is in count_basis
+                # and the user-facing explanation, not in the physical unit.
+                result["unit"] = "count"
             # Replace arbitrary aggregate prose with the actual object inventory.
             result = count_presentation(result, evidence, complete=self.count_complete)
             object_citations = [o["citation"] for o in evidence["objects"]][:100]
