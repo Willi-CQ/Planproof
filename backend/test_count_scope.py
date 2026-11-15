@@ -2,8 +2,16 @@
 
 import pytest
 
+
+
+
 from test_count_evidence import counting_agent, counted_answer, localized
 from test_task_scope import selected_scope
+
+
+@pytest.fixture(autouse=True)
+def candidate_profile(monkeypatch):
+    monkeypatch.setenv("PLANPROOF_AGENT_PROFILE", "scope-count-candidate")
 
 
 def prepared():

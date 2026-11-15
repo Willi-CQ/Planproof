@@ -1,9 +1,17 @@
 """Scope propagation contracts; these do not claim model interpretation accuracy."""
 
 import pytest
+
+
+
 import json
 
 from test_specialist_routing import orchestrator, target
+
+
+@pytest.fixture(autouse=True)
+def candidate_profile(monkeypatch):
+    monkeypatch.setenv("PLANPROOF_AGENT_PROFILE", "scope-count-candidate")
 
 
 def selected_scope():

@@ -312,11 +312,14 @@ def get_page_frame(document_id: str) -> PageFrame:
 
 @app.get("/api/v1/agent")
 def question_agent_status():
+    from agent_profile import active_profile
+
+    profile = active_profile()
     try:
         _, model = question_agent_settings()
-        return {"configured": True, "model": model, "connection_verified": False}
+        return {"configured": True, "model": model, "connection_verified": False, "agent_profile": profile}
     except (ValueError, OSError):
-        return {"configured": False, "model": None, "connection_verified": False}
+        return {"configured": False, "model": None, "connection_verified": False, "agent_profile": profile}
 
 
 def set_answer_page(result, page_index):

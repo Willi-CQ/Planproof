@@ -1,8 +1,16 @@
 # Scope and count-evidence candidate
 
+## Production integration
+
+This source is included in main behind `PLANPROOF_AGENT_PROFILE=scope-count-candidate`.
+The production default is `qualified-v6`, preserving the measured V6 prompts,
+tool schemas and counting behavior. Authentication failure handling is active in
+both profiles. See [release profiles](AGENT_RELEASE_PROFILES.md). The candidate's
+recognition improvements remain unqualified; its inclusion is not an accuracy claim.
+
 This backend candidate is based on the qualified V6 agent. The product UI, detector
 weights, drawing pixels, count scoring and area tolerance are unchanged. It is not
-qualified for promotion: the live diagnostic comparison was interrupted by a
+qualified for activation: the live diagnostic comparison was interrupted by a
 Nemotron authentication failure in both the frozen control and candidate.
 
 ## Behavior

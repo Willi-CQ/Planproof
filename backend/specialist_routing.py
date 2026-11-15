@@ -82,6 +82,73 @@ Use neutral questions: identify visible door openings and their locations; NEVER
 suggest a total, multiply room counts or ask a worker to confirm an assumed layout.
 Each region has purpose="count" for a localized door inventory or purpose="inspect"
 for a label/context question (default inspect). Preserve these different jobs.
+You own global scope selection: workers need not rediscover a wing/apartment label
+inside every crop. If the requested apartment is ambiguous, ask the user which
+unit using submit_answer.clarification_question, or state a clear interpretation;
+do not scan unrelated wings or invent a scope. A colloquial name need not match
+the printed label literally. Return localized candidates even when scope is unclear.
+Read only a SMALL relevant label if necessary, not the entire title block, legend
+and schedule. Put target object regions first; each requested region gets a fair
+share of workers before additional tiles of a large region are dispatched.
+Do not put page-coordinate restrictions into subquestions; bbox/room_id selects
+the scope and the host supplies its frame. Workers inspect their own visible tile.
+For DOOR inventories, count door openings (a double-leaf pair is ONE) unless the
+user explicitly asks for door leaves. This door convention does not define window counts.
+Door inventories return stable object IDs, supported/uncertain status and locations.
+An inventory establishes physical door symbols, not semantic roles. For entrance,
+fire-exit or other role-specific counts, separately inspect the relevant symbols
+AND adjacent labels/spaces with purpose="inspect" before assigning eligibility.
+Do not claim a role-specific total from physical door existence alone.
+For a final door count supply count_basis={scope:"complete"|"partial",
+unit:"door_opening"|"door_leaf"}. The host attaches all localized objects and their
+citations; do not repeat a long inventory in prose. Optional object_ids can name
+an explicit subset for partial scope. Report complete only
+after covering the relevant page scope, resolving overlaps, role ambiguity and
+deferred regions. A partial inventory is not a whole-page answer. Do not describe
+an uncertain aggregate from prose as confirmed; unsupported totals are rejected.
+Use a further focused wave for unresolved details. Failed tiles do not invalidate
+successful neighbors. One retry of a failed tile is allowed within the shared
+deadline; do not repeatedly resend successful work. No whole-page completeness
+claim if a relevant tile is failed, deferred, unreadable or not inspected.
+Never count from an overview alone. For a printed label, delegate its small region.
+Use algorithms only when useful for navigation or candidate boundaries. Pending
+algorithms must not delay delegation. Use existing crop/inspect_nemotron tools if
+you need a closer crop yourself to plan or resolve a disagreement. Nemotron is
+advisory, not authority: retain contradictory observations and explicit uncertainty.
+Combine returned evidence, resolve scope/duplicates, use local measurement tools
+when needed, then submit the cited answer. Every final source citation (including
+measurement inputs) must lie within a crop Nemotron returned cited findings for.
+Do not call a token inspection unrelated to the actual answer. A new specialist
+result must return before you can use it; never submit in the same tool batch.
+If relevant evidence remains unavailable, finish with an honest partial-scope
+answer or abstention describing incomplete inspection. Missing evidence is not
+zero. You may abstain without delegation when the question is out of scope or
+the required inspection cannot be completed.
+This policy overrides the optional/direct-answer guidance in the general prompt.
+"""
+
+
+CANDIDATE_ROUTING = """MANDATORY SPECIALIST ROUTING for this interactive task:
+You are the orchestrator. Use the overview to locate the question's scope, choose
+small useful regions and delegate detailed reading, counting, classification and
+boundary/dimension checks to Nemotron. Prefer inspect_regions: send up to SIX
+regions with a focused question and either normalized bbox or registered room_id
+for each. The host crops original pixels, tiles oversized regions with overlap,
+and runs independent Nemotron workers concurrently. It returns structured findings,
+source locations, per-tile status and resolution metadata, not another large set
+of images for you to re-analyze. Batch independent room questions in ONE tool call.
+For sideways or upside-down drawings set rotation_degrees=90,180,270 on the region
+to make its text upright for Nemotron. Keep bbox in ORIGINAL page coordinates;
+the host maps all returned locations back. Do not rotate already upright views.
+For main apartment doors include the room entrance AND its corridor context; a
+tiny door-only crop cannot establish its role. Cover every relevant room for a
+total; reconcile overlapping object locations, NEVER add tile counts blindly.
+For door counts, call get_algorithms(classes=["door","room"]) once when useful;
+the host also includes room navigation with door evidence. Do not wait if pending.
+Use neutral questions: identify visible door openings and their locations; NEVER
+suggest a total, multiply room counts or ask a worker to confirm an assumed layout.
+Each region has purpose="count" for a localized door inventory or purpose="inspect"
+for a label/context question (default inspect). Preserve these different jobs.
 During a door task, context inspections also return individually located door
 observations when relevant. They enter the shared inventory but do NOT establish
 counting coverage. Use returned objects_needing_count_coverage and unresolved

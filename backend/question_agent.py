@@ -24,12 +24,14 @@ from gemini_transport import (
     response_candidate,
 )
 from algorithm_jobs import AlgorithmPending
+from agent_profile import CANDIDATE, QUALIFIED, candidate_enabled, tool_schema
 from native_text import search_lines
 from vector_regions import VectorAreaRequest, locate_regions, measure_regions
 from token_recovery import compact_observations, select_detail_images
 from task_scope import SCOPE_INSTRUCTION, scope_context
 from specialist_routing import (
     ROUTING,
+    CANDIDATE_ROUTING,
     DelegationRequired,
     InspectionBatch,
     InspectionPolicy,
@@ -229,12 +231,13 @@ def declaration(name, description, properties, required=()):
     )
 
 
-def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False, native_vectors=False):
+def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False, native_vectors=False, accuracy_candidate=None):
+    accuracy_candidate = candidate_enabled() if accuracy_candidate is None else accuracy_candidate
     result = [
         types.FunctionDeclaration(
             name="submit_answer",
             description="Submit the final source-grounded answer or abstain.",
-            parameters_json_schema=FinalAnswer.model_json_schema(),
+            parameters_json_schema=tool_schema(FinalAnswer, accuracy_candidate),
         )
     ]
     if mode == "direct":
@@ -343,7 +346,7 @@ def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False,
                 types.FunctionDeclaration(
                     name="inspect_regions",
                     description="Delegate up to six focused room/region questions to concurrent Nemotron workers. Select bbox (normalized page coordinates) OR registered room_id. Host preserves native details using overlapping tiles and returns per-tile findings, citations and metadata. Failed/overlapping tiles never imply zero or additive counts.",
-                    parameters_json_schema=InspectionBatch.model_json_schema(),
+                    parameters_json_schema=tool_schema(InspectionBatch, accuracy_candidate),
                 )
             )
         image_ids = {
@@ -407,12 +410,18 @@ def image_parts(image):
     ]
 
 
+def agent_instruction(orchestrated=False, accuracy_candidate=None):
+    accuracy_candidate = candidate_enabled() if accuracy_candidate is None else accuracy_candidate
+    instruction = INSTRUCTION + ("\n" + SCOPE_INSTRUCTION if accuracy_candidate else "")
+    return instruction + ("\n" + (CANDIDATE_ROUTING if accuracy_candidate else ROUTING) if orchestrated else "")
+
+
 class GeminiTransport(ResilientGeminiTransport):
     def __init__(self, key, model, *, orchestrated=False):
         super().__init__(
             key,
             model,
-            instruction=INSTRUCTION + "\n" + SCOPE_INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
+            instruction=agent_instruction(orchestrated),
             low_latency=True,
             policy=RetryPolicy(
                 attempts=2,
@@ -463,6 +472,7 @@ class DrawingAgent:
             algorithm_factory,
             specialist_factory,
         )
+        self.accuracy_candidate = candidate_enabled()
         self.observer = observer
         self.budget = budget or AgentBudget()
         self.require_specialist = require_specialist and request.mode != "direct"
@@ -509,6 +519,7 @@ class DrawingAgent:
                 request.mode,
                 request.allow_nemotron,
                 orchestrated=self.require_specialist,
+                accuracy_candidate=self.accuracy_candidate,
                 native_text=bool(getattr(page, "text_lines", ())),
                 native_vectors=bool(getattr(page, "vector_regions", ())),
             )
@@ -593,6 +604,8 @@ class DrawingAgent:
         return 12 if len(self.tool_log) >= 18 else productive
 
     def count_inventory(self):
+        if not self.accuracy_candidate:
+            return inventory(self.count_records, self.images, self.count_unit)
         records = {k: {**v, "objects": list(v.get("objects", []))}
                    for k, v in self.count_records.items()}
         for image_id, observations in self.count_observations.items():
@@ -609,6 +622,8 @@ class DrawingAgent:
     def apply_count_scope(self, exclusions):
         if not exclusions:
             return
+        if not self.accuracy_candidate:
+            raise ValueError("Scope exclusions require the opt-in candidate profile")
         if not self.task_scope or self.task_scope["extent"] not in {"selected_unit", "selected_rooms"}:
             raise ValueError("Object exclusions require an explicit selected-unit/room task_scope")
         objects = {o["id"]: o for o in self.count_inventory()["objects"]}
@@ -644,8 +659,9 @@ class DrawingAgent:
         evidence = self.count_inventory()
         return {
             **evidence,
-            "objects_needing_count_coverage": self.uncovered_count_objects(evidence),
-            "instruction": "Context inspections may add located objects but never counting coverage. Use purpose=count on uncovered regions; retain context questions for labels/roles. Do not recount already complete regions or add prose totals.",
+            **({"objects_needing_count_coverage": self.uncovered_count_objects(evidence),
+                "instruction": "Context inspections may add located objects but never counting coverage. Use purpose=count on uncovered regions; retain context questions for labels/roles. Do not recount already complete regions or add prose totals."}
+               if self.accuracy_candidate else {}),
             "unresolved_requested_regions": [
                 r["canonical_bbox"]
                 for r in self.unresolved_inspections.values()
@@ -674,7 +690,7 @@ class DrawingAgent:
                 ids = {c["image_id"] for c in advisory.get("citations", [])}
                 for image_id in ids & self.images.keys():
                     self.count_records[image_id] = advisory
-            elif self.count_unit:
+            elif self.count_unit and self.accuracy_candidate:
                 # Only validated, located objects count. Never parse a number from
                 # prose, or let a context response erase a previous full inventory.
                 for obj in advisory.get("objects", []):
@@ -695,6 +711,8 @@ class DrawingAgent:
         regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
         scope = InspectionBatch.model_validate(args).task_scope
         if scope is not None:
+            if not self.accuracy_candidate:
+                raise ValueError("Task scope requires the opt-in candidate profile")
             self.task_scope = scope.model_dump()
         planned, seen = [], set()
         # Round-robin native tiles: one broad context request must not starve
@@ -726,7 +744,7 @@ class DrawingAgent:
                     else question,
                     box,
                     rotation,
-                    self.task_scope,
+                    *([self.task_scope] if self.accuracy_candidate else []),
                 ]
             )
             if key not in seen:
@@ -771,7 +789,7 @@ class DrawingAgent:
         def inspect(item, timeout):
             _, question, image, purpose, rotation = item
             return self.specialist.answer(question, [image], timeout_seconds=timeout,
-                                          **({"inventory_unit": self.count_unit} if self.count_unit and purpose != "count" else {}),
+                                          **({"inventory_unit": self.count_unit} if self.accuracy_candidate and self.count_unit and purpose != "count" else {}),
                                           **({"rotation_degrees": rotation} if rotation else {}))
 
         def event(index, state, result):
@@ -826,7 +844,7 @@ class DrawingAgent:
                 "canonical_citations": value.get("canonical_citations", []),
                 "seconds": value.get("seconds"),
                 "error_code": value.get("error_code"),
-                "http_status": value.get("http_status"),
+                **({"http_status": value["http_status"]} if value.get("http_status") else {}),
             }
             current[key] = row
             self.record_inspection(value, counting=purpose == "count")
@@ -898,7 +916,7 @@ class DrawingAgent:
                 for row in rows
             ]
         return {
-            "task_scope": self.task_scope,
+            **({"task_scope": self.task_scope} if self.accuracy_candidate else {}),
             "status": "ok"
             if complete == len(rows)
             else "partial"
@@ -1321,7 +1339,7 @@ class DrawingAgent:
                 # counts or original-page restrictions into a local inspection.
                 value = count_question
             value += scope_context(self.task_scope)
-            options = {"inventory_unit": self.count_unit} if self.count_unit and not count_question else {}
+            options = {"inventory_unit": self.count_unit} if self.accuracy_candidate and self.count_unit and not count_question else {}
             result = (
                 self.specialist.answer(value, images, timeout_seconds=timeout_seconds, **options)
                 if timeout_seconds is not None
@@ -1334,7 +1352,7 @@ class DrawingAgent:
             "advisory": result.get("result"),
             "canonical_citations": result.get("canonical_citations", []),
             "usage": result.get("completion", {}).get("usage", {}),
-            **({"count_evidence": self.count_tool_inventory()} if self.count_unit else {}),
+            **({"count_evidence": self.count_tool_inventory() if self.accuracy_candidate else self.count_inventory()} if self.count_unit else {}),
             "image_ids": ids,
             "scope": "Selected images only. Advisory, not independent verification or whole-page coverage.",
         }, []
@@ -1351,6 +1369,9 @@ class DrawingAgent:
         ).model_dump()
         if result["status"] == "answered":
             result["unit"] = canonical_count_unit(result["unit"], self.request.unit)
+        if not self.accuracy_candidate and result.get("count_basis"):
+            if result["count_basis"].pop("exclusions", []):
+                raise ValueError("Scope exclusions require the opt-in candidate profile")
         original_citations = list(result["citations"])
         measurement_id = result.get("measurement_id")
         if result["status"] == "answered":
@@ -1432,7 +1453,7 @@ class DrawingAgent:
                 and set(chosen) == supported
                 and result["answer"] == len(chosen)
                 and not evidence["uncertain"]
-                and not self.uncovered_count_objects(evidence)
+                and (not self.accuracy_candidate or not self.uncovered_count_objects(evidence))
                 and bool(self.count_records)
                 and all(
                     r.get("scope_complete") is True for r in self.count_records.values()
@@ -1586,7 +1607,7 @@ class DrawingAgent:
                                 "question": self.request.question,
                                 "requested_unit": self.request.unit,
                                 "scope": "Only this selected page is available",
-                                "task_scope": self.task_scope,
+                                **({"task_scope": self.task_scope} if self.accuracy_candidate else {}),
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
@@ -1594,7 +1615,7 @@ class DrawingAgent:
                                 if compact
                                 else self.tool_log,
                                 "token_repair": compact,
-                                "routing_policy": ROUTING
+                                "routing_policy": (CANDIDATE_ROUTING if self.accuracy_candidate else ROUTING)
                                 if self.require_specialist
                                 else "Optional specialist baseline",
                                 "registered_images": [
@@ -1718,6 +1739,7 @@ class DrawingAgent:
                 self.request.mode,
                 self.request.allow_nemotron,
                 orchestrated=self.require_specialist,
+                accuracy_candidate=self.accuracy_candidate,
                 native_text=bool(getattr(self.page, "text_lines", ())),
                 native_vectors=bool(getattr(self.page, "vector_regions", ())),
             )
@@ -2084,7 +2106,8 @@ class DrawingAgent:
             "algorithm_used": self.algorithm_delivered,
             "algorithm_executed": self.job is not None,
             "algorithm_registry": self.algorithm_registry,
-            "task_scope": self.task_scope,
+            "agent_profile": CANDIDATE if self.accuracy_candidate else QUALIFIED,
+            **({"task_scope": self.task_scope} if self.accuracy_candidate else {}),
             "nemotron_calls": self.nemotron_calls,
             "delegation": {
                 "required": self.require_specialist,

@@ -1,0 +1,489 @@
+{
+  "revision": "9909cb35d4c7b82227a590861b71354e7e3eb60f",
+  "schema_checks": [
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "f2e3592bc4cf44166c2b104d4cfef6ff1beb88336018035e06cf9df4b2b8b6d1"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "f94b799e3df07d730cb703c7c706d387cc62b9cfceed13c900f337b96b73a676"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "18845f5ac2aadf70f83853cdbd9b813cfb16ed49cbbea255715a9226364cdda3"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "ca28551944255b083450edfa4e55a898811a6166510e1e3307670e79548ad491"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "f2e3592bc4cf44166c2b104d4cfef6ff1beb88336018035e06cf9df4b2b8b6d1"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "f94b799e3df07d730cb703c7c706d387cc62b9cfceed13c900f337b96b73a676"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "18845f5ac2aadf70f83853cdbd9b813cfb16ed49cbbea255715a9226364cdda3"
+    },
+    {
+      "mode": "auto",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "ca28551944255b083450edfa4e55a898811a6166510e1e3307670e79548ad491"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "879da21e9fd0e384e22aad8ab05a8e53b8ef7033ee962732d062fb08657eb384"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "eaeea131accc0d55efc100e93fbdb3fb1ec3bd0fe1d90b50f5b912bd1b462895"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "19831d9f9a0289cec68d8651a642b76aa96fa0e3cc8b41fa3e5edec97108939d"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "75b816b325c3ebe93121c8c46f008f7837268d2d3d59f11362f621aad6b603ac"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "1fd26b0a9d9ae0538020183ad69f4d210240466d3e755228e6ab6226981904a4"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "771779045330ef88cfed91423310ddaaf0e8e86df96402257bf2a972c3974e0a"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "006676e369cae905104a4f737ef163a2b35b3bcbfa99c2ddb87542868f9091ce"
+    },
+    {
+      "mode": "auto",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "6f978048e9a9172f946bd2bd694f96d039d70d8177097aebce7256527f89b05e"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "e1e8791243316675c2671925ceed59af9d5695b0e03041bc33167b1b643b0e81"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "4d2cd653c346a4474c44844306be73e443ef785df437ea620001ea52f6956980"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "275cb27434cf39ae1b3432820424770a49145c4e1178ede840e44780b31a1909"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "6c83cd3945a65d08eb1df3a8cbb761aabbb3075c11b589e5f5f554465c5ea2ac"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "e1e8791243316675c2671925ceed59af9d5695b0e03041bc33167b1b643b0e81"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "4d2cd653c346a4474c44844306be73e443ef785df437ea620001ea52f6956980"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "275cb27434cf39ae1b3432820424770a49145c4e1178ede840e44780b31a1909"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "6c83cd3945a65d08eb1df3a8cbb761aabbb3075c11b589e5f5f554465c5ea2ac"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "1ec7e80d01c0fef0757ee9dd6d9bd2839fe14665887a513a4625cc0be7600e4f"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "a2e95dadf4ab4ae1fa0221a7b014ccc8c9e1ee0ecbd9bfb40a49a62ca329d27c"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "115726021b267769548b3d573848f478ed8499579517d9b28a309978738c7f50"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "739234a56cb858f8f22a80e70693e0f39e659c0f7902076529eb96b1b7ec7c37"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "8514886f1f70bfcfb7231f712194a933dee2b26d414916892fd423158eea026f"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "17b8d89a7867033c1824a22db5754b707acde0454dc0551ac1f666b6d44324d8"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "1d43034f16434114e5f6e22dd578d073ea513445c3047b452ac940c3a43f674e"
+    },
+    {
+      "mode": "visual_only",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "c9215646b54046b720a7db6df0bce4c30433609f4ac6a65f5f8bad28d7cb0038"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": false,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": false,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": false,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": false
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    },
+    {
+      "mode": "direct",
+      "allowed": true,
+      "options": {
+        "orchestrated": true,
+        "native_text": true,
+        "native_vectors": true
+      },
+      "sha256": "b4fbd12cd7bf680148bf3e0d6bc2f4caba94466b5b804a51cdab04136955d53a"
+    }
+  ],
+  "instructions": {
+    "False": "e9b5cd67010c2f99abd14c0b40377a3d6c3ee02454ab18d3dea11c84bee70ec1",
+    "True": "76bc8e6ca9b058c82cf1508ef79d7be5024a0a43fe3eabec88b95053f74a7760"
+  }
+}

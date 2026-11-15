@@ -4,8 +4,16 @@ import json
 
 import pytest
 
+
+
+
 from test_count_evidence import counting_agent, counted_answer, localized, target
 from test_visual_specialist import observation, setup
+
+
+@pytest.fixture(autouse=True)
+def candidate_profile(monkeypatch):
+    monkeypatch.setenv("PLANPROOF_AGENT_PROFILE", "scope-count-candidate")
 
 
 def obj(image_id="crop-1", box=None, unit="door_opening"):
