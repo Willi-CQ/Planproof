@@ -69,6 +69,11 @@ Originals and raw records remain private; only reusable tools, tests and this
 protocol belong in Git. Do not upload drawings, benchmark answers, credentials,
 model weights or the personal `.brain` with an ordinary source-code push.
 
+`audit_agent_evidence.py --run PRIVATE_TRIAL --out PRIVATE_AUDIT.json` checks
+retained source identity, citation bounds and delegation/count contracts. It also
+records provider interruptions and tool usage. This is a structural check, not a
+claim that a citation proves the answer or that the whole drawing was inspected.
+
 Promote only after reviewing both the unchanged regression cohort and held-out
 results. Retain the previous source/image for rollback, verify the frontend tree
 is identical, and keep the live demo running during preparation.
