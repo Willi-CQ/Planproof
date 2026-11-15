@@ -6,6 +6,29 @@ Verda server. Gemini, Nemotron, ML and geometry use the same persistent API
 architecture; subsequent backend revisions are recorded below.
 The interface continues to submit a background run and poll for activity.
 
+## Agent release — 15 November 2026, 07:29 UTC
+
+Main includes the latest scope/count-evidence implementation and authentication
+failure handling in source `330076e`. Production uses `qualified-v6`: its two
+instruction variants and 48 tool-schema configurations match the frozen measured
+V6 agent. The unmeasured scope/count changes require explicit opt-in. See
+[agent release profiles](AGENT_RELEASE_PROFILES.md).
+
+Live image: `sha256:3728bef312c4944d7eb596004eb8f82cba8c304e95874d613b8489c5a94d18ea`.
+The API container is healthy and the public status endpoint reports `qualified-v6`.
+All 21 saved history/trace files were verified unchanged. Public JavaScript and
+CSS hashes match the prior deployment exactly. Source, weights and geometry checks
+confirm no frontend, detector or deterministic algorithm changes.
+
+GitHub agent CI passed on the release branch and main, including the profile guards
+and existing agent tests. The built image passed the same contract checks and saw
+the NVIDIA A100. These are deployment/contract checks, not a new accuracy score or
+proof of provider availability. No new paid inference was used for this release.
+
+The existing `9909cb3` source/image is retained for rollback. Only the API was
+replaced, after confirming no active questions; gateway and Vercel were unchanged.
+In-memory pages were cleared by the restart, so reselect a drawing if needed.
+
 ## Qualified backend update — 15 November 2026, 05:20 UTC
 
 The live API now uses evaluated backend `9909cb3`, image
