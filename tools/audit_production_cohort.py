@@ -98,7 +98,13 @@ def prepare(baseline, out, url, workers):
 
 
 def run_case(case, index, binding, pack, out):
-    if (out / "STOP").exists():
+    def admission_closed():
+        deadline = binding.get("admission_deadline_unix")
+        if deadline is not None and time.time() >= deadline:
+            (out / "STOP").write_text("Admission deadline reached", encoding="utf-8")
+        return (out / "STOP").exists()
+
+    if admission_closed():
         return None  # Finish in-flight requests, but admit no more paid work.
     directory = out / case["id"]
     directory.mkdir(exist_ok=True)
@@ -139,6 +145,8 @@ def run_case(case, index, binding, pack, out):
                 "question": case["question"],
                 "unit": case.get("unit"),
             }
+            if admission_closed():
+                return None
             saved = {
                 "run_id": run_id,
                 "request": request,

@@ -5,7 +5,7 @@ filters detections, changes a numeric answer, or treats a missing label as zero.
 """
 
 import json
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,7 +15,7 @@ class TaskScope(BaseModel):
     extent: Literal["whole_sheet", "selected_unit", "selected_rooms", "unresolved"]
     target: str = Field(min_length=1, max_length=250)
     basis: str = Field(min_length=1, max_length=400)
-    exclusions: list[str] = Field(default_factory=list, max_length=8)
+    exclusions: list[Annotated[str, Field(min_length=1, max_length=250)]] = Field(default_factory=list, max_length=8)
     counting_unit: str | None = Field(default=None, min_length=1, max_length=100)
 
 

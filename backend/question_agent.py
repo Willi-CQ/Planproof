@@ -470,6 +470,8 @@ class DrawingAgent:
             door_count_unit(request.question) if self.require_specialist else None
         )
         self.count_records = {}
+        self.count_observations = {}
+        self.specialist_auth_status = None
         self.task_scope = None
         self.count_complete = False
         self.inspected_images = set()
@@ -589,12 +591,31 @@ class DrawingAgent:
         return 12 if len(self.tool_log) >= 18 else productive
 
     def count_inventory(self):
-        return inventory(self.count_records, self.images, self.count_unit)
+        records = {k: {**v, "objects": list(v.get("objects", []))}
+                   for k, v in self.count_records.items()}
+        for image_id, observations in self.count_observations.items():
+            records.setdefault(image_id, {"objects": []})["objects"].extend(observations)
+        return inventory(records, self.images, self.count_unit)
+
+    def uncovered_count_objects(self, evidence):
+        """Context discoveries add objects, never counting coverage."""
+        coverage = [self.images[k].metadata["canonical_bbox"]
+                    for k, record in self.count_records.items()
+                    if record.get("scope_complete") is True]
+        pending = []
+        for obj in evidence["objects"]:
+            try:
+                require_inspected_citations([obj], coverage)
+            except DelegationRequired:
+                pending.append(obj["id"])
+        return pending
 
     def count_tool_inventory(self):
         evidence = self.count_inventory()
         return {
             **evidence,
+            "objects_needing_count_coverage": self.uncovered_count_objects(evidence),
+            "instruction": "Context inspections may add located objects but never counting coverage. Use purpose=count on uncovered regions; retain context questions for labels/roles. Do not recount already complete regions or add prose totals.",
             "unresolved_requested_regions": [
                 r["canonical_bbox"]
                 for r in self.unresolved_inspections.values()
@@ -623,6 +644,16 @@ class DrawingAgent:
                 ids = {c["image_id"] for c in advisory.get("citations", [])}
                 for image_id in ids & self.images.keys():
                     self.count_records[image_id] = advisory
+            elif self.count_unit:
+                # Only validated, located objects count. Never parse a number from
+                # prose, or let a context response erase a previous full inventory.
+                for obj in advisory.get("objects", []):
+                    image_id = obj.get("image_id")
+                    if image_id not in self.images or obj.get("unit") != self.count_unit:
+                        continue
+                    found = self.count_observations.setdefault(image_id, [])
+                    if obj not in found:
+                        found.append(obj)
             self.inspected_images.update(
                 c["image_id"]
                 for c in result["result"].get("citations", [])
@@ -708,8 +739,9 @@ class DrawingAgent:
             self.specialist = self.specialist_factory()
 
         def inspect(item, timeout):
-            _, question, image, _, rotation = item
+            _, question, image, purpose, rotation = item
             return self.specialist.answer(question, [image], timeout_seconds=timeout,
+                                          **({"inventory_unit": self.count_unit} if self.count_unit and purpose != "count" else {}),
                                           **({"rotation_degrees": rotation} if rotation else {}))
 
         def event(index, state, result):
@@ -736,6 +768,8 @@ class DrawingAgent:
         self.nemotron_calls += attempted
         current = {}
         for (key, question, image, purpose, rotation), value in zip(prepared, results):
+            if value.get("http_status") in (401, 403):
+                self.specialist_auth_status = value["http_status"]
             if value["status"] != "not_sent":
                 self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
             advisory = value.get("result") or {}
@@ -762,6 +796,7 @@ class DrawingAgent:
                 "canonical_citations": value.get("canonical_citations", []),
                 "seconds": value.get("seconds"),
                 "error_code": value.get("error_code"),
+                "http_status": value.get("http_status"),
             }
             current[key] = row
             self.record_inspection(value, counting=purpose == "count")
@@ -1256,10 +1291,11 @@ class DrawingAgent:
                 # counts or original-page restrictions into a local inspection.
                 value = count_question
             value += scope_context(self.task_scope)
+            options = {"inventory_unit": self.count_unit} if self.count_unit and not count_question else {}
             result = (
-                self.specialist.answer(value, images, timeout_seconds=timeout_seconds)
+                self.specialist.answer(value, images, timeout_seconds=timeout_seconds, **options)
                 if timeout_seconds is not None
-                else self.specialist.answer(value, images)
+                else self.specialist.answer(value, images, **options)
             )
         self.record_inspection(result, counting=bool(count_question))
         return {
@@ -1268,7 +1304,7 @@ class DrawingAgent:
             "advisory": result.get("result"),
             "canonical_citations": result.get("canonical_citations", []),
             "usage": result.get("completion", {}).get("usage", {}),
-            **({"count_evidence": self.count_inventory()} if self.count_unit else {}),
+            **({"count_evidence": self.count_tool_inventory()} if self.count_unit else {}),
             "image_ids": ids,
             "scope": "Selected images only. Advisory, not independent verification or whole-page coverage.",
         }, []
@@ -1362,6 +1398,7 @@ class DrawingAgent:
                 and set(chosen) == supported
                 and result["answer"] == len(chosen)
                 and not evidence["uncertain"]
+                and not self.uncovered_count_objects(evidence)
                 and bool(self.count_records)
                 and all(
                     r.get("scope_complete") is True for r in self.count_records.values()
@@ -1501,6 +1538,7 @@ class DrawingAgent:
                                 "question": self.request.question,
                                 "requested_unit": self.request.unit,
                                 "scope": "Only this selected page is available",
+                                "task_scope": self.task_scope,
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
@@ -1887,6 +1925,13 @@ class DrawingAgent:
                         },
                         [],
                     )
+                    if function.name in {"inspect_nemotron", "review_answer", "inspect_regions"}:
+                        code = getattr(exc, "status_code", None)
+                        if type(code) is int and 400 <= code <= 599:
+                            result["http_status"] = code
+                        if code in (401, 403):
+                            self.specialist_auth_status = code
+                            result["error_code"] = "SpecialistAuthenticationError"
                     if function.name in (
                         "calculate_area",
                         "measure_polygon",
@@ -1918,7 +1963,12 @@ class DrawingAgent:
                     )
                 )
                 new_images.extend(images)
+                if self.specialist_auth_status:
+                    stop = "specialist_authentication_failed"
+                    break
             if answer:
+                break
+            if self.specialist_auth_status:
                 break
             if self.delegation_rejections >= 2:
                 stop = "specialist_required"
@@ -1965,6 +2015,15 @@ class DrawingAgent:
             and not answer["explanation"].startswith("Inspection is incomplete.")
         ):
             answer = count_presentation(answer, self.count_inventory())
+        if self.specialist_auth_status:
+            message = (
+                "The visual inspection service rejected its configured credentials "
+                f"(HTTP {self.specialist_auth_status}). The required inspection could "
+                "not be completed, so no final answer was established."
+            )
+            answer.update(status="abstain", answer=None, explanation=message,
+                          briefing=[{"section": "limitation", "text": message, "citations": []}])
+            answer["uncertainties"] = [message, *answer.get("uncertainties", [])][:20]
         result = {
             "status": "ok" if stop == "answered" else "unavailable",
             "answer": answer,
@@ -2023,6 +2082,7 @@ class DrawingAgent:
                 else "answered"
             ),
             "reliability": {
+                "specialist_http_status": self.specialist_auth_status,
                 "recovery_used": self.recovery_used,
                 "recovery_measurement_calls": self.recovery_measurement_calls,
                 "token_repair_used": self.token_repair_used,

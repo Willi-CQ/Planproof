@@ -1,6 +1,7 @@
 """Scope propagation contracts; these do not claim model interpretation accuracy."""
 
 import pytest
+import json
 
 from test_specialist_routing import orchestrator, target
 
@@ -31,6 +32,8 @@ def test_scope_shared_between_workers_and_retained_for_followup():
     assert "Apartment A" in agent.specialist_factory.return_value.answer.call_args.args[0]
     assert agent.request.question == original
     assert agent.task_scope == selected_scope()
+    recovery = json.loads(agent.recovery_history(compact=True)[0].parts[0].text)
+    assert recovery["task_scope"] == selected_scope()
 
 
 def test_scope_correction_does_not_reuse_a_different_context_inspection():

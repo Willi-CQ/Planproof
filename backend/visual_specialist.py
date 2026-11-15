@@ -93,13 +93,31 @@ class CountObject(BaseModel):
     reason: str = Field(min_length=1, max_length=250)
 
 
+CONTEXT_OBJECT_PROMPT = """
+This is still a focused CONTEXT/CLASSIFICATION inspection: answer that question.
+When your answer identifies visible doors, ALSO return their individual locations
+in objects using the requested inventory_unit. A statement such as 'two doors are
+visible' without two localized objects cannot enter the counting inventory. Include
+supported/uncertain physical-symbol status and the actual visible cue. Do not infer
+a door's apartment/entrance role just because a door exists. Do not turn a label-only
+question into a whole-tile count, extrapolate, or declare counting coverage complete.
+Keep the original answer and citations. objects may be [] when no doors were examined;
+that is NOT a count of zero. scope_complete=false for this context-only inspection.
+Object schema: {"image_id":"supplied ID", "bbox":[left,top,right,bottom],
+"unit":"door_opening"|"door_leaf", "status":"supported"|"uncertain",
+"reason":"visible physical cue or ambiguity"}. Use LOCAL normalized 0..1000 boxes.
+One double-leaf door is one door_opening; door_leaf counts each visible leaf.
+"""
+
+
 class VisualSpecialist:
     def __init__(self, service):
         self.service = service
 
-    def answer(self, question, images, *, timeout_seconds=None, rotation_degrees=0):
+    def answer(self, question, images, *, timeout_seconds=None, rotation_degrees=0,
+               inventory_unit=None):
         return self.inspect(question, images, timeout_seconds=timeout_seconds,
-                            rotation_degrees=rotation_degrees)
+                            rotation_degrees=rotation_degrees, inventory_unit=inventory_unit)
 
     def review(
         self, question, images, *, candidate, evidence=None, timeout_seconds=None
@@ -108,7 +126,10 @@ class VisualSpecialist:
             question, images, candidate=candidate, timeout_seconds=timeout_seconds
         )
 
-    def inspect(self, question, images, candidate=None, timeout_seconds=None, rotation_degrees=0):
+    def inspect(self, question, images, candidate=None, timeout_seconds=None, rotation_degrees=0,
+                inventory_unit=None):
+        if inventory_unit not in (None, "door_opening", "door_leaf"):
+            raise ValueError("Invalid observation inventory unit")
         counting = "COUNT_UNIT=" in question
         views = rotated_views(images, rotation_degrees)
         payload = {
@@ -123,6 +144,8 @@ class VisualSpecialist:
                 for i in views
             ],
         }
+        if inventory_unit and not counting:
+            payload["inventory_unit"] = inventory_unit
         if rotation_degrees:
             payload["display_rotation_clockwise_degrees"] = rotation_degrees
             payload["coordinate_instruction"] = (
@@ -138,13 +161,13 @@ class VisualSpecialist:
                 **backend.settings,
                 "timeout_seconds": max(1, min(30, timeout_seconds)),
                 "retries": 0,
-                "max_tokens": 6144 if counting else 2048,
+                "max_tokens": 6144 if counting or inventory_unit else 2048,
             }
         completion = backend.complete(
             [
                 {
                     "role": "system",
-                    "content": PROMPT + (COUNT_PROMPT if counting else ""),
+                    "content": PROMPT + (COUNT_PROMPT if counting else CONTEXT_OBJECT_PROMPT if inventory_unit else ""),
                 },
                 {
                     "role": "user",
@@ -185,12 +208,12 @@ class VisualSpecialist:
             if not isinstance(objects, list) or len(objects) > 80:
                 raise ValueError("Invalid object inventory")
             objects = [CountObject.model_validate(o).model_dump() for o in objects]
-            if counting:
+            if counting or inventory_unit:
                 error_code = "WrongCountingConvention"
                 expected_unit = (
                     "door_leaf"
                     if "COUNT_UNIT=door_leaf" in question
-                    else "door_opening"
+                    else "door_opening" if counting else inventory_unit
                 )
                 for obj in objects:
                     if obj["unit"] != expected_unit:
@@ -232,6 +255,9 @@ class VisualSpecialist:
                     and all(o["status"] == "supported" for o in objects)
                 )
                 result["answer"] = None
+            elif inventory_unit:
+                # Seeing an object in a context check never certifies a whole tile.
+                result["scope_complete"] = False
             error_code = "MissingBoundedEvidence"
             if (
                 len(citations) > 100

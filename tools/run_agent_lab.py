@@ -5,6 +5,7 @@ The server revision/image receipt is supplied independently of the local runner.
 """
 
 import argparse
+from datetime import datetime
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -36,6 +37,11 @@ def prepare(args):
         "labels_used_for_inference": False,
         "unit_policy": "Publisher unit hint supplied identically in matched conditions.",
     }
+    if getattr(args, "admission_deadline_utc", None):
+        deadline = datetime.fromisoformat(args.admission_deadline_utc.replace("Z", "+00:00"))
+        if deadline.tzinfo is None:
+            raise ValueError("Admission deadline must include a timezone")
+        binding["admission_deadline_unix"] = deadline.timestamp()
     if args.out.exists():
         if read(args.out / "binding.json") != binding:
             raise ValueError("Trial changed; choose a new output directory")
@@ -116,5 +122,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", default="gemini-4-carbon")
     parser.add_argument("--workers", type=int, choices=(1, 2), default=2)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--admission-deadline-utc", help="Absolute cutoff for new paid requests; timezone required")
     parser.add_argument("--score", action="store_true")
     main(parser.parse_args())

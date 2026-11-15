@@ -13,6 +13,16 @@ def test_stop_gate_admits_no_new_request(tmp_path):
     assert run_case({}, 1, {}, None, tmp_path) is None
 
 
+def test_expired_admission_deadline_blocks_even_upload(tmp_path, monkeypatch):
+    import audit_production_cohort as audit
+    from unittest.mock import Mock
+    network = Mock(side_effect=AssertionError("No network after admission cutoff"))
+    monkeypatch.setattr(audit.httpx, "Client", network)
+    assert run_case({}, 1, {"admission_deadline_unix": 1}, None, tmp_path) is None
+    network.assert_not_called()
+    assert (tmp_path / "STOP").read_text() == "Admission deadline reached"
+
+
 @pytest.mark.parametrize("with_metadata", [True, False])
 def test_runner_uses_production_routes_and_never_repeats_completed_request(
     tmp_path, monkeypatch, with_metadata
