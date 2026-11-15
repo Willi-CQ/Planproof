@@ -1055,11 +1055,21 @@ class DrawingAgent:
             )
             fresh_classes = set(classes) - self.delivered_classes
             catalog = copy.deepcopy(self.job.catalog)
+            # The pipeline stores native pixels; agent crop/inspection tools use
+            # normalized original-page coordinates. Normalize only this response,
+            # keeping the source job and registered room crops in native pixels.
+            def normalized_box(box):
+                return [round(v * 1000 / (self.page.width if i % 2 == 0 else self.page.height), 3)
+                        for i, v in enumerate(box)]
+
+            catalog["coordinate_frame"] = "original_page_normalized_0_1000"
+            catalog["coordinate_instruction"] = "All catalogue bbox values can be passed directly to inspect_regions or crop_region. Do not rescale them. They are fallible candidate locations, not verified objects."
             aliases = {r["id"]: f"R{i + 1}" for i, r in enumerate(catalog["rooms"])}
             self.rooms = {aliases[r["id"]]: r for r in self.job.catalog["rooms"]}
             for room in catalog["rooms"]:
                 self.algorithm_registry[aliases[room["id"]]] = room["id"]
                 room["id"] = aliases[room["id"]]
+                room["bbox"] = normalized_box(room["bbox"])
                 room.pop("ml_seed_ids", None)
                 if isinstance(room.get("boundary_support"), (int, float)):
                     room["boundary_support"] = round(room["boundary_support"], 3)
@@ -1073,7 +1083,7 @@ class DrawingAgent:
                 self.algorithm_registry[alias] = observation["id"]
                 observation["id"] = alias
                 if "bbox" in observation:
-                    observation["bbox"] = [round(v, 1) for v in observation["bbox"]]
+                    observation["bbox"] = normalized_box(observation["bbox"])
             catalog["observations"] = [
                 o
                 for o in catalog["observations"]
@@ -1083,6 +1093,8 @@ class DrawingAgent:
                 alias = f"G{index + 1}"
                 self.algorithm_registry[alias] = opening["id"]
                 opening["id"] = alias
+                if "bbox" in opening:
+                    opening["bbox"] = normalized_box(opening["bbox"])
             catalog["openings"] = [
                 o for o in catalog["openings"] if o["type"] in fresh_classes
             ]
