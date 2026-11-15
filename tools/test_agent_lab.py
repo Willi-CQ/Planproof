@@ -14,7 +14,7 @@ def save(path, value):
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
-def test_preparation_does_not_need_or_read_answers(tmp_path):
+def test_preparation_does_not_need_or_read_answers(tmp_path, monkeypatch):
     pack = tmp_path / "pack"
     pack.mkdir()
     (pack / "drawing.png").write_bytes(b"synthetic fixture")
@@ -29,6 +29,12 @@ def test_preparation_does_not_need_or_read_answers(tmp_path):
     assert not binding["labels_used_for_inference"]
     assert not (pack / "evaluator").exists()
     assert prepare(args) == (binding, cases)
+    import run_agent_lab as lab
+    original_digest = lab.digest
+    monkeypatch.setattr(lab, "digest", lambda p: "changed-helper" if p.name == "audit_production_cohort.py" else original_digest(p))
+    with pytest.raises(ValueError, match="Trial changed"):
+        prepare(args)
+    monkeypatch.setattr(lab, "digest", original_digest)
     args.revision = "changed"
     with pytest.raises(ValueError, match="Trial changed"):
         prepare(args)

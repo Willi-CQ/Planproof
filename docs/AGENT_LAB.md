@@ -51,6 +51,12 @@ responses. An ambiguous admission must be investigated rather than silently
 submitted again. A `STOP` file stops new admissions while retaining in-flight work.
 Keep at most two workers per condition and four total on the shared GPU.
 
+New bindings also hash the imported production runner. Legacy reference packs may
+lack category/language annotations; those are recorded as unspecified/unknown
+instead of losing a completed response. Existing frozen trials keep their original
+bindings and runner revision; do not edit old records or rerun inference to upgrade
+reporting metadata.
+
 Exact integer counts and the existing 2% area tolerance are unchanged. All failures
 and abstentions count in the denominator. Answers remain in evaluator-only files;
 the agent gets the question and publisher unit hint identically in both conditions.

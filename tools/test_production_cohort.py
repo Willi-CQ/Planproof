@@ -13,8 +13,9 @@ def test_stop_gate_admits_no_new_request(tmp_path):
     assert run_case({}, 1, {}, None, tmp_path) is None
 
 
+@pytest.mark.parametrize("with_metadata", [True, False])
 def test_runner_uses_production_routes_and_never_repeats_completed_request(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, with_metadata
 ):
     from fastapi.testclient import TestClient
     from PIL import Image
@@ -53,10 +54,16 @@ def test_runner_uses_production_routes_and_never_repeats_completed_request(
         "model": "fixture",
         "request": {"mode": "auto", "allow_gemini": True, "allow_nemotron": True},
     }
+    if not with_metadata:
+        case.pop("category")
+        case.pop("language")
     first = run_case(case, 1, binding, tmp_path, tmp_path)
     second = run_case(case, 1, binding, tmp_path, tmp_path)
     assert first == second
     assert first["run"]["result"]["answer"]["answer"] == 2
+    assert first["category"] == ("rooms" if with_metadata else "unspecified")
+    assert first["language"] == ("en" if with_metadata else "unknown")
+    assert json.loads((tmp_path / "one/record.json").read_text(encoding="utf-8")) == first
     execute.assert_called_once()
     assert execute.call_args.kwargs["observer"] is not None
     store.pool.shutdown()

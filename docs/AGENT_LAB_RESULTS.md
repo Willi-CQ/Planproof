@@ -96,6 +96,12 @@ scored**. Their answers were not used for tuning. Keep them separate from all
 reported denominators. Subsequent release plumbing checks, if performed, are
 operational checks and not additions to benchmark accuracy.
 
+After the native scale-bar discrepancy, a further paired check on those 20 files
+was proposed. Automatic approval review blocked its 40 API requests; none were
+launched. Explicit approval is pending. The candidate passes its original
+qualification gates, but the additional confirmation gate is unmeasured. Keep
+the existing live demo on its preserved backend until that decision is resolved.
+
 ## Independence, safety and cost limits
 
 The new development and holdout files are disjoint from the old 100-reference-file
@@ -106,6 +112,11 @@ holdout drawings; 17, 10 and 9 respectively belong to its training pool. Exact
 decoded raster hashes did not match those training rasters. Shared source geometry
 still prevents an unseen-detector-data claim, and training-pool membership does
 not prove a sample was selected in a finite training run.
+
+Gains were concentrated in PDF sources: regression Swiss Dwellings improved
+15/25 → 21/25 while CubiCasa fell 19/24 → 17/24. On holdout, Swiss improved
+8/11 → 9/11 and IFC-derived drawings 4/8 → 5/8; CubiCasa stayed 6/11. These small
+subgroups further limit any claim of broadly improved visual recognition.
 
 The agent never receives reference answers. It does receive the publisher's unit
 hint identically in both matched conditions; ordinary UI questions may omit that

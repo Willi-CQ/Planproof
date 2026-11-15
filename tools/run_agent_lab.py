@@ -27,6 +27,9 @@ def prepare(args):
         "schema": "planproof-agent-lab-v1", "case_ids": [c["id"] for c in cases],
         "manifest_sha256": digest(args.pack / "manifest.json"),
         "runner_sha256": digest(Path(__file__)), "runtime": read(args.runtime_receipt),
+        "runner_dependencies_sha256": {
+            "audit_production_cohort.py": digest(Path(__file__).with_name("audit_production_cohort.py")),
+        },
         "model": args.model, "server": args.url, "workers": args.workers,
         "split": args.split, "revision": args.revision,
         "request": {"mode": "auto", "allow_gemini": True, "allow_nemotron": True},

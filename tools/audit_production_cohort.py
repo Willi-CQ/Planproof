@@ -169,8 +169,10 @@ def run_case(case, index, binding, pack, out):
         record = {
             "id": case["id"],
             "case_number": index,
-            "category": case["category"],
-            "language": case["language"],
+            # Older reference packs do not carry these reporting annotations.
+            # Missing metadata must never discard an already completed paid run.
+            "category": case.get("category") or "unspecified",
+            "language": case.get("language") or "unknown",
             "source": case["source"],
             "type": case["type"],
             "run_id": run_id,
