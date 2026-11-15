@@ -84,3 +84,10 @@ pixels. Algorithm suggestions are fallible navigation aids, never totals.
 Door inventory prompts distinguish physical symbol visibility from an entrance
 role. A role-specific total still needs adjacent context and labels, and uncertain
 objects or incomplete inspections still prevent an established total.
+
+Region inspections can request a clockwise quarter-turn for upside-down or
+sideways text. Only Nemotron's detail view is rotated, using lossless PNG output;
+the original drawing, selected page bounds and all returned citation coordinates
+stay in their existing source frame. The host validates locations before applying
+the inverse transform. This capability is an experiment until live comparisons
+show whether it helps; rotation does not restore missing source detail.

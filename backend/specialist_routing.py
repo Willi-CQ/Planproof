@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from threading import Event, Lock
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from specialist_views import validate_rotation
 
 
 # Shared by interactive questions, so two users cannot each fan out unbounded work.
@@ -29,6 +31,15 @@ class InspectionRegion(BaseModel):
     bbox: list[float] | None = Field(default=None, min_length=4, max_length=4)
     room_id: str | None = Field(default=None, min_length=1, max_length=100)
     purpose: Literal["inspect", "count"] = "inspect"
+    rotation_degrees: Literal[0, 90, 180, 270] = Field(
+        default=0, description="Rotate only the inspection view clockwise for sideways/upside-down text. Source bbox stays on the original page; returned boxes are mapped back."
+    )
+
+    @field_validator("rotation_degrees", mode="before")
+    @classmethod
+    def quarter_turn(cls, value):
+        validate_rotation(value)
+        return value
 
     @model_validator(mode="after")
     def one_source(self):
@@ -57,6 +68,9 @@ for each. The host crops original pixels, tiles oversized regions with overlap,
 and runs independent Nemotron workers concurrently. It returns structured findings,
 source locations, per-tile status and resolution metadata, not another large set
 of images for you to re-analyze. Batch independent room questions in ONE tool call.
+For sideways or upside-down drawings set rotation_degrees=90,180,270 on the region
+to make its text upright for Nemotron. Keep bbox in ORIGINAL page coordinates;
+the host maps all returned locations back. Do not rotate already upright views.
 For main apartment doors include the room entrance AND its corridor context; a
 tiny door-only crop cannot establish its role. Cover every relevant room for a
 total; reconcile overlapping object locations, NEVER add tile counts blindly.
@@ -183,8 +197,8 @@ def region_boxes(args, width, height, rooms):
         ]
         if (pixels[2] - pixels[0]) * (pixels[3] - pixels[1]) > width * height * 0.75:
             raise ValueError("Each Nemotron region must cover at most 75% of the page")
-        item = (region.question.strip(), pixels, region.purpose)
-        if item in boxes:
+        item = (region.question.strip(), pixels, region.purpose, region.rotation_degrees)
+        if any(item[:3] == previous[:3] for previous in boxes):
             raise ValueError("Duplicate regions do not supply additional coverage")
         boxes.append(item)
     return boxes

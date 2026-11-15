@@ -633,14 +633,14 @@ class DrawingAgent:
         planned, seen = [], set()
         # Round-robin native tiles: one broad context request must not starve
         # focused target regions later in the same batch.
-        groups = [list(tiles(parent, policy)) for _, parent, _ in regions]
+        groups = [list(tiles(parent, policy)) for _, parent, _, _ in regions]
         ordered = [
-            (question, parent, purpose, group[index])
+            (question, parent, purpose, rotation, group[index])
             for index in range(max(map(len, groups), default=0))
-            for (question, parent, purpose), group in zip(regions, groups)
+            for (question, parent, purpose, rotation), group in zip(regions, groups)
             if index < len(group)
         ]
-        for question, parent, purpose, box in ordered:
+        for question, parent, purpose, rotation, box in ordered:
             task = tile_question(
                 question,
                 self.request.question,
@@ -659,17 +659,18 @@ class DrawingAgent:
                     if self.count_unit and purpose == "count"
                     else question,
                     box,
+                    rotation,
                 ]
             )
             if key not in seen:
-                planned.append((key, task, box, purpose))
+                planned.append((key, task, box, purpose, rotation))
                 seen.add(key)
         deadline = time.monotonic() + (
             timeout_seconds if timeout_seconds is not None else 60
         )
         prepared, deferred = [], {}
         remaining = max(0, self.specialist_limit - self.nemotron_calls)
-        for key, question, box, purpose in planned:
+        for key, question, box, purpose, rotation in planned:
             if key in self.inspection_cache:
                 continue
             reason = None
@@ -696,16 +697,17 @@ class DrawingAgent:
                 self.unresolved_inspections[key] = row
                 continue
             _, images = self.crop(box)
-            prepared.append((key, question, images[0], purpose))
+            prepared.append((key, question, images[0], purpose, rotation))
         if prepared and self.specialist is None:
             self.specialist = self.specialist_factory()
 
         def inspect(item, timeout):
-            _, question, image, _ = item
-            return self.specialist.answer(question, [image], timeout_seconds=timeout)
+            _, question, image, _, rotation = item
+            return self.specialist.answer(question, [image], timeout_seconds=timeout,
+                                          **({"rotation_degrees": rotation} if rotation else {}))
 
         def event(index, state, result):
-            _, question, image, _ = prepared[index]
+            _, question, image, _, _ = prepared[index]
             self.observe(
                 "inspect_nemotron",
                 state,
@@ -727,7 +729,7 @@ class DrawingAgent:
         )
         self.nemotron_calls += attempted
         current = {}
-        for (key, question, image, purpose), value in zip(prepared, results):
+        for (key, question, image, purpose, rotation), value in zip(prepared, results):
             if value["status"] != "not_sent":
                 self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
             advisory = value.get("result") or {}
@@ -744,6 +746,7 @@ class DrawingAgent:
                 "canonical_bbox": image.metadata["canonical_bbox"],
                 "scope_complete": complete,
                 "purpose": purpose,
+                "inspection_view_rotation_clockwise_degrees": rotation,
                 "resolution": {
                     "source_pixels": image.metadata["source_render_size"],
                     "sent_pixels": image.metadata["sent_size"],
@@ -799,7 +802,7 @@ class DrawingAgent:
             current.get(k)
             or deferred.get(k)
             or {**self.inspection_cache[k], "cached": True}
-            for k, _, _, _ in planned
+            for k, _, _, _, _ in planned
         ]
         ok = sum(row["status"] == "ok" for row in rows)
         complete = sum(row.get("scope_complete", False) for row in rows)
