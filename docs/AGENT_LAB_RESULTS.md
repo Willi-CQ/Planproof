@@ -59,6 +59,26 @@ panes, missed openings, and misclassifying bathroom fixtures. Some failures are
 provider interruptions, but several are ordinary semantic errors with successful
 tool calls. A well-formed citation is not proof of a correct answer.
 
+The 21 strict failures in V6's 80 qualification questions have the following
+primary diagnostic categories. These describe saved outputs and traces; they
+are not independent relabelling or proof of a unique root cause.
+
+| Primary diagnostic category | Cases |
+| --- | ---: |
+| Incomplete door inventory; agent abstained | 5 |
+| Partial neighboring apartment included in count | 5 |
+| Window inventory omissions or scope differences | 4 |
+| Window-opening versus pane convention | 2 |
+| Incomplete area total within tool budget | 2 |
+| Area boundary/calibration ambiguity | 1 |
+| Assumed unlabelled apartment | 1 |
+| IFC wall-instance count not identifiable from sheet convention | 1 |
+
+This points to explicit target-scope selection, localized object inventories and
+independent scale-endpoint verification as the next work. Increasing tool allowance
+without improving those decisions failed its targeted experiment. Do not hardcode
+publisher-specific reference conventions or weaken abstention to inflate a score.
+
 Two previously used large PNGs were also uploaded unchanged for an **unscored**
 stress comparison. Both agents returned the same stair-core count on the dormitory sheet
 (45.7 s control, 44.6 s candidate); there is no independent confirmed count.
