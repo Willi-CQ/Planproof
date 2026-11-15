@@ -5,6 +5,29 @@ are forwarded over HTTPS to the persistent Planproof worker on the existing
 Verda server. Gemini, Nemotron, ML, geometry and their routing code are unchanged.
 The interface continues to submit a background run and poll for activity.
 
+## Live deployment verified 15 November 2026
+
+- App: **https://planproof-silk.vercel.app/**, Vercel project `willi-cq/planproof`.
+- Deployment source: `fad04ec`; frontend tree
+  `77ec18603f3ec800b42a5bcd556a9e412689fd5b`, unchanged from the recording tag.
+- The A100 worker completed a real generated-plan ML/geometry check in 6.33s
+  using the original selected checkpoint SHA256
+  `c1861511904636f16433d5a0ec7b925c53a323c975a10df7e1886666a6e1bc54`.
+- Through the public Vercel URL: a 6,761,151-byte generated PNG uploaded intact;
+  the synthetic OFFICE question returned the printed 24 m2 in 26.48s with one
+  Nemotron call and three citations. The 92,561-byte PDF report downloaded;
+  browser refresh restored the conversation; desktop/mobile checks passed with
+  no JavaScript errors. These are deployment checks, not accuracy benchmarks.
+- An earlier synthetic fixture accidentally encoded the area unit as `m?`.
+  The agent correctly abstained; that original run was retained before checking
+  a new fixture spelling out `square metres`. No agent behavior was changed.
+- Deployed JavaScript bytes match the local filming preview. The cloud CSS
+  omits only an unused `ml-1` utility and its spacing variable, generated locally
+  from a test fixture identifier; no application class or style changed.
+- Direct unauthenticated requests to the API origin return 404. The Vercel API
+  route succeeds with `Cache-Control: private, no-store`. Only the separate
+  origin secret is configured in Vercel; provider credentials remain on Verda.
+
 ## Why the agent uses a persistent worker
 
 The current API retains canonical pages in memory, starts background threads,
