@@ -86,6 +86,37 @@ def test_invalid_evidence_has_safe_actionable_diagnostic(change, code):
     assert "never export" not in json.dumps(result)
 
 
+def test_observation_enum_mixup_is_demoted_without_changing_evidence():
+    raw = {**observation(), "verdict": "observed"}
+    specialist, _, image = setup(raw)
+    result = specialist.answer("Inspect", [image])
+    assert result["status"] == "ok"
+    assert result["result"]["verdict"] == "uncertain"
+    assert result["result"]["answer"] == raw["answer"]
+    assert result["result"]["citations"][0]["bbox"] == [20, 20, 100, 80]
+    assert result["result"]["host_normalizations"] == [
+        "observation_verdict_to_uncertain"
+    ]
+
+
+def test_enum_repair_does_not_accept_invalid_locations_or_review_verdicts():
+    specialist, _, image = setup({**observation(), "verdict": "observed"})
+    assert (
+        specialist.review("Review", [image], candidate="A draft")["status"]
+        == "invalid_output"
+    )
+    specialist, _, image = setup(
+        {
+            **observation(),
+            "verdict": "observed",
+            "citations": [{"image_id": "other", "bbox": [0, 0, 50, 50]}],
+        }
+    )
+    assert (
+        specialist.answer("Inspect", [image])["error_code"] == "InvalidLocalCoordinates"
+    )
+
+
 def test_review_sends_draft_but_keeps_local_frame():
     specialist, backend, image = setup(observation())
     specialist.review("Windows?", [image], candidate="2 windows")

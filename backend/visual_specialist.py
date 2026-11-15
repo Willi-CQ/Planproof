@@ -67,6 +67,8 @@ Keep findings to at most4short sentences. answer=null: the host computes counts
 from locations after duplicate checks. citations may be [] when objects are
 present (host supplies their citations). If no objects are visible, cite the
 inspected region. A region-wide count without objects is incomplete evidence.
+Top-level status=observed describes observations. Top-level verdict=uncertain is
+the review verdict for this inspection; never use observed as a review verdict.
 """
 
 
@@ -141,6 +143,12 @@ class VisualSpecialist:
         error_code = "InvalidInspectionJSON"
         try:
             result = parse_object(completion["content"])
+            # A common provider enum mix-up describes an observation rather than
+            # a review. Demote it to an uncertain verdict; never promote trust or
+            # bypass inventory, citation, coordinate, or completeness validation.
+            if candidate is None and result.get("verdict") == "observed":
+                result["verdict"] = "uncertain"
+                result["host_normalizations"] = ["observation_verdict_to_uncertain"]
             error_code = "InvalidInspectionSchema"
             if (
                 result.get("status") not in ("observed", "uncertain")

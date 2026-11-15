@@ -223,9 +223,13 @@ def test_door_evidence_includes_room_navigation_without_a_second_algorithm_call(
     assert "R1" in value.rooms and value.algorithm_factory.call_count == 1
 
 
-def test_real_specialist_normalizes_each_object_and_reserves_count_output_tokens():
+@pytest.mark.parametrize("verdict", ["uncertain", "observed"])
+def test_real_specialist_normalizes_each_object_and_reserves_count_output_tokens(
+    verdict,
+):
     obs = {
         **observation(),
+        "verdict": verdict,
         "scope_complete": True,
         "answer": 65,
         "objects": [
