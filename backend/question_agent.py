@@ -58,6 +58,7 @@ from measurements import (
 from planproof_feedback.artifacts import write_json
 from planproof_feedback.config import read_env
 from planproof_feedback.images import encode_image
+from planproof_feedback.images import validate_citations
 from planproof_feedback.regions import canonical_citations
 from planproof_feedback.service import parse_object, validate_output
 
@@ -471,6 +472,7 @@ class DrawingAgent:
         )
         self.count_records = {}
         self.count_observations = {}
+        self.count_exclusions = {}
         self.specialist_auth_status = None
         self.task_scope = None
         self.count_complete = False
@@ -595,7 +597,35 @@ class DrawingAgent:
                    for k, v in self.count_records.items()}
         for image_id, observations in self.count_observations.items():
             records.setdefault(image_id, {"objects": []})["objects"].extend(observations)
-        return inventory(records, self.images, self.count_unit)
+        evidence = inventory(records, self.images, self.count_unit)
+        if self.count_exclusions:
+            excluded = [o for o in evidence["objects"] if o["id"] in self.count_exclusions]
+            evidence["objects"] = [o for o in evidence["objects"] if o["id"] not in self.count_exclusions]
+            evidence["supported"] = sum(o["status"] == "supported" for o in evidence["objects"])
+            evidence["uncertain"] = sum(o["status"] == "uncertain" for o in evidence["objects"])
+            evidence["excluded_objects"] = [{**o, "exclusion": self.count_exclusions[o["id"]]} for o in excluded]
+        return evidence
+
+    def apply_count_scope(self, exclusions):
+        if not exclusions:
+            return
+        if not self.task_scope or self.task_scope["extent"] not in {"selected_unit", "selected_rooms"}:
+            raise ValueError("Object exclusions require an explicit selected-unit/room task_scope")
+        objects = {o["id"]: o for o in self.count_inventory()["objects"]}
+        accepted = {}
+        images = list(self.images.values())
+        covered = [self.images[i].metadata["canonical_bbox"] for i in self.inspected_images]
+        for exclusion in exclusions:
+            identity = exclusion["object_id"]
+            if identity not in objects or identity in accepted:
+                raise ValueError("Unknown or duplicate scope-excluded object")
+            validate_citations(exclusion["citations"], images)
+            citations = canonical_citations(exclusion["citations"], images)
+            require_inspected_citations(citations, covered)
+            # An unrelated title/scale citation cannot justify excluding a door.
+            require_inspected_citations([objects[identity]], [c["canonical_bbox"] for c in citations])
+            accepted[identity] = exclusion
+        self.count_exclusions = accepted
 
     def uncovered_count_objects(self, evidence):
         """Context discoveries add objects, never counting coverage."""
@@ -1310,6 +1340,8 @@ class DrawingAgent:
         }, []
 
     def finish(self, result):
+        # A rejected/abstained draft cannot leave silent exclusions in later attempts.
+        self.count_exclusions = {}
         raw_presentation = {
             key: result.get(key) for key in ("briefing", "citation_details")
         }
@@ -1382,8 +1414,10 @@ class DrawingAgent:
                 ][:20]
         result = attach_presentation(result, original_citations, raw_presentation)
         if self.count_unit:
-            evidence = self.count_inventory()
             basis = result.get("count_basis") or {}
+            if result["status"] == "answered":
+                self.apply_count_scope(basis.get("exclusions", []))
+            evidence = self.count_inventory()
             supported = {
                 o["id"] for o in evidence["objects"] if o["status"] == "supported"
             }
@@ -1410,6 +1444,8 @@ class DrawingAgent:
             )
             if not self.count_complete:
                 result.update(status="abstain", answer=None, unit=None)
+                self.count_exclusions = {}
+                evidence = self.count_inventory()
             else:
                 # Machine-readable count unit stays compatible with the public
                 # answer/scoring contract. The counted entity is in count_basis
@@ -1417,6 +1453,11 @@ class DrawingAgent:
                 result["unit"] = "count"
             # Replace arbitrary aggregate prose with the actual object inventory.
             result = count_presentation(result, evidence, complete=self.count_complete)
+            if self.count_exclusions:
+                result["coverage"] += (
+                    f" Target: {self.task_scope['target']}. "
+                    f"{len(self.count_exclusions)} located object(s) excluded with cited scope reasons."
+                )
             object_citations = [o["citation"] for o in evidence["objects"]][:100]
             if object_citations:
                 result["citations"] = object_citations
@@ -1431,6 +1472,13 @@ class DrawingAgent:
                 result["briefing"][0]["citations"] = list(
                     range(1, min(3, len(object_citations)) + 1)
                 )
+            for exclusion in self.count_exclusions.values():
+                for citation in exclusion["citations"]:
+                    if citation in result["citations"] or len(result["citations"]) >= 100:
+                        continue
+                    result["citations"].append(citation)
+                    result["citation_details"].append({"citation": len(result["citations"]),
+                        "kind": "text", "label": "Scope exclusion: " + exclusion["reason"]})
         return result
 
     def checkpoint(self):

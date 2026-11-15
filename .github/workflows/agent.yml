@@ -18,7 +18,7 @@ jobs:
       - run: python -m pytest tools/test_production_cohort.py tools/test_production_audit_report.py tools/test_agent_lab.py tools/test_agent_lab_report.py tools/test_agent_policy_suite.py tools/test_compare_agent_trials.py tools/test_audit_agent_evidence.py -q
       - run: python -m ruff check backend/native_text.py backend/vector_regions.py backend/specialist_views.py backend/test_specialist_views.py backend/test_count_units.py tools/prepare_agent_lab.py tools/run_agent_lab.py tools/prepare_agent_policy_suite.py tools/score_agent_policy_suite.py tools/compare_agent_trials.py tools/build_agent_lab_report.py
       - run: python -m ruff check tools/audit_agent_evidence.py tools/test_audit_agent_evidence.py
-      - run: python -m ruff check backend/task_scope.py backend/test_task_scope.py backend/test_count_handoff.py backend/test_specialist_authentication.py tools/audit_production_cohort.py tools/test_production_cohort.py
+      - run: python -m ruff check backend/task_scope.py backend/test_task_scope.py backend/count_evidence.py backend/test_count_scope.py backend/test_count_handoff.py backend/test_specialist_authentication.py tools/audit_production_cohort.py tools/test_production_cohort.py
       - run: python -m ruff check backend/test_measurement_runs.py
       - run: python -m ruff check backend/task_report.py backend/test_task_report.py
       - run: python -m ruff check backend/algorithm_jobs.py backend/test_interactive_latency.py

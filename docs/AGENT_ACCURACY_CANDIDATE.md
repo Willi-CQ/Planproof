@@ -24,6 +24,14 @@ handling. Objects outside successfully counted regions require a targeted count
 inspection before a complete total is accepted. This addresses the observed
 failure where several doors were described but only one entered the inventory.
 
+For a selected unit or room, `count_basis.exclusions` can identify an observed
+object outside the target. Each exclusion needs a concrete reason and valid,
+previously inspected citations covering the object. Unknown/duplicate IDs,
+unrelated citations and whole-sheet/unresolved scope are rejected. Raw observations
+and excluded objects remain recorded; a failed draft restores the whole inventory.
+Exclusions never make incomplete count coverage complete. This is an auditable
+model scope judgment, not independent proof of apartment membership.
+
 Window guidance separates openings, window units and panes; it does not impose a
 universal convention or manufacture extra objects. Area guidance prioritizes the
 room list, missing measurements, holes and final aggregation. These prompt changes
@@ -45,12 +53,13 @@ excludes production containers.
 
 ## Validation and release status
 
-- Full local suite: 516 tests passed; final scope-recovery and handoff checks passed.
+- Full local suite: 528 tests passed, including the cited-exclusion increment.
 - Lint passes for changed code. Frontend source is unchanged from the filming release.
 - Synthetic contracts exercise scope propagation/correction, unchanged context
   questions, source-coordinate and unit checks, duplicate preservation, refusal to
-  promote prose counts, uncovered-object abstention, authentication fail-fast and
-  transient-error isolation. They do not measure recognition accuracy.
+  promote prose counts, uncovered-object abstention, cited exclusions and their
+  rejection/reset behavior, authentication fail-fast and transient-error isolation.
+  They do not measure recognition accuracy.
 - Diagnostic selection: all 11 failed questions from the original 50 plus five
   previously correct controls. 5 control and 6 scope-only attempts completed before
   admissions were stopped. All returned abstentions after specialist unavailability.

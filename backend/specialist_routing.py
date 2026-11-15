@@ -108,6 +108,12 @@ For a final door count supply count_basis={scope:"complete"|"partial",
 unit:"door_opening"|"door_leaf"}. The host attaches all localized objects and their
 citations; do not repeat a long inventory in prose. Optional object_ids can name
 an explicit subset for partial scope. Report complete only
+for the agreed task_scope. When a context crop reveals a door outside an explicitly
+selected unit/room, count_basis.exclusions must name its object_id, a concrete scope
+reason and inspected citations covering the object and its context. Never silently
+drop an ID. Exclusions are not available for whole-sheet or unresolved scope. They
+remain recorded with their source locations; they do not cure missing coverage.
+Report complete only
 after covering the relevant page scope, resolving overlaps, role ambiguity and
 deferred regions. A partial inventory is not a whole-page answer. Do not describe
 an uncertain aggregate from prose as confirmed; unsupported totals are rejected.
