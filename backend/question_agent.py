@@ -578,13 +578,15 @@ class DrawingAgent:
     def tool_budget_used(self):
         # Argument repair did not perform evidence work. Still bound malformed
         # attempts by an absolute cap and the existing turn/deadline limits.
-        productive = sum(
-            row.get("result", {}).get("error_code")
-            not in {"ValueError", "ValidationError"}
-            and not row.get("automatic_delivery")
-            for row in self.tool_log
-        )
-        return 12 if len(self.tool_log) >= 18 else productive
+        productive = [row for row in self.tool_log
+                      if row.get("result", {}).get("error_code") not in {"ValueError", "ValidationError"}
+                      and not row.get("automatic_delivery")]
+        # Allow six successful native lookups without crowding out the actual
+        # measurement. Extra lookups count normally; raster/repair limits stay
+        # unchanged, and visual/provider/turn/deadline limits still apply.
+        locator_allowance = min(6, sum(row.get("name") in {"read_text", "get_vector_regions"}
+                                       for row in productive))
+        return 12 if len(self.tool_log) >= 18 + locator_allowance else len(productive) - locator_allowance
 
     def count_inventory(self):
         return inventory(self.count_records, self.images, self.count_unit)
@@ -1571,6 +1573,7 @@ class DrawingAgent:
                                 "budgets": {
                                     "gemini_turns": 8,
                                     "tool_calls": 12,
+                                    "additional_native_locator_calls": 6 if {"read_text", "get_vector_regions"} & self.allowed else 0,
                                     "crops": self.crop_limit,
                                     "nemotron_calls": self.specialist_limit,
                                     "reviews": 1,
