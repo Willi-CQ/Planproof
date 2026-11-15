@@ -19,7 +19,9 @@ def read(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build(runs, packs, output):
+def build(runs, packs, output, *, overlap=None, translations=None):
+    overlap_by_id = {r["id"]: r for r in read(overlap)["cases"]} if overlap else {}
+    english = read(translations) if translations else {}
     sources = {}
     for pack in packs:
         for case in read(pack / "manifest.json")["cases"]:
@@ -59,6 +61,8 @@ def build(runs, packs, output):
                     buffer = BytesIO()
                     image.convert("RGB").save(buffer, format="JPEG", quality=88)
                 cases[cid] = {"id": cid, "question": row["question"], "reference": row["reference"],
+                    "question_english": english.get(cid),
+                    "detector_source_overlap": overlap_by_id.get(cid),
                     "source": row["source"], "category": row["category"], "language": row["language"],
                     "width": page.width, "height": page.height, "raster_sha256": page.raster_sha256,
                     "image": "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode(),
@@ -91,6 +95,8 @@ if __name__ == "__main__":
     parser.add_argument("--run", action="append", required=True, help="Label=completed trial directory")
     parser.add_argument("--pack", type=Path, action="append", required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--overlap", type=Path, help="Private frozen detector source-ID overlap audit")
+    parser.add_argument("--translations", type=Path, help="Optional ID-to-English-question mapping for display only")
     args = parser.parse_args()
     runs = [(s.split("=", 1)[0], Path(s.split("=", 1)[1])) for s in args.run]
-    print(json.dumps(build(runs, args.pack, args.out)))
+    print(json.dumps(build(runs, args.pack, args.out, overlap=args.overlap, translations=args.translations)))

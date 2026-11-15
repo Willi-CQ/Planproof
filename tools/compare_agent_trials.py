@@ -74,6 +74,7 @@ def compare(control, candidate):
             "limitations": ["One stochastic run per condition; shared GPU and provider variation affect latency.",
                             "Development comparisons are selection data, not held-out evidence.",
                             "Source-file independence does not establish building-family independence.",
+                            "Agent-held-out drawings can share publisher IDs with the frozen detector training corpus.",
                             "Reported input tokens can include cached tokens; these are not a price estimate.",
                             "Category rooms also includes other structural questions in this selection."]}
 

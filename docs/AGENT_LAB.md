@@ -21,6 +21,11 @@ drawings. Never run an experimental benchmark against the live demo container.
 The stored selection is disjoint by source file and hash, not proven independent
 by building family. Some questions require information outside a supplied sheet.
 Flag these for review while preserving the original strict denominator and labels.
+An agent holdout is not automatically held out from the frozen detector: Stoa's
+CubiCasa examples can share publisher source IDs with the external CubiCasa
+training corpus. Audit the checkpoint's frozen manifest and report those overlaps
+separately. A separate download or changed raster encoding does not remove shared
+source identity; train-pool membership also does not prove sampling in every run.
 
 ## Running a matched trial
 
