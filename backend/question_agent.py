@@ -585,6 +585,7 @@ class DrawingAgent:
         # measurement. Extra lookups count normally; raster/repair limits stay
         # unchanged, and visual/provider/turn/deadline limits still apply.
         locator_allowance = min(6, sum(row.get("name") in {"read_text", "get_vector_regions"}
+                                       and not row.get("result", {}).get("error_code")
                                        for row in productive))
         return 12 if len(self.tool_log) >= 18 + locator_allowance else len(productive) - locator_allowance
 

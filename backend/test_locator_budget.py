@@ -25,6 +25,8 @@ def test_only_six_locators_are_free_and_raster_cap_is_preserved():
 
 def test_failed_metadata_and_auto_delivery_cannot_increase_allowance():
     value = agent()
+    value.tool_log = [row("read_text", result={"error_code": "RuntimeError"}) for _ in range(7)]
+    assert value.tool_budget_used == 7
     value.tool_log = [row("read_text", result={"error_code": "ValidationError"}) for _ in range(9)]
     value.tool_log += [row("get_vector_regions", automatic_delivery=True) for _ in range(9)]
     assert value.tool_budget_used == 12
