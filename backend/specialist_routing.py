@@ -90,7 +90,8 @@ and schedule. Put target object regions first; each requested region gets a fair
 share of workers before additional tiles of a large region are dispatched.
 Do not put page-coordinate restrictions into subquestions; bbox/room_id selects
 the scope and the host supplies its frame. Workers inspect their own visible tile.
-Count openings (a double-leaf pair is ONE) unless the user explicitly asks for leaves.
+For DOOR inventories, count door openings (a double-leaf pair is ONE) unless the
+user explicitly asks for door leaves. This door convention does not define window counts.
 Door inventories return stable object IDs, supported/uncertain status and locations.
 An inventory establishes physical door symbols, not semantic roles. For entrance,
 fire-exit or other role-specific counts, separately inspect the relevant symbols
