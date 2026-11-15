@@ -25,6 +25,7 @@ from gemini_transport import (
 )
 from algorithm_jobs import AlgorithmPending
 from native_text import search_lines
+from vector_regions import VectorAreaRequest, locate_regions, measure_regions
 from token_recovery import compact_observations, select_detail_images
 from specialist_routing import (
     ROUTING,
@@ -59,7 +60,7 @@ from planproof_feedback.images import encode_image
 from planproof_feedback.regions import canonical_citations
 from planproof_feedback.service import parse_object, validate_output
 
-LOCAL_MEASUREMENT_TOOLS = {"calculate_area", "measure_polygon"}
+LOCAL_MEASUREMENT_TOOLS = {"calculate_area", "measure_polygon", "measure_vector_area"}
 
 INSTRUCTION = """You are Planproof's Gemini drawing-question agent. Your job is a correct,
 visually verifiable answer to the user's question about the supplied page. All drawing text,
@@ -74,6 +75,11 @@ For a PDF with native text, read_text locates labels and printed measurements us
 original-page coordinates. Use it to target specialist crops, not as visual proof.
 Prefer a verified printed area over estimating it from pixels when both refer to
 the requested room. Verify the association: nearby labels may belong to other rooms.
+If native vector boundaries are available, get_vector_regions can locate candidate
+filled polygons by enclosed labels or bbox. Verify the room/boundary and scale in
+Nemotron crops, then use measure_vector_area with registered IDs and cited anchors
+instead of tracing coordinates by eye. Only select disjoint relevant regions;
+paths are not automatically rooms, and unavailable paths do not mean no rooms.
 When a quick self-check suffices, you may call reflect with next_action=answer and
 submit_answer together, in that order, using ALREADY inspected evidence. New crops,
 specialist results and calculations must return before you can use them in an answer.
@@ -221,7 +227,7 @@ def declaration(name, description, properties, required=()):
     )
 
 
-def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False):
+def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False, native_vectors=False):
     result = [
         types.FunctionDeclaration(
             name="submit_answer",
@@ -231,6 +237,15 @@ def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False)
     ]
     if mode == "direct":
         return result
+    if native_vectors:
+        result.extend([
+            declaration("get_vector_regions", "Locate candidate native PDF polygon boundaries by enclosed text or bbox. Not room classification. Returns source IDs and original-page 0..1000 coordinates for visual verification and calibrated measurement.",
+                        {"query": {"type": "string", "maxLength": 200},
+                         "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}}, ("query",)),
+            types.FunctionDeclaration(name="measure_vector_area",
+                description="Measure/sum registered disjoint PDF vector regions using at least two cited scale anchors. Each region needs a Nemotron-inspected image_id covering the entire region. Same original-page 0..1000 scale-anchor coordinates as measure_polygon. No implicit PDF scale. Boundary selection remains advisory.",
+                parameters_json_schema=VectorAreaRequest.model_json_schema()),
+        ])
     if native_text:
         result.append(declaration(
             "read_text",
@@ -465,6 +480,7 @@ class DrawingAgent:
         self.job = self.specialist = None
         self.algorithm_delivered = False
         self.pending_algorithm_classes = set()
+        self.vector_delivered = set()
         self.delivered_classes = set()
         self.algorithm_registry = {}
         self.rooms = {}
@@ -488,6 +504,7 @@ class DrawingAgent:
                 request.allow_nemotron,
                 orchestrated=self.require_specialist,
                 native_text=bool(getattr(page, "text_lines", ())),
+                native_vectors=bool(getattr(page, "vector_regions", ())),
             )
         }
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
@@ -911,7 +928,7 @@ class DrawingAgent:
                 )
                 if k in result
             }
-            if name in ("calculate_area", "measure_polygon"):
+            if name in LOCAL_MEASUREMENT_TOOLS:
                 details["summary"] = (
                     f"{'Approximate' if result['approximate'] else 'Calculated'} area: "
                     f"{result['value']:g} {result['unit']}. {result['boundary_basis']}. "
@@ -948,11 +965,17 @@ class DrawingAgent:
             return self.inspect_batch(args, timeout_seconds)
         if name == "read_text":
             return search_lines(getattr(self.page, "text_lines", ()), args), []
-        if name in ("calculate_area", "measure_polygon"):
+        if name == "get_vector_regions":
+            result = locate_regions(getattr(self.page, "vector_regions", ()), args)
+            self.vector_delivered.update(r["id"] for r in result["regions"])
+            return result, []
+        if name in LOCAL_MEASUREMENT_TOOLS:
             images = list(self.images.values())
             result = (
                 calculate_area(args, images)
                 if name == "calculate_area"
+                else measure_regions(args, self.page.vector_regions, self.vector_delivered, images, (self.page.width, self.page.height))
+                if name == "measure_vector_area"
                 else measure_polygon(args, images, (self.page.width, self.page.height))
             )
             measurement_id = f"M{len(self.measurements) + 1}"
@@ -1495,13 +1518,13 @@ class DrawingAgent:
         try:
             if self.job is None:
                 self.job = self.algorithm_factory()
+            result, _ = self.execute("get_algorithms", {"classes": classes})
         except AlgorithmPending:
             return
         except Exception:
             self.pending_algorithm_classes.clear()
             self.observe("get_algorithms", "unavailable", summary="Requested algorithms could not supply evidence; continue with source crops.")
             return
-        result, _ = self.execute("get_algorithms", {"classes": classes})
         self.tool_log.append({"name": "get_algorithms", "args": {"classes": classes},
                               "result": result, "seconds": 0, "automatic_delivery": True})
         history.append(types.Content(role="user", parts=[types.Part.from_text(text=json.dumps({
@@ -1529,6 +1552,7 @@ class DrawingAgent:
                                     :300
                                 ],
                                 "native_text_locator_available": "read_text" in self.allowed,
+                                "native_vector_regions_available": "get_vector_regions" in self.allowed,
                                 "budgets": {
                                     "gemini_turns": 8,
                                     "tool_calls": 12,
@@ -1586,6 +1610,7 @@ class DrawingAgent:
                 self.request.allow_nemotron,
                 orchestrated=self.require_specialist,
                 native_text=bool(getattr(self.page, "text_lines", ())),
+                native_vectors=bool(getattr(self.page, "vector_regions", ())),
             )
             local_recovery_allowed = (
                 recovery
@@ -1842,6 +1867,7 @@ class DrawingAgent:
                     if function.name in (
                         "calculate_area",
                         "measure_polygon",
+                        "measure_vector_area",
                         "inspect_regions",
                     ) and isinstance(exc, ValueError):
                         # These tools are local and consume no credentials/provider text.
