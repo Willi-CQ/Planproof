@@ -2,10 +2,27 @@
 
 The frozen React interface runs on Vercel. Its existing relative `/api` URLs
 are forwarded over HTTPS to the persistent Planproof worker on the existing
-Verda server. Gemini, Nemotron, ML, geometry and their routing code are unchanged.
+Verda server. Gemini, Nemotron, ML and geometry use the same persistent API
+architecture; subsequent backend revisions are recorded below.
 The interface continues to submit a background run and poll for activity.
 
-## Live deployment verified 15 November 2026
+## Qualified backend update — 15 November 2026, 05:20 UTC
+
+The live API now uses evaluated backend `9909cb3`, image
+`sha256:e1826b9c803e1ff116d641108897c7aa1fd06747a522f26a6a98717b7bb098b4`.
+Source and evaluation tooling were promoted to main in `6391ca8` after the
+fixed regression and both held-out comparisons passed their release gates.
+See [AGENT_LAB_RESULTS.md](AGENT_LAB_RESULTS.md) for scores and remaining failures.
+
+Only the API container was replaced. Public JavaScript and CSS hashes match the
+previous deployment; all four existing saved run files are byte-identical.
+The public agent endpoint returns HTTP200 and the container is healthy. No extra
+provider inference was used for activation checks. Model weights, Vercel routing
+and credentials are unchanged. The prior `fad04ec` image/release remains available
+for rollback. Restart cleared the in-memory page cache; cached browser drawings
+may need to be selected/uploaded again. Saved conversations remain on disk.
+
+## Initial hosting deployment verified 15 November 2026
 
 - App: **https://planproof-silk.vercel.app/**, Vercel project `willi-cq/planproof`.
 - Deployment source: `fad04ec`; frontend tree
