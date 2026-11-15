@@ -1,0 +1,43 @@
+name: planproof-product
+services:
+  api:
+    image: planproof-product:${PLANPROOF_RELEASE:?Set the source revision}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    init: true
+    gpus: all
+    ports:
+      - "127.0.0.1:8004:8000"
+    volumes:
+      - /srv/planproof-data/releases:/models:ro
+      - /srv/planproof-data/product/artifacts:/workspace/planproof/.artifacts
+      - /srv/planproof-data/product/secrets/providers.env:/run/secrets/providers.env:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PLANPROOF_API_HOST: ${PLANPROOF_API_HOST:?Set the public DNS hostname}
+    env_file:
+      - /srv/planproof-data/product/secrets/origin.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/planproof-data/product/caddy-data:/data
+      - /srv/planproof-data/product/caddy-config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
