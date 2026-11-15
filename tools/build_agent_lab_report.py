@@ -73,6 +73,10 @@ def build(runs, packs, output, *, overlap=None, translations=None):
             case["runs"].append({"label": label, "answer": row["answer"], "score": row["score"],
                 "seconds": row["seconds_http"], "nemotron_calls": row.get("nemotron_calls", 0),
                 "algorithm_used": row.get("algorithm_used", False),
+                "stop_reason": result.get("stop_reason"),
+                "execution_status": result.get("status"),
+                "provider_interruption_count": sum(a.get("status") != "ok" for a in
+                    result.get("reliability", {}).get("provider_attempts", [])),
                 "citations": result.get("canonical_citations", []),
                 "tools": [{"name": t["name"], "args": t["args"],
                            "status": t.get("result", {}).get("status", "returned"),
