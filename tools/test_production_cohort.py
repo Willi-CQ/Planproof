@@ -5,7 +5,12 @@ import json
 
 import pytest
 
-from audit_production_cohort import digest, evaluate, require_complete
+from audit_production_cohort import digest, evaluate, require_complete, run_case
+
+
+def test_stop_gate_admits_no_new_request(tmp_path):
+    (tmp_path / "STOP").write_text("Pause after a regression")
+    assert run_case({}, 1, {}, None, tmp_path) is None
 
 
 def test_evaluator_stays_closed_for_missing_duplicate_or_running_cases(tmp_path):

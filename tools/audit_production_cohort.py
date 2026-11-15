@@ -98,6 +98,8 @@ def prepare(baseline, out, url, workers):
 
 
 def run_case(case, index, binding, pack, out):
+    if (out / "STOP").exists():
+        return None  # Finish in-flight requests, but admit no more paid work.
     directory = out / case["id"]
     directory.mkdir(exist_ok=True)
     destination = directory / "record.json"
@@ -322,7 +324,19 @@ def main(args):
             )
     if implementation() != binding["implementation_sha256"]:
         raise ValueError("Implementation changed during the run")
-    records = [read(args.out / cid / "record.json") for cid in binding["case_ids"]]
+    paths = [args.out / cid / "record.json" for cid in binding["case_ids"]]
+    if (args.out / "STOP").exists() and not all(p.exists() for p in paths):
+        print(
+            json.dumps(
+                {
+                    "paused_completed": sum(p.exists() for p in paths),
+                    "total": len(paths),
+                }
+            ),
+            flush=True,
+        )
+        return
+    records = [read(path) for path in paths]
     report = evaluate(binding, records, pack, args.baseline)
     write(args.out / "report.json", report)
     print(json.dumps(report["summary"], indent=2), flush=True)
