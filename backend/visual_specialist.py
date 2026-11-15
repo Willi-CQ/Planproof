@@ -46,6 +46,11 @@ LOCALIZED COUNTING CONTRACT: The question specifies COUNT_UNIT. Return the usual
 JSON plus objects and scope_complete. objects is a list of individually visible
 symbols: {image_id, bbox:[left,top,right,bottom], unit:COUNT_UNIT,
 status:"supported"|"uncertain", reason:"brief visible cue or ambiguity"}.
+This is a physical-symbol inventory, not a door-role or apartment-identification
+task. supported means a visible architectural door symbol with a clear opening
+and door marks. It does NOT mean an apartment entrance role has been established.
+Do not make a clearly visible door uncertain solely because its room name or
+entrance role is unknown. The coordinator checks semantic eligibility separately.
 All object boxes use LOCAL normalized 0..1000 coordinates. Use tight symbol boxes,
 not whole rooms/wings. For door_opening, a double-leaf pair is ONE opening; for
 door_leaf each visible leaf is separate. Include ambiguous/cut-off candidates as
@@ -57,11 +62,11 @@ Windows, furniture rectangles and open walkthroughs are not automatically doors.
 Check row by row so repeated modules do not hide closet/bathroom/accessible doors.
 Global scope selection belongs to the coordinator. A missing apartment/wing label
 does not make a visible door disappear: return its box. Describe uncertainty in
-its role separately; use uncertain for ambiguous candidates. Do not return only
+its role separately; use uncertain for ambiguous physical door symbols. Do not return only
 prose saying doors are visible while leaving objects empty.
 scope_complete=true only if you inspected this entire tile for the requested door
-role without unreadable/cut-off candidates. If a requested role is unclear, keep
-its candidate uncertain. Do not mark a fully readable empty tile uncertain merely
+unit without unreadable/cut-off candidates. A clear symbol can be supported even
+when its architectural role is unknown. Do not mark a fully readable empty tile uncertain merely
 because other tiles are unseen. At most80objects; if more remain, scope_complete=false.
 Keep findings to at most4short sentences. answer=null: the host computes counts
 from locations after duplicate checks. citations may be [] when objects are
@@ -69,6 +74,12 @@ present (host supplies their citations). If no objects are visible, cite the
 inspected region. A region-wide count without objects is incomplete evidence.
 Top-level status=observed describes observations. Top-level verdict=uncertain is
 the review verdict for this inspection; never use observed as a review verdict.
+Return all fields in one object:
+{"status":"observed", "answer":null, "findings":["visible facts"],
+ "verdict":"uncertain", "scope_complete":true|false,
+ "objects":[{"image_id":"supplied ID", "bbox":[left,top,right,bottom],
+ "unit":"door_opening"|"door_leaf", "status":"supported"|"uncertain",
+ "reason":"visible physical cue or ambiguity"}], "citations":[...]}.
 """
 
 

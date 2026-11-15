@@ -78,6 +78,10 @@ Do not put page-coordinate restrictions into subquestions; bbox/room_id selects
 the scope and the host supplies its frame. Workers inspect their own visible tile.
 Count openings (a double-leaf pair is ONE) unless the user explicitly asks for leaves.
 Door inventories return stable object IDs, supported/uncertain status and locations.
+An inventory establishes physical door symbols, not semantic roles. For entrance,
+fire-exit or other role-specific counts, separately inspect the relevant symbols
+AND adjacent labels/spaces with purpose="inspect" before assigning eligibility.
+Do not claim a role-specific total from physical door existence alone.
 For a final door count supply count_basis={scope:"complete"|"partial",
 unit:"door_opening"|"door_leaf"}. The host attaches all localized objects and their
 citations; do not repeat a long inventory in prose. Optional object_ids can name
