@@ -12,6 +12,7 @@ tree remains `77ec18603f3ec800b42a5bcd556a9e412689fd5b`.
 | --- | ---: | ---: | ---: |
 | Fixed regression, 50 drawings | 34/50 (68%) | 39/50 (78%) | 47.8 → 48.3 s |
 | Frozen holdout, 30 new drawings | 18/30 (60%) | 20/30 (66.7%) | 52.2 → 49.9 s |
+| Additional confirmation, 20 new drawings | 12/20 (60%) | 14/20 (70%) | 60.3 → 51.8 s |
 | Development, 30 other drawings | 17/30 | 21/30, V5 diagnostic | 52.9 → 50.4 s |
 
 These are single stochastic passes through production upload/run/poll routes on
@@ -23,9 +24,13 @@ The largest improvement is area questions: **4/12 → 10/12** on regression and
 **4/8 → 7/8** on holdout. On holdout, openings fell from **2/6 to 1/6** and
 apartments from **3/3 to 2/3**. All errors and abstentions remain in denominators.
 V6 produced six wrong numeric answers plus five abstentions on regression,
-and seven wrong numeric answers plus three abstentions on holdout.
+and seven wrong numeric answers plus three abstentions on the original holdout.
+The additional confirmation has two wrong numeric answers and four abstentions;
+areas improve **3/8 → 6/8**, while openings fall **1/4 → 0/4**. Across the two
+separately reported held-out batches, the unchanged candidate scores **34/50**
+against **30/50** for the control. No tuning used either batch's reference answers.
 
-The paired discordance checks are p=0.180 and p=0.688, respectively. These small
+The paired discordance checks are p=0.180, p=0.688 and p=0.625, respectively. These small
 samples support a measured improvement on these runs, not a statistically
 established general accuracy gain. The earlier historical 33/50 run is preserved
 but is not the fresh 34/50 control used here.
@@ -59,17 +64,17 @@ panes, missed openings, and misclassifying bathroom fixtures. Some failures are
 provider interruptions, but several are ordinary semantic errors with successful
 tool calls. A well-formed citation is not proof of a correct answer.
 
-The 21 strict failures in V6's 80 qualification questions have the following
+The 27 strict failures in V6's 100 qualification questions have the following
 primary diagnostic categories. These describe saved outputs and traces; they
 are not independent relabelling or proof of a unique root cause.
 
 | Primary diagnostic category | Cases |
 | --- | ---: |
-| Incomplete door inventory; agent abstained | 5 |
+| Incomplete door inventory; agent abstained | 7 |
 | Partial neighboring apartment included in count | 5 |
-| Window inventory omissions or scope differences | 4 |
-| Window-opening versus pane convention | 2 |
-| Incomplete area total within tool budget | 2 |
+| Window inventory omissions or scope differences | 5 |
+| Window-opening versus pane convention | 3 |
+| Incomplete area total within tool budget | 4 |
 | Area boundary/calibration ambiguity | 1 |
 | Assumed unlabelled apartment | 1 |
 | IFC wall-instance count not identifiable from sheet convention | 1 |
@@ -97,7 +102,7 @@ holdout answers for tuning and continue calling the set untouched.
 
 ## Experiment accounting and discarded candidate
 
-The session retained **399 core question attempts across 13 trials**: three
+The initial experiment retained **399 core question attempts across 13 trials**: three
 fixed-50 passes, five development-30 passes, three synthetic-13 passes, and two
 holdout-30 passes. The synthetic checks are reported separately: control 13/13,
 V4 12/13, V5 13/13. V6 count-unit handling also passed saved-response replay;
@@ -111,16 +116,19 @@ without rerunning inference. Two runner records needed recovery from their
 already completed server runs after missing cohort metadata caused serialization
 errors; their recovered server timing is not a comparable HTTP latency metric.
 
-A further 20 source-disjoint reference questions were prepared but **not run or
-scored**. Their answers were not used for tuning. Keep them separate from all
-reported denominators. Subsequent release plumbing checks, if performed, are
-operational checks and not additions to benchmark accuracy.
+A further 20 source-disjoint reference questions were selected without inspecting
+answers. The owner then explicitly approved a bounded continuation of 40 requests,
+one per question per frozen agent. Both conditions finished before either was
+scored. This brings the complete evaluation to **446 attempts**, including
+**439 core attempts across 15 trials**. No rejected V7 qualification was revived.
 
-After the native scale-bar discrepancy, a further paired check on those 20 files
-was proposed. Automatic approval review blocked its 40 API requests; none were
-launched. Explicit approval is pending. The candidate passes its original
-qualification gates, but the additional confirmation gate is unmeasured. Keep
-the existing live demo on its preserved backend until that decision is resolved.
+The additional comparison passes its predeclared accuracy and latency gates and
+has no structural evidence violations. All three gains are area questions; its
+one regression is a window-counting scope/grouping mismatch despite successful
+provider calls. Every failure remains in the denominator. The same V6 backend
+passes the original and additional release gates, with the counting/calibration
+limitations above explicitly retained. No additional inference is needed for
+deployment checks; those checks do not contribute to benchmark accuracy.
 
 ## Independence, safety and cost limits
 
@@ -131,7 +139,9 @@ overlap its external CubiCasa manifest for 24 regression, 10 development and 11
 holdout drawings; 17, 10 and 9 respectively belong to its training pool. Exact
 decoded raster hashes did not match those training rasters. Shared source geometry
 still prevents an unseen-detector-data claim, and training-pool membership does
-not prove a sample was selected in a finite training run.
+not prove a sample was selected in a finite training run. The additional
+confirmation has eight publisher-ID overlaps, seven in the detector training pool;
+its raster hashes also differ. A separate download does not remove source overlap.
 
 Gains were concentrated in PDF sources: regression Swiss Dwellings improved
 15/25 → 21/25 while CubiCasa fell 19/24 → 17/24. On holdout, Swiss improved
@@ -143,17 +153,20 @@ hint identically in both matched conditions; ordinary UI questions may omit that
 hint. Sealed final challenge labels were not opened. Integer counts and the
 existing 2% area tolerance were not relaxed or relabelled after mistakes.
 
-The selected candidate passed 495 local tests and the source CI checks. Structural
-audits of its 80 qualification responses found no source identity, citation-bound,
+The selected candidate passed 495 local tests; the subsequent runner repair brings
+CI to **496 passing tests**, with lint passing. Structural audits of its 100
+qualification responses found no source identity, citation-bound,
 or checked delegation-contract violations. This does not certify semantic
 correctness or exhaustive visual coverage. Traces retained 13 server errors and
 one timeout on regression, and three server errors and two timeouts on holdout;
-all requests reached a terminal answer or abstention.
+the additional confirmation retains three server errors. All requests reached a
+terminal answer or abstention.
 
 Reported Gemini tokens increased on holdout (2.02M → 2.73M); regression was
 3.30M → 3.54M. Token totals can include cached input and are not invoice amounts.
 Nemotron calls were 338 → 315 on regression and 208 → 204 on holdout. No new GPU
-was purchased and model weights were unchanged.
+was purchased and model weights were unchanged. Additional confirmation tokens
+were 1.39M → 1.60M, and Nemotron calls were 121 → 124.
 
 ## Reproduction and rollback
 
