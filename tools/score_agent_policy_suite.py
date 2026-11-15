@@ -9,7 +9,9 @@ from audit_production_cohort import digest, read, require_complete, write
 from planproof_feedback.scoring import score_answer
 
 
-def policy_score(reference, answer):
+def policy_score(reference, answer, *, completed=True):
+    if not completed:
+        return {"scorable": True, "correct": False, "reason": "execution_did_not_complete"}
     if reference["expected_status"] == "abstain":
         return {"scorable": True, "correct": answer.get("status") == "abstain" and answer.get("answer") is None,
                 "reason": "required_abstention_without_unsupported_value"}
@@ -32,7 +34,8 @@ def evaluate(pack, directory):
         answer = result.get("answer") or {}
         reference = references[r["id"]]
         rows.append({**{k: v for k, v in r.items() if k != "run"}, "question": cases[r["id"]]["question"],
-                     "reference": reference, "answer": answer, "score": policy_score(reference, answer),
+                     "reference": reference, "answer": answer, "score": policy_score(reference, answer,
+                         completed=r["run"]["status"] == "completed" and result.get("status") == "ok"),
                      "nemotron_calls": result.get("nemotron_calls", 0), "algorithm_used": result.get("algorithm_used", False),
                      "trace": f"{r['id']}/record.json"})
     report = {"binding": binding, "cases": rows, "summary": {

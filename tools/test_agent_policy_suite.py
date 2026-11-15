@@ -11,6 +11,7 @@ def test_negative_policy_cases_cannot_pass_with_an_unsupported_number():
     assert not policy_score(ref, {"status": "abstain", "answer": 99})["correct"]
     assert not policy_score(ref, {"status": "answered", "answer": 99})["correct"]
     assert not policy_score(ref, {})["correct"]
+    assert not policy_score(ref, {"status": "abstain", "answer": None}, completed=False)["correct"]
 
 
 def test_generated_suite_is_explicitly_synthetic_with_separate_labels(tmp_path):
