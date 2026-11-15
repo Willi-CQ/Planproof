@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from specialist_views import validate_rotation
+from task_scope import TaskScope
 
 
 # Shared by interactive questions, so two users cannot each fan out unbounded work.
@@ -53,6 +54,7 @@ class InspectionRegion(BaseModel):
 class InspectionBatch(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     regions: list[InspectionRegion] = Field(min_length=1, max_length=6)
+    task_scope: TaskScope | None = None
 
 
 class DelegationRequired(ValueError):

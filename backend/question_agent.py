@@ -27,6 +27,7 @@ from algorithm_jobs import AlgorithmPending
 from native_text import search_lines
 from vector_regions import VectorAreaRequest, locate_regions, measure_regions
 from token_recovery import compact_observations, select_detail_images
+from task_scope import SCOPE_INSTRUCTION, scope_context
 from specialist_routing import (
     ROUTING,
     DelegationRequired,
@@ -410,7 +411,7 @@ class GeminiTransport(ResilientGeminiTransport):
         super().__init__(
             key,
             model,
-            instruction=INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
+            instruction=INSTRUCTION + "\n" + SCOPE_INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
             low_latency=True,
             policy=RetryPolicy(
                 attempts=2,
@@ -469,6 +470,7 @@ class DrawingAgent:
             door_count_unit(request.question) if self.require_specialist else None
         )
         self.count_records = {}
+        self.task_scope = None
         self.count_complete = False
         self.inspected_images = set()
         self.inspection_cache = {}
@@ -630,6 +632,9 @@ class DrawingAgent:
     def inspect_batch(self, args, timeout_seconds):
         policy = self.inspection_policy
         regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
+        scope = InspectionBatch.model_validate(args).task_scope
+        if scope is not None:
+            self.task_scope = scope.model_dump()
         planned, seen = [], set()
         # Round-robin native tiles: one broad context request must not starve
         # focused target regions later in the same batch.
@@ -649,7 +654,7 @@ class DrawingAgent:
                 self.page.width,
                 self.page.height,
                 self.count_unit if purpose == "count" else None,
-            )
+            ) + scope_context(self.task_scope)
             # Counting scope and role are fixed by the user's question, not a
             # coordinator's changing wording. Reuse completed tiles reliably.
             key = json.dumps(
@@ -660,6 +665,7 @@ class DrawingAgent:
                     else question,
                     box,
                     rotation,
+                    self.task_scope,
                 ]
             )
             if key not in seen:
@@ -827,6 +833,7 @@ class DrawingAgent:
                 for row in rows
             ]
         return {
+            "task_scope": self.task_scope,
             "status": "ok"
             if complete == len(rows)
             else "partial"
@@ -1248,6 +1255,7 @@ class DrawingAgent:
                 # Legacy tool remains supported but cannot reintroduce leading
                 # counts or original-page restrictions into a local inspection.
                 value = count_question
+            value += scope_context(self.task_scope)
             result = (
                 self.specialist.answer(value, images, timeout_seconds=timeout_seconds)
                 if timeout_seconds is not None
@@ -1969,6 +1977,7 @@ class DrawingAgent:
             "algorithm_used": self.algorithm_delivered,
             "algorithm_executed": self.job is not None,
             "algorithm_registry": self.algorithm_registry,
+            "task_scope": self.task_scope,
             "nemotron_calls": self.nemotron_calls,
             "delegation": {
                 "required": self.require_specialist,
