@@ -10,7 +10,7 @@
 <div id="summaries"></div>
 <div class="toolbar"><select id="cohort" aria-label="Evaluation cohort"><option value="all">All cohorts</option><option>Regression</option><option>Development</option><option>Holdout</option><option>Synthetic policy</option></select><input id="search" aria-label="Search questions" placeholder="Search question or source"><select id="filter" aria-label="Filter results"><option value="all">All cases</option><option value="wrong">Latest trial incorrect</option><option value="abstain">Latest trial abstained</option><option value="gain">Corrected since first trial</option><option value="regression">Regressed since first trial</option></select><span id="count"></span></div>
 <main id="cases"></main>
-<footer>Private evaluation artifact. No network requests, API keys, or evaluator answers are sent anywhere by this document. Thumbnails are for review; original input hashes and complete traces remain in the private trial directories. Shared GPU load and provider variability qualify latency comparisons.</footer>
+<footer>Private evaluation artifact. No network requests, API keys, or evaluator answers are sent anywhere by this document. Thumbnails are for review; original input hashes and complete traces remain in the private trial directories. Timing starts after upload/frame preparation and includes question execution and polling; upload/render preparation is excluded. Shared GPU load and provider variability qualify latency comparisons.</footer>
 <script>
 const data=__LAB_DATA__;
 const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};

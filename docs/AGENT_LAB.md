@@ -60,7 +60,9 @@ the agent gets the question and publisher unit hint identically in both conditio
 `compare_agent_trials.py` checks matched pixels, questions and references, reports
 case-level gains and losses, and includes descriptive uncertainty. A small gain
 on development data is not proof of generalization. Report latency alongside
-provider failures and shared-load limitations. Token totals can include cached
+provider failures and shared-load limitations. Reported seconds begin after upload
+and canonical-frame preparation; they include question execution and HTTP polling,
+not file upload/render time. Token totals can include cached
 input and are not a monetary cost estimate.
 
 `build_agent_lab_report.py` creates a private offline HTML review with source
