@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+<title id="title">Planproof — from drawing to a source-linked answer</title>
+<desc id="desc">A construction drawing and question enter a React and FastAPI application. A source registry preserves the page and coordinates. Gemini scopes the question and orchestrates optional local ML and geometry, required parallel NVIDIA Nemotron detail inspection, and local measurement tools when needed. Findings return to Gemini for reconciliation. Host checks bind citations to inspected regions and calculations to registered measurements. The user receives a cited answer or explicit uncertainty, drawing highlights, a replayable trace and a PDF report. Offline dataset preparation and training supply frozen detectors; separate evaluation compares methods with labels kept outside inference.</desc>
+<defs>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#d7dfdc" opacity=".45"/></pattern>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto-start-reverse"><path d="M1 1L6 4L1 7" fill="none" stroke="#64776f" stroke-width="1.5"/></marker>
+  <marker id="tealArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto-start-reverse"><path d="M1 1L6 4L1 7" fill="none" stroke="#168474" stroke-width="1.5"/></marker>
+  <style>
+    text{font-family:Inter,'Segoe UI',Arial,sans-serif;fill:#152d27}
+    .eyebrow{font-size:17px;font-weight:700;letter-spacing:2.4px}
+    .title{font-size:58px;font-weight:650;letter-spacing:-2px}
+    .subtitle{font-size:25px;fill:#52665e}
+    .section{font-size:18px;font-weight:700;letter-spacing:1.7px}
+    .heading{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .body{font-size:22px;fill:#425c51}
+    .small{font-size:18px;fill:#5c7167}
+    .code{font-family:'Cascadia Code',Consolas,monospace;font-size:16px;fill:#60796d}
+    .tag{font-size:14px;font-weight:750;letter-spacing:1.5px}
+    .wire{fill:none;stroke:#64776f;stroke-width:2.5;stroke-linejoin:round;marker-end:url(#arrow)}
+    .toolwire{fill:none;stroke:#168474;stroke-width:2.5;marker-start:url(#tealArrow);marker-end:url(#tealArrow)}
+  </style>
+</defs>
+<rect width="1920" height="1080" fill="#f6f8f4"/>
+<rect width="1920" height="1080" fill="url(#grid)"/>
+<!-- Brand and pitch -->
+<rect x="64" y="48" width="34" height="34" rx="9" fill="#143e32"/>
+<path d="M73 72V58H87V65H79" fill="none" stroke="#d7f197" stroke-width="3"/>
+<text x="112" y="74" class="eyebrow">PLANPROOF</text>
+<text x="1856" y="74" text-anchor="end" class="eyebrow" fill="#60796d">SYSTEM ARCHITECTURE / 15 NOV 2026</text>
+<text x="64" y="154" class="title">From drawing to a source-linked answer.</text>
+<text x="64" y="199" class="subtitle">Gemini coordinates. Nemotron inspects. Local tools detect and calculate. Every result stays connected to the plan.</text>
+<!-- Three runtime stages -->
+<text x="64" y="251" class="section">01 / PRESERVE THE SOURCE</text>
+<text x="408" y="251" class="section">02 / ORCHESTRATE THE EVIDENCE</text>
+<text x="1536" y="251" class="section">03 / CHECK + DELIVER</text>
+<!-- Source card -->
+<rect x="64" y="274" width="294" height="432" rx="22" fill="white" stroke="#d7e0d8"/>
+<text x="88" y="314" class="tag" fill="#60796d">REACT UI + FASTAPI HOST</text>
+<!-- Stylized, invented plan icon, never a private drawing -->
+<rect x="89" y="339" width="118" height="91" rx="4" fill="#f4f7f0" stroke="#9aada0"/>
+<path d="M101 351H195V417H101ZM147 351V379M147 394V417M101 387H127M143 387H195M171 387V417" fill="none" stroke="#668371" stroke-width="3"/>
+<path d="M127 387V371Q143 371 143 387" fill="none" stroke="#9aada0" stroke-width="1.5"/>
+<rect x="216" y="353" width="117" height="49" rx="11" fill="#e8efdf"/>
+<text x="230" y="383" font-size="18" font-weight="600">Question?</text>
+<text x="88" y="469" class="heading">Drawing + question</text>
+<text x="88" y="505" class="body">PNG / JPEG / PDF page</text>
+<path d="M88 530H334" stroke="#dce4dc"/>
+<text x="88" y="564" font-size="23" font-weight="650">Canonical source</text>
+<text x="88" y="596" class="body">Retained page pixels</text>
+<text x="88" y="627" class="body">Source IDs + transforms</text>
+<text x="88" y="680" class="code">frontend/ · backend/</text>
+<!-- Orchestration surface -->
+<rect x="408" y="274" width="1080" height="432" rx="22" fill="#edf3eb" stroke="#d7e0d8"/>
+<rect x="428" y="294" width="1040" height="112" rx="16" fill="#173f33"/>
+<text x="452" y="328" class="tag" style="fill:#c1dcac">GEMINI / CLOUD ORCHESTRATOR</text>
+<text x="452" y="370" font-size="30" font-weight="600" style="fill:white">Scope → delegate → reconcile → synthesize</text>
+<text x="1442" y="329" text-anchor="end" class="code" style="fill:#b7cfbf">question_agent.py</text>
+<text x="1442" y="375" text-anchor="end" font-size="18" style="fill:#d4e5d8">Repeat when evidence is unresolved</text>
+<path d="M358 350H428" class="wire"/>
+<text x="392" y="316" text-anchor="middle" font-size="13" fill="#64776f">overview</text>
+<text x="392" y="333" text-anchor="middle" font-size="13" fill="#64776f">+ question</text>
+<!-- Bidirectional tool calls / structured evidence -->
+<path d="M593 413V462" class="toolwire"/>
+<path d="M948 413V462" class="toolwire"/>
+<path d="M1303 413V462" class="toolwire"/>
+<text x="610" y="443" font-size="16" fill="#168474">tools ↔ findings</text>
+<!-- ML / classical tools -->
+<rect x="428" y="470" width="330" height="216" rx="15" fill="white" stroke="#cfdbcd"/>
+<text x="449" y="500" class="tag" fill="#657a4d">LOCAL / OPTIONAL + CACHED</text>
+<text x="449" y="537" class="heading">ML + geometry</text>
+<text x="449" y="573" class="body">Two frozen detectors</text>
+<text x="449" y="603" class="body">Pixel / vector rules + rooms</text>
+<text x="449" y="634" class="small">Candidates, conflicts, source crops</text>
+<text x="449" y="664" class="code">ml/ · deterministic/</text>
+<!-- visual inspection -->
+<rect x="778" y="470" width="340" height="216" rx="15" fill="#f5f9e9" stroke="#bbd88d"/>
+<text x="799" y="500" class="tag" fill="#527225">CLOUD / REQUIRED INSPECTION</text>
+<text x="799" y="537" class="heading">NVIDIA Nemotron</text>
+<text x="799" y="573" class="body">Native-detail tiles + context</text>
+<text x="799" y="603" class="body">Up to 4 parallel workers</text>
+<text x="799" y="634" class="small">Localized findings + uncertainty</text>
+<text x="799" y="664" class="code">backend/ · feedback/</text>
+<!-- measured calculations -->
+<rect x="1138" y="470" width="330" height="216" rx="15" fill="white" stroke="#cfdbcd"/>
+<text x="1159" y="500" class="tag" fill="#657a4d">LOCAL / WHEN NEEDED</text>
+<text x="1159" y="537" class="heading">Measurements</text>
+<text x="1159" y="573" class="body">Cited dimensions + units</text>
+<text x="1159" y="603" class="body">Area / calibrated polygons</text>
+<text x="1159" y="634" class="small">Host arithmetic; estimates flagged</text>
+<text x="1159" y="664" class="code">backend/measurements.py</text>
+<!-- Gate and output -->
+<path d="M1468 350H1536" class="wire"/>
+<rect x="1536" y="274" width="320" height="187" rx="20" fill="white" stroke="#d7e0d8"/>
+<text x="1560" y="314" class="tag" fill="#60796d">HOST-ENFORCED CHECKS</text>
+<text x="1560" y="353" class="heading">Evidence contract</text>
+<text x="1560" y="389" class="body">Citations → inspected scope</text>
+<text x="1560" y="421" class="body">Areas → checked calculations</text>
+<path d="M1696 461V492" class="wire"/>
+<rect x="1536" y="500" width="320" height="206" rx="20" fill="#e3edda" stroke="#c4d6b8"/>
+<text x="1560" y="538" class="tag" fill="#46683e">REVIEWABLE OUTPUT</text>
+<text x="1560" y="579" class="heading">Answer + evidence</text>
+<text x="1560" y="616" class="body">Citations + source highlights</text>
+<text x="1560" y="648" class="body">Trace replay + PDF report</text>
+<text x="1560" y="681" class="small">Uncertainty / clarify / abstain</text>
+<!-- Runtime cross-cutting host layer -->
+<rect x="64" y="730" width="1792" height="51" rx="12" fill="#e8ede6"/>
+<text x="88" y="763" class="tag" fill="#466455">SHARED HOST LAYER</text>
+<text x="313" y="763" font-size="20" fill="#466455">Source registry + crop transforms</text>
+<circle cx="680" cy="756" r="3" fill="#9caf9d"/>
+<text x="705" y="763" font-size="20" fill="#466455">Evidence cache + persisted runs</text>
+<circle cx="1052" cy="756" r="3" fill="#9caf9d"/>
+<text x="1077" y="763" font-size="20" fill="#466455">Call budgets + bounded recovery</text>
+<circle cx="1436" cy="756" r="3" fill="#9caf9d"/>
+<text x="1461" y="763" font-size="20" fill="#466455">Live activity + original-page overlays</text>
+<!-- Offline train and evaluate -->
+<text x="64" y="827" class="section">OFFLINE / TRAIN, FREEZE, EVALUATE</text>
+<rect x="64" y="850" width="624" height="157" rx="17" fill="white" stroke="#d7e0d8"/>
+<text x="88" y="887" font-size="25" font-weight="650">Dataset preparation + detector training</text>
+<text x="88" y="923" class="body">CubiCasa5K + ResPlan → structural / room model</text>
+<text x="88" y="955" class="body">FloorPlanCAD → door / window / stair specialist</text>
+<text x="88" y="985" class="code">ml/ · grouped splits · calibration · export</text>
+<path d="M688 928H740" class="wire"/>
+<rect x="748" y="850" width="370" height="157" rx="17" fill="#edf3e5" stroke="#cfdbcd"/>
+<text x="772" y="887" font-size="25" font-weight="650">Frozen model bundles</text>
+<text x="772" y="923" class="body">Weights + profiles + checksums</text>
+<text x="772" y="955" class="body">Supply the local ML tools above</text>
+<text x="772" y="985" class="code">models/baselines/v1/</text>
+<rect x="1150" y="850" width="706" height="157" rx="17" fill="white" stroke="#d7e0d8"/>
+<text x="1174" y="887" font-size="25" font-weight="650">Evaluation + visual review</text>
+<text x="1174" y="923" class="body">Direct / visual-only / full agent comparisons</text>
+<text x="1174" y="955" class="body">Evidence Lab + saved-run replay; labels stay outside inference</text>
+<text x="1174" y="985" class="code">tools/ · feedback/ · frontend/ · package tests</text>
+<text x="64" y="1047" class="small">Evidence checks enforce source linkage and calculation consistency; they do not certify semantic correctness or complete detection.</text>
+<text x="1856" y="1047" text-anchor="end" class="small">IMPLEMENTED PRODUCT FLOW</text>
+</svg>
