@@ -8,11 +8,25 @@ from pydantic import BaseModel, ConfigDict, Field
 from planproof_feedback.regions import canonical_citations
 
 
+class ScopeCitation(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    image_id: str
+    bbox: list[float] = Field(min_length=4, max_length=4)
+
+
+class ScopeExclusion(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    object_id: str = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=3, max_length=300)
+    citations: list[ScopeCitation] = Field(min_length=1, max_length=4)
+
+
 class CountBasis(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     object_ids: list[str] | None = Field(default=None, max_length=1000)
     scope: Literal["complete", "partial"]
     unit: Literal["door_opening", "door_leaf"]
+    exclusions: list[ScopeExclusion] = Field(default_factory=list, max_length=100)
 
 
 def canonical_count_unit(unit, requested_unit):

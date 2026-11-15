@@ -172,7 +172,10 @@ def test_broad_context_region_does_not_starve_count_region_and_has_separate_cach
     )
     assert [row["purpose"] for row in result["inspections"][:2]] == ["inspect", "count"]
     assert value.nemotron_calls == 2
-    assert result["count_evidence"]["supported"] == 2
+    # This fixture emits two localized objects even in its context reply. Both
+    # sets now survive, but the context set does not establish counting coverage.
+    assert result["count_evidence"]["supported"] == 4
+    assert len(result["count_evidence"]["objects_needing_count_coverage"]) == 2
     assert all(
         "COUNT_UNIT" not in call.args[0]
         for call in value.specialist_factory.return_value.answer.call_args_list[:1]

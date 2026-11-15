@@ -45,6 +45,12 @@ For held-out runs, omit `--score` until all records are terminal and the candida
 freeze has been recorded. Run again with the same binding and `--score` to evaluate;
 completed requests are retained and are not billed again.
 
+For a time-bounded round, pass `--admission-deadline-utc` with an absolute,
+timezone-qualified timestamp. It is frozen into the trial binding and checked
+before uploading or admitting another question. A STOP file also stops admissions.
+Finish or explicitly stop in-flight private benchmark services separately; never
+include production in a benchmark shutdown watchdog.
+
 The runner binds source hashes, runtime, model, unit-hint policy, selected IDs and
 its own code hash. It records admission IDs before execution and saves terminal
 responses. An ambiguous admission must be investigated rather than silently

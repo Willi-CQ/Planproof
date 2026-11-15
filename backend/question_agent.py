@@ -27,6 +27,7 @@ from algorithm_jobs import AlgorithmPending
 from native_text import search_lines
 from vector_regions import VectorAreaRequest, locate_regions, measure_regions
 from token_recovery import compact_observations, select_detail_images
+from task_scope import SCOPE_INSTRUCTION, scope_context
 from specialist_routing import (
     ROUTING,
     DelegationRequired,
@@ -57,6 +58,7 @@ from measurements import (
 from planproof_feedback.artifacts import write_json
 from planproof_feedback.config import read_env
 from planproof_feedback.images import encode_image
+from planproof_feedback.images import validate_citations
 from planproof_feedback.regions import canonical_citations
 from planproof_feedback.service import parse_object, validate_output
 
@@ -410,7 +412,7 @@ class GeminiTransport(ResilientGeminiTransport):
         super().__init__(
             key,
             model,
-            instruction=INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
+            instruction=INSTRUCTION + "\n" + SCOPE_INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
             low_latency=True,
             policy=RetryPolicy(
                 attempts=2,
@@ -469,6 +471,10 @@ class DrawingAgent:
             door_count_unit(request.question) if self.require_specialist else None
         )
         self.count_records = {}
+        self.count_observations = {}
+        self.count_exclusions = {}
+        self.specialist_auth_status = None
+        self.task_scope = None
         self.count_complete = False
         self.inspected_images = set()
         self.inspection_cache = {}
@@ -587,12 +593,59 @@ class DrawingAgent:
         return 12 if len(self.tool_log) >= 18 else productive
 
     def count_inventory(self):
-        return inventory(self.count_records, self.images, self.count_unit)
+        records = {k: {**v, "objects": list(v.get("objects", []))}
+                   for k, v in self.count_records.items()}
+        for image_id, observations in self.count_observations.items():
+            records.setdefault(image_id, {"objects": []})["objects"].extend(observations)
+        evidence = inventory(records, self.images, self.count_unit)
+        if self.count_exclusions:
+            excluded = [o for o in evidence["objects"] if o["id"] in self.count_exclusions]
+            evidence["objects"] = [o for o in evidence["objects"] if o["id"] not in self.count_exclusions]
+            evidence["supported"] = sum(o["status"] == "supported" for o in evidence["objects"])
+            evidence["uncertain"] = sum(o["status"] == "uncertain" for o in evidence["objects"])
+            evidence["excluded_objects"] = [{**o, "exclusion": self.count_exclusions[o["id"]]} for o in excluded]
+        return evidence
+
+    def apply_count_scope(self, exclusions):
+        if not exclusions:
+            return
+        if not self.task_scope or self.task_scope["extent"] not in {"selected_unit", "selected_rooms"}:
+            raise ValueError("Object exclusions require an explicit selected-unit/room task_scope")
+        objects = {o["id"]: o for o in self.count_inventory()["objects"]}
+        accepted = {}
+        images = list(self.images.values())
+        covered = [self.images[i].metadata["canonical_bbox"] for i in self.inspected_images]
+        for exclusion in exclusions:
+            identity = exclusion["object_id"]
+            if identity not in objects or identity in accepted:
+                raise ValueError("Unknown or duplicate scope-excluded object")
+            validate_citations(exclusion["citations"], images)
+            citations = canonical_citations(exclusion["citations"], images)
+            require_inspected_citations(citations, covered)
+            # An unrelated title/scale citation cannot justify excluding a door.
+            require_inspected_citations([objects[identity]], [c["canonical_bbox"] for c in citations])
+            accepted[identity] = exclusion
+        self.count_exclusions = accepted
+
+    def uncovered_count_objects(self, evidence):
+        """Context discoveries add objects, never counting coverage."""
+        coverage = [self.images[k].metadata["canonical_bbox"]
+                    for k, record in self.count_records.items()
+                    if record.get("scope_complete") is True]
+        pending = []
+        for obj in evidence["objects"]:
+            try:
+                require_inspected_citations([obj], coverage)
+            except DelegationRequired:
+                pending.append(obj["id"])
+        return pending
 
     def count_tool_inventory(self):
         evidence = self.count_inventory()
         return {
             **evidence,
+            "objects_needing_count_coverage": self.uncovered_count_objects(evidence),
+            "instruction": "Context inspections may add located objects but never counting coverage. Use purpose=count on uncovered regions; retain context questions for labels/roles. Do not recount already complete regions or add prose totals.",
             "unresolved_requested_regions": [
                 r["canonical_bbox"]
                 for r in self.unresolved_inspections.values()
@@ -621,6 +674,16 @@ class DrawingAgent:
                 ids = {c["image_id"] for c in advisory.get("citations", [])}
                 for image_id in ids & self.images.keys():
                     self.count_records[image_id] = advisory
+            elif self.count_unit:
+                # Only validated, located objects count. Never parse a number from
+                # prose, or let a context response erase a previous full inventory.
+                for obj in advisory.get("objects", []):
+                    image_id = obj.get("image_id")
+                    if image_id not in self.images or obj.get("unit") != self.count_unit:
+                        continue
+                    found = self.count_observations.setdefault(image_id, [])
+                    if obj not in found:
+                        found.append(obj)
             self.inspected_images.update(
                 c["image_id"]
                 for c in result["result"].get("citations", [])
@@ -630,6 +693,9 @@ class DrawingAgent:
     def inspect_batch(self, args, timeout_seconds):
         policy = self.inspection_policy
         regions = region_boxes(args, self.page.width, self.page.height, self.rooms)
+        scope = InspectionBatch.model_validate(args).task_scope
+        if scope is not None:
+            self.task_scope = scope.model_dump()
         planned, seen = [], set()
         # Round-robin native tiles: one broad context request must not starve
         # focused target regions later in the same batch.
@@ -649,7 +715,7 @@ class DrawingAgent:
                 self.page.width,
                 self.page.height,
                 self.count_unit if purpose == "count" else None,
-            )
+            ) + scope_context(self.task_scope)
             # Counting scope and role are fixed by the user's question, not a
             # coordinator's changing wording. Reuse completed tiles reliably.
             key = json.dumps(
@@ -660,6 +726,7 @@ class DrawingAgent:
                     else question,
                     box,
                     rotation,
+                    self.task_scope,
                 ]
             )
             if key not in seen:
@@ -702,8 +769,9 @@ class DrawingAgent:
             self.specialist = self.specialist_factory()
 
         def inspect(item, timeout):
-            _, question, image, _, rotation = item
+            _, question, image, purpose, rotation = item
             return self.specialist.answer(question, [image], timeout_seconds=timeout,
+                                          **({"inventory_unit": self.count_unit} if self.count_unit and purpose != "count" else {}),
                                           **({"rotation_degrees": rotation} if rotation else {}))
 
         def event(index, state, result):
@@ -730,6 +798,8 @@ class DrawingAgent:
         self.nemotron_calls += attempted
         current = {}
         for (key, question, image, purpose, rotation), value in zip(prepared, results):
+            if value.get("http_status") in (401, 403):
+                self.specialist_auth_status = value["http_status"]
             if value["status"] != "not_sent":
                 self.inspection_attempts[key] = self.inspection_attempts.get(key, 0) + 1
             advisory = value.get("result") or {}
@@ -756,6 +826,7 @@ class DrawingAgent:
                 "canonical_citations": value.get("canonical_citations", []),
                 "seconds": value.get("seconds"),
                 "error_code": value.get("error_code"),
+                "http_status": value.get("http_status"),
             }
             current[key] = row
             self.record_inspection(value, counting=purpose == "count")
@@ -827,6 +898,7 @@ class DrawingAgent:
                 for row in rows
             ]
         return {
+            "task_scope": self.task_scope,
             "status": "ok"
             if complete == len(rows)
             else "partial"
@@ -1248,10 +1320,12 @@ class DrawingAgent:
                 # Legacy tool remains supported but cannot reintroduce leading
                 # counts or original-page restrictions into a local inspection.
                 value = count_question
+            value += scope_context(self.task_scope)
+            options = {"inventory_unit": self.count_unit} if self.count_unit and not count_question else {}
             result = (
-                self.specialist.answer(value, images, timeout_seconds=timeout_seconds)
+                self.specialist.answer(value, images, timeout_seconds=timeout_seconds, **options)
                 if timeout_seconds is not None
-                else self.specialist.answer(value, images)
+                else self.specialist.answer(value, images, **options)
             )
         self.record_inspection(result, counting=bool(count_question))
         return {
@@ -1260,12 +1334,14 @@ class DrawingAgent:
             "advisory": result.get("result"),
             "canonical_citations": result.get("canonical_citations", []),
             "usage": result.get("completion", {}).get("usage", {}),
-            **({"count_evidence": self.count_inventory()} if self.count_unit else {}),
+            **({"count_evidence": self.count_tool_inventory()} if self.count_unit else {}),
             "image_ids": ids,
             "scope": "Selected images only. Advisory, not independent verification or whole-page coverage.",
         }, []
 
     def finish(self, result):
+        # A rejected/abstained draft cannot leave silent exclusions in later attempts.
+        self.count_exclusions = {}
         raw_presentation = {
             key: result.get(key) for key in ("briefing", "citation_details")
         }
@@ -1338,8 +1414,10 @@ class DrawingAgent:
                 ][:20]
         result = attach_presentation(result, original_citations, raw_presentation)
         if self.count_unit:
-            evidence = self.count_inventory()
             basis = result.get("count_basis") or {}
+            if result["status"] == "answered":
+                self.apply_count_scope(basis.get("exclusions", []))
+            evidence = self.count_inventory()
             supported = {
                 o["id"] for o in evidence["objects"] if o["status"] == "supported"
             }
@@ -1354,6 +1432,7 @@ class DrawingAgent:
                 and set(chosen) == supported
                 and result["answer"] == len(chosen)
                 and not evidence["uncertain"]
+                and not self.uncovered_count_objects(evidence)
                 and bool(self.count_records)
                 and all(
                     r.get("scope_complete") is True for r in self.count_records.values()
@@ -1365,6 +1444,8 @@ class DrawingAgent:
             )
             if not self.count_complete:
                 result.update(status="abstain", answer=None, unit=None)
+                self.count_exclusions = {}
+                evidence = self.count_inventory()
             else:
                 # Machine-readable count unit stays compatible with the public
                 # answer/scoring contract. The counted entity is in count_basis
@@ -1372,6 +1453,11 @@ class DrawingAgent:
                 result["unit"] = "count"
             # Replace arbitrary aggregate prose with the actual object inventory.
             result = count_presentation(result, evidence, complete=self.count_complete)
+            if self.count_exclusions:
+                result["coverage"] += (
+                    f" Target: {self.task_scope['target']}. "
+                    f"{len(self.count_exclusions)} located object(s) excluded with cited scope reasons."
+                )
             object_citations = [o["citation"] for o in evidence["objects"]][:100]
             if object_citations:
                 result["citations"] = object_citations
@@ -1386,6 +1472,13 @@ class DrawingAgent:
                 result["briefing"][0]["citations"] = list(
                     range(1, min(3, len(object_citations)) + 1)
                 )
+            for exclusion in self.count_exclusions.values():
+                for citation in exclusion["citations"]:
+                    if citation in result["citations"] or len(result["citations"]) >= 100:
+                        continue
+                    result["citations"].append(citation)
+                    result["citation_details"].append({"citation": len(result["citations"]),
+                        "kind": "text", "label": "Scope exclusion: " + exclusion["reason"]})
         return result
 
     def checkpoint(self):
@@ -1493,6 +1586,7 @@ class DrawingAgent:
                                 "question": self.request.question,
                                 "requested_unit": self.request.unit,
                                 "scope": "Only this selected page is available",
+                                "task_scope": self.task_scope,
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
@@ -1879,6 +1973,13 @@ class DrawingAgent:
                         },
                         [],
                     )
+                    if function.name in {"inspect_nemotron", "review_answer", "inspect_regions"}:
+                        code = getattr(exc, "status_code", None)
+                        if type(code) is int and 400 <= code <= 599:
+                            result["http_status"] = code
+                        if code in (401, 403):
+                            self.specialist_auth_status = code
+                            result["error_code"] = "SpecialistAuthenticationError"
                     if function.name in (
                         "calculate_area",
                         "measure_polygon",
@@ -1910,7 +2011,12 @@ class DrawingAgent:
                     )
                 )
                 new_images.extend(images)
+                if self.specialist_auth_status:
+                    stop = "specialist_authentication_failed"
+                    break
             if answer:
+                break
+            if self.specialist_auth_status:
                 break
             if self.delegation_rejections >= 2:
                 stop = "specialist_required"
@@ -1957,6 +2063,15 @@ class DrawingAgent:
             and not answer["explanation"].startswith("Inspection is incomplete.")
         ):
             answer = count_presentation(answer, self.count_inventory())
+        if self.specialist_auth_status:
+            message = (
+                "The visual inspection service rejected its configured credentials "
+                f"(HTTP {self.specialist_auth_status}). The required inspection could "
+                "not be completed, so no final answer was established."
+            )
+            answer.update(status="abstain", answer=None, explanation=message,
+                          briefing=[{"section": "limitation", "text": message, "citations": []}])
+            answer["uncertainties"] = [message, *answer.get("uncertainties", [])][:20]
         result = {
             "status": "ok" if stop == "answered" else "unavailable",
             "answer": answer,
@@ -1969,6 +2084,7 @@ class DrawingAgent:
             "algorithm_used": self.algorithm_delivered,
             "algorithm_executed": self.job is not None,
             "algorithm_registry": self.algorithm_registry,
+            "task_scope": self.task_scope,
             "nemotron_calls": self.nemotron_calls,
             "delegation": {
                 "required": self.require_specialist,
@@ -2014,6 +2130,7 @@ class DrawingAgent:
                 else "answered"
             ),
             "reliability": {
+                "specialist_http_status": self.specialist_auth_status,
                 "recovery_used": self.recovery_used,
                 "recovery_measurement_calls": self.recovery_measurement_calls,
                 "token_repair_used": self.token_repair_used,

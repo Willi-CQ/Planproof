@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from specialist_views import validate_rotation
+from task_scope import TaskScope
 
 
 # Shared by interactive questions, so two users cannot each fan out unbounded work.
@@ -53,6 +54,7 @@ class InspectionRegion(BaseModel):
 class InspectionBatch(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     regions: list[InspectionRegion] = Field(min_length=1, max_length=6)
+    task_scope: TaskScope | None = None
 
 
 class DelegationRequired(ValueError):
@@ -80,6 +82,11 @@ Use neutral questions: identify visible door openings and their locations; NEVER
 suggest a total, multiply room counts or ask a worker to confirm an assumed layout.
 Each region has purpose="count" for a localized door inventory or purpose="inspect"
 for a label/context question (default inspect). Preserve these different jobs.
+During a door task, context inspections also return individually located door
+observations when relevant. They enter the shared inventory but do NOT establish
+counting coverage. Use returned objects_needing_count_coverage and unresolved
+regions to choose targeted purpose=count followups. Do not keep asking for prose
+counts while leaving those regions uncounted, and never add overlapping subtotals.
 You own global scope selection: workers need not rediscover a wing/apartment label
 inside every crop. If the requested apartment is ambiguous, ask the user which
 unit using submit_answer.clarification_question, or state a clear interpretation;
@@ -101,6 +108,12 @@ For a final door count supply count_basis={scope:"complete"|"partial",
 unit:"door_opening"|"door_leaf"}. The host attaches all localized objects and their
 citations; do not repeat a long inventory in prose. Optional object_ids can name
 an explicit subset for partial scope. Report complete only
+for the agreed task_scope. When a context crop reveals a door outside an explicitly
+selected unit/room, count_basis.exclusions must name its object_id, a concrete scope
+reason and inspected citations covering the object and its context. Never silently
+drop an ID. Exclusions are not available for whole-sheet or unresolved scope. They
+remain recorded with their source locations; they do not cure missing coverage.
+Report complete only
 after covering the relevant page scope, resolving overlaps, role ambiguity and
 deferred regions. A partial inventory is not a whole-page answer. Do not describe
 an uncertain aggregate from prose as confirmed; unsupported totals are rejected.
@@ -254,6 +267,12 @@ def parallel_inspections(items, inspect, *, deadline, seconds, on_event):
                 "result": None,
                 "error_code": type(exc).__name__,
             }
+            code = getattr(exc, "status_code", None)
+            if type(code) is int and 400 <= code <= 599:
+                value["http_status"] = code
+            if code in (401, 403):
+                value["error_code"] = "SpecialistAuthenticationError"
+                active.clear()  # Pending workers must not retry rejected credentials.
         return {**value, "seconds": round(time.monotonic() - started, 3)}
 
     futures = {_POOL.submit(execute, i, item): i for i, item in enumerate(items)}
