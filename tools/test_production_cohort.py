@@ -13,6 +13,55 @@ def test_stop_gate_admits_no_new_request(tmp_path):
     assert run_case({}, 1, {}, None, tmp_path) is None
 
 
+def test_runner_uses_production_routes_and_never_repeats_completed_request(
+    tmp_path, monkeypatch
+):
+    from fastapi.testclient import TestClient
+    from PIL import Image
+    from unittest.mock import Mock
+    import app
+    import audit_production_cohort as audit
+    from run_tracking import RunStore
+
+    Image.new("RGB", (40, 30), "white").save(tmp_path / "page.png")
+    store = RunStore(tmp_path / "runs")
+    monkeypatch.setattr(app, "_run_store", store)
+    execute = Mock(
+        return_value={
+            "status": "ok",
+            "model": "fixture",
+            "answer": {"status": "answered", "answer": 2},
+            "canonical_citations": [],
+        }
+    )
+    monkeypatch.setattr(app, "ask", execute)
+    client = TestClient(app.app)
+    monkeypatch.setattr(audit.httpx, "Client", lambda **kwargs: client)
+    case = {
+        "id": "one",
+        "input_path": "page.png",
+        "input_sha256": digest(tmp_path / "page.png"),
+        "question": "How many rooms?",
+        "unit": "count",
+        "category": "rooms",
+        "language": "en",
+        "source": "fixture",
+        "type": "count",
+    }
+    binding = {
+        "server": "http://testserver",
+        "model": "fixture",
+        "request": {"mode": "auto", "allow_gemini": True, "allow_nemotron": True},
+    }
+    first = run_case(case, 1, binding, tmp_path, tmp_path)
+    second = run_case(case, 1, binding, tmp_path, tmp_path)
+    assert first == second
+    assert first["run"]["result"]["answer"]["answer"] == 2
+    execute.assert_called_once()
+    assert execute.call_args.kwargs["observer"] is not None
+    store.pool.shutdown()
+
+
 def test_evaluator_stays_closed_for_missing_duplicate_or_running_cases(tmp_path):
     binding = {"case_ids": ["one", "two"]}
     completed = {"id": "one", "run": {"status": "completed"}}

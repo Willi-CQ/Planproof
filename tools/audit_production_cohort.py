@@ -132,7 +132,7 @@ def run_case(case, index, binding, pack, out):
                 )
             upload.raise_for_status()
             document = upload.json()
-            frame = client.get(f"/api/documents/{document['document_id']}/frame")
+            frame = client.get(f"/api/v1/documents/{document['document_id']}/frame")
             frame.raise_for_status()
             request = {
                 **binding["request"],
@@ -313,15 +313,16 @@ def main(args):
             health = client.get("/api/v1/agent").json()
         if not health.get("configured") or health.get("model") != binding["model"]:
             raise ValueError("Production model configuration differs")
+
+        def run_bound(pair):
+            try:
+                return run_case(pair[1], pair[0] + 1, binding, pack, args.out)
+            except Exception as exc:
+                (args.out / "STOP").write_text(type(exc).__name__, encoding="utf-8")
+                raise
+
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            list(
-                pool.map(
-                    lambda pair: run_case(
-                        pair[1], pair[0] + 1, binding, pack, args.out
-                    ),
-                    enumerate(cases),
-                )
-            )
+            list(pool.map(run_bound, enumerate(cases)))
     if implementation() != binding["implementation_sha256"]:
         raise ValueError("Implementation changed during the run")
     paths = [args.out / cid / "record.json" for cid in binding["case_ids"]]
