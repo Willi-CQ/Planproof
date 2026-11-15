@@ -25,6 +25,7 @@ from ml_adapter import adapt_ml
 from verification import AnalyzerResult, Comparison, DoorCountRequest, PageFrame, compare
 from agent_pipeline import PIPELINE_ERRORS, QuestionRequest, reason, ask
 from question_agent import AgentRequest, settings as question_agent_settings
+from native_text import extract_lines
 from planproof_feedback.images import MAX_SOURCE_PIXELS
 
 
@@ -64,6 +65,7 @@ class Page:
     height: int
     source_sha256: str
     raster_sha256: str
+    text_lines: tuple = ()
 
 
 class AnalyzeRequest(BaseModel):
@@ -125,6 +127,7 @@ def register_page(pdf_bytes: bytes, page_number: int) -> DocumentPage:
             rendered = Page(
                 image.tobytes("png"), labels, image.width, image.height,
                 sha256(pdf_bytes).hexdigest(), sha256(image.samples).hexdigest(),
+                extract_lines(page, image, scale),
             )
     except (RuntimeError, ValueError, ZeroDivisionError) as exc:
         raise HTTPException(422, "The selected PDF page could not be read.") from exc

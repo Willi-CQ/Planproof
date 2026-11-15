@@ -24,6 +24,7 @@ from gemini_transport import (
     response_candidate,
 )
 from algorithm_jobs import AlgorithmPending
+from native_text import search_lines
 from token_recovery import compact_observations, select_detail_images
 from specialist_routing import (
     ROUTING,
@@ -68,7 +69,11 @@ INTERACTIVE LATENCY: Plan independent detail crops together in one response. Ins
 the returned pixels and conclude as soon as the scope and cited evidence support it.
 Algorithm work may return pending/busy while it computes in the background. That is
 NOT missing objects. Continue with source crops immediately; do not poll in a loop or
-wait for algorithms. Revisit get_algorithms once later only if its evidence is needed.
+wait for algorithms. Requested results are delivered automatically between turns when ready.
+For a PDF with native text, read_text locates labels and printed measurements using
+original-page coordinates. Use it to target specialist crops, not as visual proof.
+Prefer a verified printed area over estimating it from pixels when both refer to
+the requested room. Verify the association: nearby labels may belong to other rooms.
 When a quick self-check suffices, you may call reflect with next_action=answer and
 submit_answer together, in that order, using ALREADY inspected evidence. New crops,
 specialist results and calculations must return before you can use them in an answer.
@@ -216,7 +221,7 @@ def declaration(name, description, properties, required=()):
     )
 
 
-def declarations(mode, allow_nemotron, *, orchestrated=False):
+def declarations(mode, allow_nemotron, *, orchestrated=False, native_text=False):
     result = [
         types.FunctionDeclaration(
             name="submit_answer",
@@ -226,6 +231,14 @@ def declarations(mode, allow_nemotron, *, orchestrated=False):
     ]
     if mode == "direct":
         return result
+    if native_text:
+        result.append(declaration(
+            "read_text",
+            "Locate native PDF text and dimensions. Advisory hints only; verify in clean crops with Nemotron. Query is a literal substring; empty query lists lines. Optional bbox filters original-page coordinates 0..1000. At most 80 lines returned.",
+            {"query": {"type": "string", "maxLength": 200},
+             "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}},
+            ("query",),
+        ))
     result.extend(
         [
             types.FunctionDeclaration(
@@ -451,6 +464,7 @@ class DrawingAgent:
         self.out = out
         self.job = self.specialist = None
         self.algorithm_delivered = False
+        self.pending_algorithm_classes = set()
         self.delivered_classes = set()
         self.algorithm_registry = {}
         self.rooms = {}
@@ -473,6 +487,7 @@ class DrawingAgent:
                 request.mode,
                 request.allow_nemotron,
                 orchestrated=self.require_specialist,
+                native_text=bool(getattr(page, "text_lines", ())),
             )
         }
         self.image_config = {"max_edge": 2048, "max_pages": 12, "pdf_dpi": 144}
@@ -549,6 +564,7 @@ class DrawingAgent:
         productive = sum(
             row.get("result", {}).get("error_code")
             not in {"ValueError", "ValidationError"}
+            and not row.get("automatic_delivery")
             for row in self.tool_log
         )
         return 12 if len(self.tool_log) >= 18 else productive
@@ -930,6 +946,8 @@ class DrawingAgent:
             raise ValueError("Unknown or disabled tool")
         if name == "inspect_regions":
             return self.inspect_batch(args, timeout_seconds)
+        if name == "read_text":
+            return search_lines(getattr(self.page, "text_lines", ()), args), []
         if name in ("calculate_area", "measure_polygon"):
             images = list(self.images.values())
             result = (
@@ -999,10 +1017,11 @@ class DrawingAgent:
                 try:
                     self.job = self.algorithm_factory()
                 except AlgorithmPending as pending:
+                    self.pending_algorithm_classes.update(classes)
                     return {
                         "status": pending.status,
                         "complete_coverage": False,
-                        "instruction": "Algorithm evidence is not ready. Continue inspecting source crops now; no detections have been established. Revisit once later only if needed.",
+                        "instruction": "Algorithm evidence is not ready. Continue inspecting source crops now; no detections have been established. The host will deliver requested evidence between turns when it is ready.",
                     }, []
             # Room context accompanies door candidates, even when the caller
             # forgets to explicitly request it. No additional algorithm run.
@@ -1069,6 +1088,7 @@ class DrawingAgent:
                 "complete_coverage": False,
             }
             self.algorithm_delivered = True
+            self.pending_algorithm_classes.difference_update(classes)
             return catalog, []
         if name == "crop_room":
             room = self.rooms.get(args["room_id"])
@@ -1467,6 +1487,28 @@ class DrawingAgent:
             )
         ]
 
+    def deliver_pending_algorithms(self, history):
+        """Deliver only previously requested evidence; never start unsolicited work."""
+        if not self.pending_algorithm_classes:
+            return
+        classes = sorted(self.pending_algorithm_classes)
+        try:
+            if self.job is None:
+                self.job = self.algorithm_factory()
+        except AlgorithmPending:
+            return
+        except Exception:
+            self.pending_algorithm_classes.clear()
+            self.observe("get_algorithms", "unavailable", summary="Requested algorithms could not supply evidence; continue with source crops.")
+            return
+        result, _ = self.execute("get_algorithms", {"classes": classes})
+        self.tool_log.append({"name": "get_algorithms", "args": {"classes": classes},
+                              "result": result, "seconds": 0, "automatic_delivery": True})
+        history.append(types.Content(role="user", parts=[types.Part.from_text(text=json.dumps({
+            "requested_algorithm_evidence_ready": result,
+            "instruction": "The previously requested asynchronous tool has completed. Treat this catalogue as fallible search hints, not verified objects or complete coverage."
+        }, ensure_ascii=False))]))
+
     def run(self):
         started = time.monotonic()
         history = [
@@ -1486,6 +1528,7 @@ class DrawingAgent:
                                 "native_pdf_tokens": list(self.page.labels.values())[
                                     :300
                                 ],
+                                "native_text_locator_available": "read_text" in self.allowed,
                                 "budgets": {
                                     "gemini_turns": 8,
                                     "tool_calls": 12,
@@ -1537,10 +1580,12 @@ class DrawingAgent:
                 self.recovery_used = True
                 history = self.recovery_history(compact=phase == "token_repair")
             continuing_recovery = False
+            self.deliver_pending_algorithms(history)
             available = declarations(
                 self.request.mode,
                 self.request.allow_nemotron,
                 orchestrated=self.require_specialist,
+                native_text=bool(getattr(self.page, "text_lines", ())),
             )
             local_recovery_allowed = (
                 recovery
