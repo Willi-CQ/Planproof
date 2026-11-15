@@ -42,6 +42,8 @@ def extract_regions(page, pixmap, scale, text_lines):
         return ()
     transform = page.rotation_matrix * pymupdf.Matrix(scale, scale)
     frame_area = pixmap.width * pixmap.height
+    text_centers = [(line["text"], (line["bbox"][0] + line["bbox"][2]) / 2,
+                     (line["bbox"][1] + line["bbox"][3]) / 2) for line in text_lines]
     for index, path in enumerate(paths):
         if "f" not in path.get("type", "") or not path.get("fill_opacity", 0):
             continue
@@ -58,9 +60,10 @@ def extract_regions(page, pixmap, scale, text_lines):
             continue
         polygon = [[x * 1000 / pixmap.width, y * 1000 / pixmap.height] for x, y in pixels]
         normalized = Polygon(polygon)
-        labels = [line["text"] for line in text_lines if normalized.covers(Point(
-            (line["bbox"][0] + line["bbox"][2]) / 2,
-            (line["bbox"][1] + line["bbox"][3]) / 2))][:30]
+        left, top, right, bottom = normalized.bounds
+        labels = [text for text, x, y in text_centers
+                  if left <= x <= right and top <= y <= bottom
+                  and normalized.covers(Point(x, y))][:30]
         result.append({"id": f"V{index + 1}", "polygon": polygon,
                        "bbox": list(normalized.bounds), "labels": labels,
                        "area_px2": shape.area, "fill_rgb": path.get("fill")})
