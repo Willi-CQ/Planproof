@@ -33,6 +33,9 @@ def build(runs, packs, output, *, overlap=None, translations=None):
     for label, directory in runs:
         report = read(directory / "report.json")
         ids = report["binding"]["case_ids"]
+        cohort = ("Synthetic policy" if all(cid.startswith("synthetic-") for cid in ids)
+                  else "Regression" if report["binding"].get("schema") == "planproof-production-cohort-v1"
+                  else "Holdout" if report["binding"].get("split") == "holdout" else "Development")
         if [r["id"] for r in report["cases"]] != ids or len(ids) != len(set(ids)):
             raise ValueError("Incomplete or reordered trial report")
         for row in report["cases"]:
@@ -60,7 +63,7 @@ def build(runs, packs, output, *, overlap=None, translations=None):
                     image.thumbnail((1000, 1000))
                     buffer = BytesIO()
                     image.convert("RGB").save(buffer, format="JPEG", quality=88)
-                cases[cid] = {"id": cid, "question": row["question"], "reference": row["reference"],
+                cases[cid] = {"id": cid, "cohort": cohort, "question": row["question"], "reference": row["reference"],
                     "question_english": english.get(cid),
                     "detector_source_overlap": overlap_by_id.get(cid),
                     "source": row["source"], "category": row["category"], "language": row["language"],
@@ -70,6 +73,8 @@ def build(runs, packs, output, *, overlap=None, translations=None):
             case = cases[cid]
             if case["raster_sha256"] != row["raster_sha256"] or case["reference"] != row["reference"]:
                 raise ValueError("Matched comparison changed pixels or reference answer")
+            if case["question"] != row["question"] or case["cohort"] != cohort:
+                raise ValueError("Matched comparison changed question or evaluation cohort")
             case["runs"].append({"label": label, "answer": row["answer"], "score": row["score"],
                 "seconds": row["seconds_http"], "nemotron_calls": row.get("nemotron_calls", 0),
                 "algorithm_used": row.get("algorithm_used", False),
@@ -84,7 +89,7 @@ def build(runs, packs, output, *, overlap=None, translations=None):
                            "automatic_delivery": t.get("automatic_delivery", False)}
                           for t in result.get("tool_trace", [])]})
         rows = report["cases"]
-        summaries.append({"label": label, "correct": sum(r["score"]["correct"] for r in rows),
+        summaries.append({"label": label, "cohort": cohort, "correct": sum(r["score"]["correct"] for r in rows),
             "total": len(rows), "median": statistics.median(r["seconds_http"] for r in rows),
             "revision": report["binding"].get("revision", "Frozen production control")})
     data = {"summaries": summaries, "cases": list(cases.values())}

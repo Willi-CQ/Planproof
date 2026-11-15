@@ -1,5 +1,6 @@
 import io
 import json
+import copy
 from hashlib import sha256
 
 from PIL import Image
@@ -59,3 +60,19 @@ def test_incomplete_trials_and_escaped_traces_cannot_be_reported(tmp_path):
     save(run / "report.json", report)
     with pytest.raises(ValueError, match="escapes"):
         build([("Control", run)], [pack], tmp_path / "review.html")
+
+
+def test_comparison_rejects_changed_questions_and_holdout_assignment(tmp_path):
+    pack, run, report = trial(tmp_path)
+    other = tmp_path / "other"
+    save(other / "one/record.json", json.loads((run / "one/record.json").read_text()))
+    changed = copy.deepcopy(report)
+    changed["cases"][0]["question"] = "A different task?"
+    save(other / "report.json", changed)
+    with pytest.raises(ValueError, match="question or evaluation cohort"):
+        build([("Control", run), ("Changed", other)], [pack], tmp_path / "review.html")
+    changed = copy.deepcopy(report)
+    changed["binding"]["split"] = "holdout"
+    save(other / "report.json", changed)
+    with pytest.raises(ValueError, match="question or evaluation cohort"):
+        build([("Control", run), ("Changed", other)], [pack], tmp_path / "review.html")
