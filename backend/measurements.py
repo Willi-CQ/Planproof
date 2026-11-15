@@ -236,9 +236,15 @@ def _result(
     value = float(area / FACTORS[request.output_unit[:-1]] ** 2)
     if not math.isfinite(value) or value <= 0:
         raise ValueError("Calculated area must be finite and positive")
-    # Whole units for traced raster estimates. Arithmetic retains two decimals;
-    # precision does not imply the source dimensions are exact.
-    answer = round(value, 0 if approximate and method == "scaled_polygon" else 2)
+    # Three significant figures keep raster estimates concise without rounding a
+    # small room to zero or introducing large, unit-dependent numeric error.
+    # This is reporting resolution, not a claim about boundary/scale accuracy.
+    decimals = (
+        2 - math.floor(math.log10(value))
+        if approximate and method == "scaled_polygon"
+        else 2
+    )
+    answer = round(value, decimals)
     if answer <= 0:
         raise ValueError("Area is too small for the requested reporting unit")
     unique = []

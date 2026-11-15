@@ -221,6 +221,37 @@ def test_polygon_holes_and_original_page_aspect_ratio():
     assert result["canonical_holes"][0][0] == [40, 40]
 
 
+@pytest.mark.parametrize(
+    "length,width,expected",
+    [("2 m", "1.6 m", 1.76), ("1 m", "0.8 m", 0.44), ("0.1 m", "0.08 m", 0.0044)],
+)
+def test_small_polygon_estimates_preserve_value_and_approximate_provenance(
+    length, width, expected
+):
+    value = agent()
+    request = polygon_request()
+    request["anchors"][0]["dimension"]["text"] = length
+    request["anchors"][1]["dimension"]["text"] = width
+    measured = value.execute("measure_polygon", request)[0]
+    assert measured["value"] == pytest.approx(expected)
+    assert measured["approximate"]
+    answer = value.finish(
+        {**final(), "answer": measured["value"], "unit": "m2", "measurement_id": "M1"}
+    )
+    assert answer["answer"] == measured["value"]
+    assert "Approximate" in answer["explanation"]
+    assert answer["citations"]
+
+
+@pytest.mark.parametrize("unit", ["m2", "ft2", "cm2", "mm2", "in2"])
+def test_polygon_rounding_error_is_bounded_across_output_units(unit):
+    request = polygon_request()
+    request["output_unit"] = unit
+    result = agent().execute("measure_polygon", request)[0]
+    assert abs(result["value"] / result["unrounded_value"] - 1) <= 0.005
+    assert result["area_m2"] == pytest.approx(44)
+
+
 def test_nonrectangular_room_uses_polygon_not_bounding_box():
     request = polygon_request()
     request.update(
