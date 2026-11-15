@@ -25,6 +25,7 @@ class RetryPolicy:
     max_requests: int = 12
     initial_backoff: float = 1
     max_backoff: float = 8
+    minimum_attempt_seconds: float = 0.05
 
 
 class ProviderFailure(RuntimeError):
@@ -267,7 +268,11 @@ class ResilientGeminiTransport:
         last = None
         for index in range(attempts):
             remaining = deadline - time.monotonic()
-            if remaining <= 0.05 or self.request_count >= self.policy.max_requests:
+            if (
+                min(remaining, self.policy.attempt_seconds)
+                < self.policy.minimum_attempt_seconds
+                or self.request_count >= self.policy.max_requests
+            ):
                 raise ProviderFailure(
                     {
                         "error_code": "ProviderBudgetExhausted",
@@ -288,7 +293,10 @@ class ResilientGeminiTransport:
             try:
                 self.gate.check()
                 remaining = deadline - time.monotonic()
-                if remaining <= 0.05:
+                if (
+                    min(remaining, self.policy.attempt_seconds)
+                    < self.policy.minimum_attempt_seconds
+                ):
                     raise ProviderFailure(
                         {
                             "error_code": "ProviderBudgetExhausted",
@@ -343,7 +351,10 @@ class ResilientGeminiTransport:
             if "retry_after_seconds" not in last.info:
                 delay = min(delay, self.policy.max_backoff)
             # Never shorten Retry-After to fit a deadline or retry early.
-            if delay + 0.05 >= deadline - time.monotonic():
+            if (
+                delay + self.policy.minimum_attempt_seconds
+                >= deadline - time.monotonic()
+            ):
                 raise last
             event["retry_delay_seconds"] = round(delay, 3)
             time.sleep(delay)

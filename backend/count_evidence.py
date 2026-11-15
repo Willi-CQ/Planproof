@@ -15,6 +15,45 @@ class CountBasis(BaseModel):
     unit: Literal["door_opening", "door_leaf"]
 
 
+def canonical_count_unit(unit, requested_unit):
+    """Honor an explicit count contract without converting physical units.
+
+    The entity name is presentation, not a measurement unit. Unknown units and
+    ordinary chat without a unit hint are deliberately preserved.
+    """
+    nouns = {
+        "room",
+        "rooms",
+        "floor",
+        "floors",
+        "level",
+        "levels",
+        "apartment",
+        "apartments",
+        "window",
+        "windows",
+        "door",
+        "doors",
+        "door opening",
+        "door openings",
+        "door leaf",
+        "door leaves",
+        "bathtub",
+        "bathtubs",
+        "toilet",
+        "toilets",
+        "shower",
+        "showers",
+        "count",
+        "counts",
+    }
+    if (requested_unit or "").strip().lower() in {"count", "counts"} and (
+        unit or ""
+    ).strip().lower() in nouns:
+        return "count"
+    return unit
+
+
 def door_count_unit(question):
     if re.search(r"\b(doors?|doorways?|türen|tueren)\b", question, re.I) and re.search(
         r"how many|count|number|amount|quantity|wie viele|anzahl", question, re.I

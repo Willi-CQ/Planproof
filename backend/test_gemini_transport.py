@@ -321,6 +321,63 @@ def test_budget_boundary_preserves_finalization_reserve():
     assert a.transport.generate.call_args.kwargs["deadline"] == 600
 
 
+def test_interactive_enters_recovery_before_a_four_second_normal_request():
+    from question_agent import AgentBudget
+
+    now = [0.0]
+    value = agent()
+    value.budget = AgentBudget.interactive()
+
+    def generate(*args, **kwargs):
+        if kwargs["phase"] == "normal":
+            now[0] = 81.0  # Four seconds remain before the finalization reserve.
+            return response("crop_region", {"bbox": [0, 0, 500, 500]})
+        assert kwargs["deadline"] == 120
+        return response("submit_answer", final("crop-1"))
+
+    value.transport.generate.side_effect = generate
+    with patch("question_agent.time.monotonic", side_effect=lambda: now[0]):
+        result = value.run()
+    assert [c.kwargs["phase"] for c in value.transport.generate.call_args_list] == [
+        "normal",
+        "recovery",
+    ]
+    assert result["reliability"]["recovery_succeeded"]
+    assert len(result["tool_trace"]) == 1
+
+
+@pytest.mark.parametrize("remaining", [4, 6, 9.9])
+def test_interactive_transport_never_sends_too_short_an_attempt(transport, remaining):
+    from dataclasses import replace
+
+    transport.policy = replace(transport.policy, minimum_attempt_seconds=10)
+    with pytest.raises(ProviderFailure) as err:
+        transport.generate([], [], deadline=time.monotonic() + remaining)
+    assert err.value.info["category"] == "budget"
+    assert transport.request_count == 0
+    transport._generate.assert_not_called()
+
+
+def test_retry_retains_original_error_when_useful_attempt_will_not_fit(transport):
+    from dataclasses import replace
+
+    now = [0.0]
+    transport.policy = replace(transport.policy, minimum_attempt_seconds=10)
+
+    def fail(*args):
+        now[0] = 36
+        raise errors.ServerError(504, {})
+
+    transport._generate.side_effect = fail
+    with (
+        patch("gemini_transport.time.monotonic", side_effect=lambda: now[0]),
+        pytest.raises(ProviderFailure) as err,
+    ):
+        transport.generate([], [], deadline=40)
+    assert err.value.info["category"] == "server_error"
+    assert transport.request_count == 1
+
+
 def test_client_protocol_errors_are_not_transient(transport):
     transport._generate.side_effect = httpx.LocalProtocolError("invalid header")
     with pytest.raises(ProviderFailure) as err:

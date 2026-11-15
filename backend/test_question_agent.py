@@ -97,6 +97,31 @@ def test_direct_answer_never_initializes_algorithms_or_specialist():
     a.specialist_factory.assert_not_called()
 
 
+@pytest.mark.parametrize("unit", ["rooms", " floors ", "door openings", "bathtubs"])
+def test_explicit_count_contract_preserves_value_citations_and_entity_prose(unit):
+    from copy import deepcopy
+
+    value = agent()
+    value.request.unit = "count"
+    raw = {**final(), "unit": unit, "explanation": "Two rooms are visible."}
+    original = deepcopy(raw)
+    result = value.finish(raw)
+    assert result["unit"] == "count"
+    assert result["answer"] == original["answer"]
+    assert result["citations"] == original["citations"]
+    assert result["explanation"] == original["explanation"]
+    assert raw == original
+
+
+@pytest.mark.parametrize(
+    "unit,requested", [("m2", "count"), ("unknown", "count"), ("rooms", None)]
+)
+def test_count_contract_does_not_relabel_physical_or_unknown_units(unit, requested):
+    value = agent(mode="direct")
+    value.request.unit = requested
+    assert value.finish({**final(), "unit": unit})["unit"] == unit
+
+
 def test_observation_does_not_change_tools_answers_or_provider_inputs():
     scripted = [
         response("crop_region", {"bbox": [0, 0, 500, 500]}),

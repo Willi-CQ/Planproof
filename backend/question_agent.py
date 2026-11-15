@@ -36,7 +36,13 @@ from specialist_routing import (
     tiles,
     tile_question,
 )
-from count_evidence import CountBasis, count_presentation, door_count_unit, inventory
+from count_evidence import (
+    CountBasis,
+    canonical_count_unit,
+    count_presentation,
+    door_count_unit,
+    inventory,
+)
 from answer_presentation import BriefingStatement, CitationDetail, attach_presentation
 from measurements import (
     AreaRequest,
@@ -379,7 +385,11 @@ class GeminiTransport(ResilientGeminiTransport):
             instruction=INSTRUCTION + ("\n" + ROUTING if orchestrated else ""),
             low_latency=True,
             policy=RetryPolicy(
-                attempts=2, attempt_seconds=35, turn_seconds=70, max_requests=10
+                attempts=2,
+                attempt_seconds=35,
+                turn_seconds=70,
+                max_requests=10,
+                minimum_attempt_seconds=10,
             ),
         )
 
@@ -389,10 +399,16 @@ class AgentBudget:
     seconds: float = 600
     final_seconds: float = 120
     specialist_seconds: float | None = None
+    minimum_normal_seconds: float = 0
 
     @classmethod
     def interactive(cls):
-        return cls(seconds=120, final_seconds=35, specialist_seconds=30)
+        return cls(
+            seconds=120,
+            final_seconds=35,
+            specialist_seconds=30,
+            minimum_normal_seconds=10,
+        )
 
 
 class DrawingAgent:
@@ -1199,6 +1215,8 @@ class DrawingAgent:
         result = FinalAnswer.model_validate(
             {**result, "briefing": [], "citation_details": []}
         ).model_dump()
+        if result["status"] == "answered":
+            result["unit"] = canonical_count_unit(result["unit"], self.request.unit)
         original_citations = list(result["citations"])
         measurement_id = result.get("measurement_id")
         if result["status"] == "answered":
@@ -1497,7 +1515,10 @@ class DrawingAgent:
                 stop = "time_budget"
                 break
             if (
-                time.monotonic() >= deadline - self.budget.final_seconds
+                time.monotonic()
+                >= deadline
+                - self.budget.final_seconds
+                - self.budget.minimum_normal_seconds
                 or isinstance(self.transport, ResilientGeminiTransport)
                 and self.transport.request_count
                 >= self.transport.policy.max_requests - 1
@@ -1624,7 +1645,10 @@ class DrawingAgent:
                             "incomplete_response",
                         )
                         or self.last_failure["category"] == "budget"
-                        and time.monotonic() >= deadline - self.budget.final_seconds
+                        and time.monotonic()
+                        >= deadline
+                        - self.budget.final_seconds
+                        - self.budget.minimum_normal_seconds
                     )
                     and time.monotonic() < deadline - 1
                 ):
