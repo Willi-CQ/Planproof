@@ -156,6 +156,42 @@
   font-weight: 650;
 }
 .open-spatial-sample:hover { background: #deebdf; border-color: #a9c3af; }
+.answer-room-pick, .room-pick-banner button {
+  border: 1px solid #bfd4c5;
+  border-radius: 8px;
+  background: #edf5ee;
+  color: #254f37;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.answer-room-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  margin: 7px 0;
+}
+.answer-room-pick:hover, .room-pick-banner button:hover { background: #dcece0; }
+.room-pick-banner {
+  position: absolute;
+  z-index: 4;
+  inset: 12px 12px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  color: #183a2b;
+  background: #f4faf5;
+  border: 1px solid #b8d0c0;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px #12241b26;
+  font-size: 12px;
+}
+.is-room-picking .drawing-sheet > img { cursor: crosshair; }
+.is-room-picking .drawing-sheet > img:focus-visible { outline: 3px solid #3d8359; outline-offset: -3px; }
+.is-room-picking .evidence-box { pointer-events: none; }
 @media (max-width: 540px) {
   .spatial-top { left: 8px; top: 8px; }
   .view-mode-button { right: 8px; top: 8px; }

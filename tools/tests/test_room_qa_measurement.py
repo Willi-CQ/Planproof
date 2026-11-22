@@ -39,7 +39,7 @@ def test_pixels_drive_outline_and_scale_candidates():
 
 
 def test_missing_scale_keeps_the_marked_outline(monkeypatch):
-    monkeypatch.setattr("tools.free_agent_room_qa.room_geometry.read_scale", lambda *args: None)
+    monkeypatch.setattr("tools.free_agent_room_qa.room_geometry.read_scale", lambda *args, **kwargs: None)
     with Image.open(DRAWING) as image:
         result = inspect_room(image, {"lines":[{"text":"HALLWAY","bbox":ANCHOR["bbox"]}]},
                               compile_question("How big is the hallway?"))

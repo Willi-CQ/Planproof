@@ -10,8 +10,9 @@ interface Props {
   rasterSource?: Blob;
   selectedEvidence: { message: string; index: number } | null;
   onHighlight: (message: string, index: number) => void;
+  onPickRoom?: () => void;
 }
-export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, onHighlight, rasterSource }: Props) {
+export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, onHighlight, rasterSource, onPickRoom }: Props) {
   const citations = visibleCitations(result, drawing);
   const selected = selectedEvidence?.message === messageId ? citations[selectedEvidence.index] : undefined;
   const resolved = isAnswered(result);
@@ -31,6 +32,9 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
   const detections = citations.filter(c => detailFor(c.source_index!)?.kind === "detection");
   const unlinked = citations.filter(c => !referenced.has(c.source_index!));
   const approximate = result.measurement?.approximate === true;
+  const needsRoom = onPickRoom && ["room_target_not_found","room_target_ambiguous","room_boundary_unverified"]
+    .includes(result.reader_reason ?? "");
+  const germanRoomHint = needsRoom && /^(Wähle|Mehrere|Um diesen|Ich|Die Beschriftung)/.test(result.answer?.explanation ?? "");
   const countEvidence = result.count_evidence;
   const notes = [...new Set(result.answer?.uncertainties || [])].filter(note => !paragraphs.some(p => p.text === note));
   const moreInformation = paragraphs.length > 2 || notes.length > 0 || !!result.answer?.coverage || !!countEvidence || !!result.reader_input;
@@ -43,6 +47,9 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
         {paragraph.text}{paragraph.citations.map(reference)}
       </p>) : result.answer?.explanation && <p>{result.answer.explanation}{citations.map(c => reference(c.source_index!))}</p>}
     </div>
+    {needsRoom && <button type="button" className="answer-room-pick" onClick={onPickRoom}>
+      {germanRoomHint ? "Stelle im Plan auswählen" : "Select on the plan"}<ArrowUpRight size={15}/>
+    </button>}
     {!!paragraphs.length && !!unlinked.length && <p className="additional-sources">Additional source evidence {unlinked.map(c => reference(c.source_index!))}</p>}
     {rasterSource && selected && <RasterEvidenceDetail source={rasterSource} drawing={drawing} bounds={selected.canonical_bbox} />}
     {moreInformation && <details className="answer-notes answer-information"><summary>More information<ChevronDown size={13} /></summary>
@@ -64,7 +71,7 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
       </aside>}
       </div>
     </details>}
-    {!resolved && result.answer?.status !== "partial" && !result.answer?.clarification_question && <p className="answer-help">{result.reader_reason === "unsupported_question" || result.reader_reason === "visual_count_required" || result.reader_reason === "geometry_on_large_raster"
+    {!needsRoom && !resolved && result.answer?.status !== "partial" && !result.answer?.clarification_question && <p className="answer-help">{result.reader_reason === "unsupported_question" || result.reader_reason === "visual_count_required" || result.reader_reason === "geometry_on_large_raster"
       ? 'For a floor area, try “Show me the hallway and tell me how big it is.” Use the room name or ID shown on your plan.'
       : result.reliability?.retry_after_seconds ? `Please wait ${result.reliability.retry_after_seconds} seconds before trying again.` : result.completion_reason === "inspection_incomplete" ? "The inspection did not establish a complete answer. This does not mean the drawing lacks the information." : "A clearer detail or a more specific question may help resolve this."}</p>}
     {!!detections.length && <section className="detection-evidence" aria-label="Detected features in the source">

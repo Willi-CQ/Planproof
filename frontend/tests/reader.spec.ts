@@ -12,7 +12,7 @@ async function submitted(route: Route) {
   }).formData();
   const file = body.get("file") as File;
   const bytes = Buffer.from(await file.arrayBuffer());
-  return {file, bytes, question: body.get("question"), page: Number(body.get("page"))};
+  return {file, bytes, question: body.get("question"), page: Number(body.get("page")), roomPoint: body.get("room_point")};
 }
 async function ask(page: Page, question = "Where is door D-01?") {
   await page.getByLabel("Question about this drawing").fill(question);
@@ -152,6 +152,42 @@ test("a natural room question selects the measured floor and shows the scale in 
   await page.getByRole("button",{name:"Return to 2D"}).click();
   await expect(page.getByTestId("room-outline")).toHaveAttribute("points","160,420 960,420 960,580 160,580");
   await expect(page.getByTestId("scale-anchor")).toHaveAttribute("points","160,669 360,669");
+});
+test("an unresolved room question can be repeated at a selected source point", async ({page}) => {
+  let requests = 0;
+  const original = "Markiere den Flur und sag mir, wie groß er ist.";
+  await page.route("**/api/reader", async route => {
+    const sent = await submitted(route);
+    const source = {source_sha256:hash(sent.bytes),page:1,width:1120,height:740,coordinates:"image_pixels"};
+    expect(sent.question).toBe(original);
+    if (++requests === 1) {
+      expect(sent.roomPoint).toBeNull();
+      return route.fulfill({json:{...source,status:"unresolved",value:null,unit:null,calculation:null,
+        reason_code:"room_target_not_found",reason:"Wähle die gewünschte Stelle direkt im Plan.",evidence:[]}});
+    }
+    const point = String(sent.roomPoint).split(",").map(Number);
+    expect(point[0]).toBeCloseTo(.5,2);
+    expect(point[1]).toBeCloseTo(.68,2);
+    await route.fulfill({json:{...source,status:"answered",value:12.8,unit:"m²",approximate:true,
+      calculation:"Ungefähre Bodenfläche",reason:"",
+      evidence:[{id:"outline",kind:"room_polygon",text:"Flur",bbox:[160,420,960,580],
+        polygon:[[160,420],[960,420],[960,580],[160,580]]}]}});
+  });
+  await page.goto("/");
+  await page.getByRole("button",{name:"Explore the 3D sample"}).click();
+  await ask(page,original);
+  const choose = page.getByRole("button",{name:"Stelle im Plan auswählen"});
+  await choose.click();
+  await expect(page.getByTestId("room-picker")).toBeVisible();
+  await page.getByRole("button",{name:"Abbrechen",exact:true}).click();
+  await expect(page.getByTestId("room-picker")).toHaveCount(0);
+  expect(requests).toBe(1);
+  await choose.click();
+  const image = page.getByTestId("source-image");
+  const bounds = (await image.boundingBox())!;
+  await page.mouse.click(bounds.x+bounds.width*.5,bounds.y+bounds.height*.68);
+  await expect(page.getByTestId("answer-value").last()).toHaveText("≈ 12.8 m²");
+  expect(requests).toBe(2);
 });
 test("an oversized PDF sends only the selected vector page, with page-bound history and evidence", async ({page}) => {
   const doc = await PDFDocument.create();

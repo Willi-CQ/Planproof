@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from shapely.affinity import translate
-from shapely.geometry import Point
+from shapely.geometry import Point, box as rectangle
 
 from . import ocr
 from .geometry import center, white_enclosures
@@ -16,7 +16,7 @@ from .reader import clean, evidence
 from .room_intent import NAMES
 
 
-SCALE_VALUE = re.compile(r"^0(?:[ ,]+[0-9]+(?:[.,][0-9]+)?)*?\s+(\d+(?:[.,]\d+)?)\s*(m|ft|'|′)$", re.I)
+SCALE_NUMBER = re.compile(r"(\d+(?:[.,]\d+)?)(m|ft|'|′)?", re.I)
 
 
 def room_labels(lines, target):
@@ -87,6 +87,69 @@ def crop_outline(image, anchor, labels):
     return translate(a, xoff=left+.5, yoff=top+.5).buffer(.5, join_style=2)
 
 
+def runs_of_true(row):
+    changes = np.flatnonzero(np.diff(np.pad(row.astype(np.int8),(1,1))))
+    return list(zip(changes[::2],changes[1::2]))
+
+
+def filled_strip(image, point):
+    """Find a straight strip of uniform nonwhite floor fill between changes in width or fill."""
+    x,y = (round(n) for n in point)
+    left,top = max(0,x-1750),max(0,y-1750)
+    right,bottom = min(image.width,x+1751),min(image.height,y+1751)
+    rgb = np.asarray(image.crop((left,top,right,bottom)).convert("RGB"))
+    ix,iy = x-left,y-top
+    if not (0 <= ix < rgb.shape[1] and 0 <= iy < rgb.shape[0]):
+        return None
+    fill = np.median(rgb[max(0,iy-2):iy+3,max(0,ix-2):ix+3],axis=(0,1))
+    if max(fill) >= 249 or min(fill) <= 95:
+        return None
+    mask = cv2.inRange(rgb, tuple(fill-7), tuple(fill+7)) > 0
+    found = []
+    for vertical in (True,False):
+        field, row, col = (mask,iy,ix) if vertical else (mask.T,ix,iy)
+        h,w = field.shape
+        core = field[max(0,row-6):row+7].mean(axis=0) > .72
+        cross = next(((l,r) for l,r in runs_of_true(core) if l<=col<r),None)
+        if not cross:
+            continue
+        a,b = cross
+        if a<3 or b>w-3 or b-a<12:
+            continue
+        span = b-a
+        support = field[:,a:b].mean(axis=1) >= .83
+        gap = min(9,max(3,round(span*.045)))|1
+        stable = cv2.morphologyEx(support.astype(np.uint8).reshape(-1,1),cv2.MORPH_CLOSE,
+                                  np.ones((gap,1), np.uint8)).ravel()
+        reach = next(((l,r) for l,r in runs_of_true(stable) if l<=row<r),None)
+        if not reach:
+            continue
+        p,q = reach
+        if p<3 or q>h-3 or q-p<2.5*span:
+            continue
+        if (support[p:q].mean()<.91 or field[p:q,a-3:a].mean()>.25 or
+                field[p:q,b:b+3].mean()>.25):
+            continue
+        found.append(rectangle(left+a,top+p,left+b,top+q) if vertical
+                     else rectangle(left+p,top+a,left+q,top+b))
+    return found[0] if len(found)==1 else None
+
+
+def point_outline(image, point):
+    strip = filled_strip(image, point)
+    if strip is not None:
+        return strip
+    for half_height in (10,15,23):
+        if not all(half_height <= c < limit-half_height for c,limit in zip(point,image.size)):
+            continue
+        x,y = point
+        anchor = {"id":"selected","bbox":[x-half_height,y-half_height,x+half_height,y+half_height]}
+        shape = crop_outline(image,anchor,[anchor])
+        if shape is not None:
+            return shape
+    return None
+
+
 def bar_candidates(image):
     """Return long, straight runs crossed by three or more projecting ticks."""
     scale = min(1., 2500/max(image.size))
@@ -119,13 +182,39 @@ def bar_candidates(image):
             for left,right,y,look,baseline in sorted(bars, key=lambda b:b[1]-b[0], reverse=True)[:10]]
 
 
-def read_scale(image, bars):
+def checkerboard_bars(image):
+    factor = min(1.,3000/max(image.size))
+    w,h = (max(1,round(n*factor)) for n in image.size)
+    ink = cv2.inRange(np.asarray(grayscale(image.resize((w,h),Image.Resampling.LANCZOS))),0,163)
+    merged = cv2.morphologyEx(ink,cv2.MORPH_CLOSE,np.ones((3,3),np.uint8))
+    _,_,stats,_ = cv2.connectedComponentsWithStats(merged,connectivity=8)
+    found = []
+    for x,y,width,height,area in stats[1:]:
+        if width < w*.047 or not .022*width <= height <= .13*width or not .27 < area/(width*height) < .82:
+            continue
+        if min(x,y,w-x-width,h-y-height)<3:
+            continue
+        top = ink[y+height//4,x:x+width]>0
+        bottom = ink[y+3*height//4,x:x+width]>0
+        dark_counts = [sum(b-a>=width*.065 for a,b in runs_of_true(row)) for row in (top,bottom)]
+        if (top != bottom).mean() < .81 or min(dark_counts)<1 or not 3 <= sum(dark_counts) <= 16:
+            continue
+        endpoints = (x*image.width/w,(x+width-1)*image.width/w)
+        found.append((*endpoints,(y+height/2)*image.height/h,height*image.height/h,y*image.height/h))
+    return sorted(found,key=lambda b:b[1]-b[0],reverse=True)[:6]
+
+
+def read_scale(image, bars, *, labels_above=False):
     verified = []
     for x0,x1,y,look,baseline in bars:
         span = x1-x0
         left,right = max(0, math.floor(x0 - .08*span)), min(image.width, math.ceil(x1 + .2*span))
-        top = min(image.height, math.floor(baseline + .52*look))
-        bottom = min(image.height, math.ceil(baseline + max(3.5*look, .14*span)))
+        if labels_above:
+            top = max(0,math.floor(baseline - max(2.2*look,.11*span)))
+            bottom = max(0,math.floor(baseline - max(3,.17*look)))
+        else:
+            top = min(image.height, math.floor(baseline + .52*look))
+            bottom = min(image.height, math.ceil(baseline + max(3.5*look, .14*span)))
         if bottom-top < 6:
             continue
         chip = grayscale(image.crop((left,top,right,bottom)))
@@ -138,55 +227,75 @@ def read_scale(image, bars):
             continue
         words = [row for row in csv.DictReader(tsv.splitlines(),delimiter="\t")
                  if row.get("level") == "5" and row.get("text","").strip()]
-        reading = " ".join(row["text"].strip() for row in words)
-        match = SCALE_VALUE.fullmatch(reading)
-        if not match or len(words) < 2 or not words[0]["text"].startswith("0"):
+        readings = [(match, left + (float(row["left"])+float(row["width"])/2)/zoom)
+                    for row in words if (match:=SCALE_NUMBER.fullmatch(row["text"].strip()))]
+        if len(readings)<3:
             continue
-        lo = left + float(words[0]["left"])/zoom
-        last_number = next((w for w in reversed(words) if re.search(r"\d",w["text"])), words[-1])
-        hi = left + (float(last_number["left"])+float(last_number["width"])/2)/zoom
+        zero,lo = readings[0]
+        match,hi = readings[-1]
+        if float(zero[1].replace(",",".")) != 0:
+            continue
         if abs(lo-x0) > .14*span or abs(hi-x1) > .15*span:
             continue
-        distance = float(match[1].replace(",", ".")) * (1 if match[2].lower()=="m" else .3048)
+        unit = (match[2] or words[-1]["text"]).lower()
+        if unit not in ("m","ft","'","′"):
+            continue
+        value = float(match[1].replace(",","."))
+        if value <= 0 or any(abs(float(mid[1].replace(",","."))/value - (x-x0)/span)>.09
+                             for mid,x in readings[1:-1]):
+            continue
+        distance = value * (1 if unit=="m" else .3048)
         if distance > 0:
-            verified.append((distance/span, (left, max(0,y-look), right, bottom), [[x0,y],[x1,y]], match[1]+" "+match[2]))
+            verified.append((distance/span, (left, min(top,max(0,y-look)), right, min(image.height,max(bottom,y+look))),
+                             [[x0,y],[x1,y]], match[1]+" "+("m" if unit=="m" else "ft")))
     if not verified or max(a[0] for a in verified) / min(a[0] for a in verified) > 1.04:
         return None
     return verified[0]
 
 
-def inspect_room(image, scene, program, *, frame_scale=(1.,1.)):
+def inspect_room(image, scene, program, *, frame_scale=(1.,1.), room_point=None):
     args = program["args"]
     de = args["lang"] == "de"
     locate = program["op"] == "locate_room"
     sx, sy = frame_scale
-    hits = room_labels(scene["lines"], args["room"])
     result = dict(status="unresolved", value=None, unit=None, evidence=[], calculation=None, reason="")
-    if len(hits) != 1:
-        return {**result, "reason_code":"room_target_ambiguous" if hits else "room_target_not_found",
-                "reason":("Ich finde mehrere passende Räume. Nenne bitte die Raumkennung oder frage nach einem eindeutigen Ausschnitt."
-                          if hits else "Ich konnte die Raumbezeichnung auf dieser Seite nicht eindeutig finden.")
-                         if de else ("I found several matching rooms. Give the room ID or ask about a clearer detail."
-                                     if hits else "I could not find a matching room label on this page.")}
-    label = hits[0]
-    other = [item["label"] for item in scene.get("rooms", {}).values() if item["label"]["bbox"] != label["bbox"]]
-    labels = [{**item,"bbox":[v*s for v,s in zip(item["bbox"],(sx,sy,sx,sy))]} for item in [label,*other]]
-    polygon = crop_outline(image,labels[0],labels)
+    label = None
+    if room_point is not None:
+        polygon = point_outline(image, tuple(v*n for v,n in zip(room_point,image.size)))
+    else:
+        hits = room_labels(scene["lines"], args["room"])
+        if len(hits) != 1:
+            return {**result, "reason_code":"room_target_ambiguous" if hits else "room_target_not_found",
+                    "reason":("Mehrere Räume passen zu deiner Frage. Wähle die gewünschte Stelle direkt im Plan."
+                              if hits else "Wähle die gewünschte Stelle direkt im Plan. Dann kann ich die Kontur prüfen.")
+                             if de else ("Several rooms match. Select the one you mean directly on the drawing."
+                                         if hits else "Select the room on the drawing so I can check its outline.")}
+        label = hits[0]
+        other = [item["label"] for item in scene.get("rooms", {}).values() if item["label"]["bbox"] != label["bbox"]]
+        labels = [{**item,"bbox":[v*s for v,s in zip(item["bbox"],(sx,sy,sx,sy))]} for item in [label,*other]]
+        polygon = crop_outline(image,labels[0],labels)
+    name = label["text"] if label else ("Ausgewählter Bereich" if de else "Selected area")
     if polygon is None:
-        return {**result, "status":"partial", "value":label["text"], "evidence":[label],
+        if not label:
+            return {**result,"reason_code":"room_boundary_unverified",
+                    "reason":"Um diesen Punkt ließ sich keine eindeutige Bodenkontur bestätigen."
+                        if de else "I could not verify a floor boundary around that point."}
+        return {**result, "status":"partial", "value":name, "evidence":[label],
                 "reason_code":"room_boundary_unverified",
                 "reason":"Die Beschriftung ist markiert. Die zugehörige Bodenkontur ist nicht eindeutig."
                     if de else "The label is marked. I could not verify the corresponding floor outline."}
-    outline = evidence("room_polygon",[v/s for v,s in zip(polygon.bounds,(sx,sy,sx,sy))],label["text"],"room-outline")
+    outline = evidence("room_polygon",[v/s for v,s in zip(polygon.bounds,(sx,sy,sx,sy))],name,"room-outline")
     outline["polygon"] = [[x/sx,y/sy] for x,y in polygon.exterior.coords]
-    result["evidence"] = [outline, label]
+    result["evidence"] = [outline, label] if label else [outline]
     if locate:
-        return {**result, "status":"answered", "value":label["text"],
+        return {**result, "status":"answered", "value":name,
                 "calculation":"Die markierte Kontur folgt den Innenkanten und schließt kurze Öffnungen."
                     if de else "Marked the floor outline along the inside of the walls, closing short openings."}
     scale = read_scale(image, bar_candidates(image))
     if scale is None:
-        return {**result, "status":"partial", "value":label["text"], "reason_code":"room_scale_unverified",
+        scale = read_scale(image, checkerboard_bars(image), labels_above=True)
+    if scale is None:
+        return {**result, "status":"partial", "value":name, "reason_code":"room_scale_unverified",
                 "reason":"Die Kontur ist markiert. Für die Fläche fehlt ein eindeutiger grafischer Maßstab."
                     if de else "The outline is marked. I need a verifiable graphic scale to give its area."}
     metres, box, ends, span = scale

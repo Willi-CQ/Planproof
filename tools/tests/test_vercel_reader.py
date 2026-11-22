@@ -1,5 +1,6 @@
 """Exercise the hosted HTTP contract, compact CPU backend, and embedded OCR."""
 from hashlib import sha256
+from io import BytesIO
 from http.client import HTTPConnection
 from http.server import HTTPServer
 import json
@@ -28,10 +29,13 @@ def server():
         httpd.server_close()
 
 
-def post(server, data, question, page=1):
+def post(server, data, question, page=1, room_point=None):
     boundary = b"PlanProofTestForm"
     form = []
-    for field, payload in (("page", str(page).encode()), ("question", question.encode()), ("file", data)):
+    fields = [("page", str(page).encode()), ("question", question.encode()), ("file", data)]
+    if room_point is not None:
+        fields.append(("room_point",room_point.encode()))
+    for field, payload in fields:
         disposition = f'Content-Disposition: form-data; name="{field}"'
         if field == "file":
             disposition += '; filename="sheet.pdf"'
@@ -101,6 +105,39 @@ def test_hallway_natural_request_returns_outline_and_scale(server):
         assert outline["kind"] == "room_polygon" and len(outline["polygon"]) >= 4
         assert outline["bbox"] == pytest.approx([160,420,960,580], abs=3)
         assert scale["kind"] == "graphic_scale" and len(scale["line"]) == 2
+
+
+def unlabeled_hallway():
+    image = Image.new("L",(1120,740),255)
+    pen = ImageDraw.Draw(image)
+    pen.rectangle((400,70,540,490),fill=229,outline=30,width=8)
+    pen.rectangle((440,55,500,70),fill=229)
+    # Alternating blocks on two rows with a dark perimeter stroke.
+    for i,(a,b) in enumerate(zip((160,260,360,560),(260,360,560))):
+        mid=611
+        box = (a,600,b-1,mid) if i%2 else (a,mid,b-1,622)
+        pen.rectangle(box,fill=0)
+    pen.rectangle((160,600,560,622),outline=0,width=2)
+    font = ImageFont.truetype(str(ocr.ASSETS / "DejaVuSans.ttf"),27)
+    for x,label in [(160,"0'"),(260,"10'"),(360,"20'"),(560,"40'")]:
+        pen.text((x,565),label,font=font,fill=0,anchor="mt")
+    data = BytesIO()
+    image.save(data,format="PNG")
+    return data.getvalue()
+
+
+def test_point_selects_unlabelled_floor_and_reads_scale_above(server):
+    source = unlabeled_hallway()
+    question = "Markiere den Flur und sag mir, wie groß er ist."
+    status, missing = post(server,source,question)
+    assert status==200 and missing["reason_code"]=="room_target_not_found"
+    status, answer = post(server,source,question,room_point="0.42,0.4")
+    assert status==200 and answer["status"]=="answered", answer
+    assert answer["value"] == pytest.approx(124*405*(40*.3048/400)**2, rel=.05)
+    assert answer["unit"]=="m²"
+    assert answer["evidence"][0]["kind"]=="room_polygon"
+    assert answer["evidence"][1]["text"]=="40 ft"
+    assert post(server,source,question,room_point="nan,0.2")[0]==400
 
 
 def test_cpu_reference_prediction_parity(monkeypatch):

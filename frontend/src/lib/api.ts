@@ -167,7 +167,8 @@ export function resultText(result: AgentResult): string {
       scope_unverified: "The requested area could not be verified",
       ocr_budget_exhausted: "The scan stopped before it covered the sheet",
       room_target_ambiguous: "Which room do you mean?",
-      room_target_not_found: "Room label not located",
+      room_target_not_found: "Select the room on the plan",
+      room_boundary_unverified: "Floor outline could not be confirmed",
     };
     if (reasons[result.reader_reason]) return reasons[result.reader_reason];
   }

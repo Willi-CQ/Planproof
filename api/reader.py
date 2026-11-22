@@ -82,7 +82,7 @@ def parse_upload(content_type, body):
     fields = {}
     for part in message.iter_parts():
         name = part.get_param("name", header="content-disposition")
-        if name not in {"file", "page", "question"}:
+        if name not in {"file", "page", "question", "room_point"}:
             continue
         if name in fields or part.is_multipart():
             raise InputError(400, "Each form field must appear once.")
@@ -101,7 +101,17 @@ def parse_upload(content_type, body):
         raise InputError(400, "Provide a valid page number and UTF-8 question.") from None
     if page < 1 or not 1 <= len(question) <= MAX_QUESTION:
         raise InputError(400, "Enter a question and a positive page number.")
-    return data, page, question
+    room_point = None
+    if "room_point" in fields:
+        try:
+            if len(fields["room_point"]) > 36:
+                raise ValueError()
+            room_point = tuple(float(v) for v in fields["room_point"].decode("ascii").split(","))
+            if len(room_point) != 2 or not all(0 < v < 1 for v in room_point):
+                raise ValueError()
+        except ValueError:
+            raise InputError(400, "Choose a point inside the selected page.") from None
+    return data, page, question, room_point
 
 
 def open_raster(data):
@@ -170,7 +180,7 @@ def read_raster_text(data):
         return read_native(image, sha256(data).hexdigest())
 
 
-def read_drawing(data, page, question):
+def read_drawing(data, page, question, room_point=None):
     from planproof_runtime.native_raster import empty_scene, read_native
     from tools.free_agent_room_qa import answer_program, build_scene, compile_question
     from tools.free_agent_room_qa.page_text import TEXT_OPS
@@ -182,6 +192,8 @@ def read_drawing(data, page, question):
         suffix, count, size = check_file(data, page)
         program = compile_question(question)
         op = program["op"]
+        if room_point is not None and op not in {"locate_room","measure_room"}:
+            raise InputError(400, "A selected room point requires a room question.")
         if op in {"locate_room", "measure_room"}:
             digest = sha256(data).hexdigest()
             if suffix == ".pdf":
@@ -191,16 +203,16 @@ def read_drawing(data, page, question):
                     image, lines, _, width, height, _, _ = native_reads(path, page)
                 scene = empty_scene(digest, page, size, pdf=True)
                 sx, sy = image.width/width, image.height/height
-                if not lines:
+                if not lines and room_point is None:
                     lines, _ = ocr_read(image, width, height)
                 labels, _ = label_reads(lines)
                 scene.update(lines=lines, rooms={k:{"label":v} for k,v in labels.items()})
-                result = inspect_room(image, scene, program, frame_scale=(sx,sy))
+                result = inspect_room(image, scene, program, frame_scale=(sx,sy), room_point=room_point)
             else:
                 with open_raster(data) as image:
                     image.load()
-                    scene = read_native(image, digest)
-                    result = inspect_room(image, scene, program)
+                    scene = empty_scene(digest,page,size) if room_point is not None else read_native(image,digest)
+                    result = inspect_room(image, scene, program, room_point=room_point)
             return {**result, "program": program, "page": page, "page_count": count,
                     "width": size[0], "height": size[1], "coordinates": scene["coordinates"],
                     "source_sha256": digest, "reader": "Floor outline and graphic scale"}
@@ -268,8 +280,8 @@ class handler(BaseHTTPRequestHandler):
                 raise InputError(413, "The request exceeds the upload limit.")
             if size < 1:
                 raise InputError(400, "The upload is empty.")
-            data, page, question = parse_upload(self.headers.get("Content-Type", ""), self.rfile.read(size))
-            response = read_drawing(data, page, question)
+            data, page, question, room_point = parse_upload(self.headers.get("Content-Type", ""), self.rfile.read(size))
+            response = read_drawing(data, page, question, room_point)
             self.send_json(200, response)
         except InputError as exc:
             self.send_json(exc.status, {"error": str(exc)})

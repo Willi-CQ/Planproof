@@ -44,6 +44,7 @@ interface Props {
   onClearChat: () => void;
   selectedEvidence: { message: string; index: number } | null;
   onHighlight: (message: string, index: number) => void;
+  onPickRoom?: (message: string) => void;
 }
 export function PlanChatbotPanel({
   draft,
@@ -66,6 +67,7 @@ export function PlanChatbotPanel({
   onClearChat,
   selectedEvidence,
   onHighlight,
+  onPickRoom,
 }: Props) {
   const scroll = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -203,6 +205,7 @@ export function PlanChatbotPanel({
                     messageId={message.id}
                     selectedEvidence={selectedEvidence}
                     onHighlight={onHighlight}
+                    onPickRoom={!disabled && onPickRoom ? () => onPickRoom(message.id) : undefined}
                   />
                 )}
                 {message.run && !terminal(message.run) && <RunActivity run={message.run} drawing={drawing} connection={connection}

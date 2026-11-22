@@ -82,6 +82,7 @@ export default function App() {
   const [inspectionId, setInspectionId] = useState<string | null>(null);
   const [inspectionView, setInspectionView] = useState<"steps" | "candidates">("steps");
   const [focusRegion, setFocusRegion] = useState<Region | null>(null);
+  const [roomPick, setRoomPick] = useState<{question:string; german:boolean} | null>(null);
   const [shapes, setShapes] = useState<EvidenceShape[]>([]);
   const [follow, setFollow] = useState(false);
   const [followLive, setFollowLive] = useState(false);
@@ -214,6 +215,7 @@ export default function App() {
     busy,
   ]);
   async function openSaved(id: string) {
+    setRoomPick(null);
     try {
       const saved = await getSavedDrawing(id);
       if (saved) await restore(saved);
@@ -268,6 +270,7 @@ export default function App() {
       return;
     }
     pending.current = true;
+    setRoomPick(null);
     const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
     closeInspector();
@@ -375,10 +378,11 @@ export default function App() {
       setConnection("");
     }
   }
-  async function sendMessage(question: string): Promise<boolean> {
+  async function sendMessage(question: string, roomPoint?: [number,number]): Promise<boolean> {
     if (pending.current || !drawing || !file) return false;
     if (readerWorkspace && (!readerPage || (readerPage.representation === "image" && !allowPageImage))) return false;
     pending.current = true;
+    setRoomPick(null);
     setBusy("ask");
     setError(null);
     setSelectedEvidence(null);
@@ -417,10 +421,12 @@ export default function App() {
           updated: Date.now(),
         }).catch(cacheFailure);
       if (readerWorkspace && readerPage) {
-        const result = await askReader(readerPage, question);
+        const result = await askReader(readerPage, question, roomPoint);
         setMessages(previous => [...previous, {id, role: "assistant", content: "", result}]);
         if (result.answer?.citation_details?.[0]?.kind === "measurement")
           setSelectedEvidence({message:id, index:0});
+        if (roomPoint && (result.answer?.status === "abstain" || result.reader_reason === "room_scale_unverified"))
+          setMobileTab("ask");
         setDraft("");
         return true;
       }
@@ -509,6 +515,7 @@ export default function App() {
     setMobileTab("drawing");
   }
   const reset = () => {
+    setRoomPick(null);
     if (pending.current) return;
     closeInspector();
     setSavedId(null);
@@ -525,10 +532,23 @@ export default function App() {
     setSelectedEvidence(null);
   };
   const highlight = (message: string, index: number) => {
+    setRoomPick(null);
     setFocusRegion(null);
     setSelectedEvidence({ message, index });
     setMobileTab("drawing");
   };
+  function pickRoom(messageId: string) {
+    if (!readerPage || busy || inspectionId || (readerPage.representation === "image" && !allowPageImage)) return;
+    const answer = messages.findIndex(m => m.id === messageId);
+    if (answer < 1) return;
+    const question = messages.slice(0,answer).reverse().find(m => m.role === "user")?.content;
+    if (!question) return;
+    const explanation = messages[answer].result?.answer?.explanation ?? "";
+    setRoomPick({question,german:/^(Wähle|Mehrere|Um diesen|Ich|Die Beschriftung)/.test(explanation)});
+    setSelectedEvidence(null);
+    setFocusRegion(null);
+    setMobileTab("drawing");
+  }
   const evidenceMessage =
     inspected ||
     (selectedEvidence
@@ -781,6 +801,11 @@ export default function App() {
                 onZoomChange={setZoom}
                 isPdf={file?.type === "application/pdf"}
                 disabled={!!busy || !ready}
+                roomPick={roomPick ? {
+                  german:roomPick.german,
+                  onPoint: point => void sendMessage(roomPick.question,point),
+                  onCancel: () => setRoomPick(null),
+                } : undefined}
                 loadingPage={busy === "upload"}
                 onPageChange={(nextPage) => {
                   if (file && Number.isInteger(nextPage) && nextPage > 0)
@@ -850,10 +875,12 @@ export default function App() {
                   if (!pending.current) {
                     setMessages([]);
                     setSelectedEvidence(null);
+                    setRoomPick(null);
                   }
                 }}
                 selectedEvidence={selectedEvidence}
                 onHighlight={highlight}
+                onPickRoom={readerWorkspace && (readerPage?.representation !== "image" || allowPageImage) ? pickRoom : undefined}
               />
             )}
           </main>

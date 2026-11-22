@@ -42,6 +42,7 @@ interface Props {
   disabled: boolean;
   loadingPage: boolean;
   onPageChange: (page: number) => void;
+  roomPick?: {german:boolean; onPoint:(point:[number,number])=>void; onCancel:()=>void};
 }
 export function PlanCanvas2D({
   spatialSample = false,
@@ -62,6 +63,7 @@ export function PlanCanvas2D({
   disabled,
   loadingPage,
   onPageChange,
+  roomPick,
 }: Props) {
   const viewport = useRef<HTMLDivElement>(null),
     sheet = useRef<HTMLDivElement>(null);
@@ -82,7 +84,7 @@ export function PlanCanvas2D({
   const [showCandidates, setShowCandidates] = useState(true);
   const [spatialRequested, setSpatialRequested] = useState(spatialSample);
   const [spatialVisited, setSpatialVisited] = useState(spatialSample);
-  const spatial = spatialRequested && !focusRegion && comparisonSplit == null;
+  const spatial = spatialRequested && !roomPick && !focusRegion && comparisonSplit == null;
   const activity = liveActivity(liveRun, drawing.source);
   useEffect(() => {
     if (spatial || (!focusRegion && selectedIndex === null) || !viewport.current) return;
@@ -140,28 +142,38 @@ export function PlanCanvas2D({
   const caption = answer?.answer != null
     ? (result?.measurement?.approximate ? "≈ " : "") + [answer.answer, answer.unit].filter(v => v != null && v !== "").join(" ")
     : undefined;
+  function choosePoint(clientX:number, clientY:number, bounds:DOMRect) {
+    if (!roomPick || !bounds.width || !bounds.height) return;
+    const x=(clientX-bounds.left)/bounds.width, y=(clientY-bounds.top)/bounds.height;
+    if (x>0 && x<1 && y>0 && y<1) roomPick.onPoint([x,y]);
+  }
   return (
     <section className="drawing-viewer" aria-label="Drawing viewer">
-      <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
+      {roomPick && <div className="room-pick-banner" data-testid="room-picker">
+        <span role="status">{roomPick.german ? "Klick in die freie Bodenfläche des Flurs oder Raums." :
+          "Click an open spot inside the hallway or room."}</span>
+        <button type="button" onClick={roomPick.onCancel}>{roomPick.german ? "Abbrechen" : "Cancel"}</button>
+      </div>}
+      {!roomPick && <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
         aria-pressed={spatial} disabled={comparisonSplit != null} onClick={() => {
           onManualView?.();
           setSpatialVisited(true);
           setSpatialRequested(!spatial);
         }}>
         {spatial ? <Scan size={15}/> : <Box size={15}/>} {spatial ? "2D plan" : "3D view"}
-      </button>
+      </button>}
       {spatialVisited && <SpatialPlan drawing={drawing} citations={citations} selectedIndex={selectedIndex}
         onSelectEvidence={onSelectEvidence} caption={caption} sample={spatialSample} hidden={!spatial} />}
       <div
         ref={viewport}
         hidden={spatial}
-        className={`plan-viewport ${panning ? "is-panning" : ""}`}
+        className={`plan-viewport ${panning ? "is-panning" : ""} ${roomPick ? "is-room-picking" : ""}`}
         data-testid="plan-viewport"
         onWheel={() => onManualView?.()}
         onPointerDown={(e) => {
           onManualView?.();
           if (
-            e.pointerType !== "mouse" ||
+            roomPick || e.pointerType !== "mouse" ||
             e.button !== 0 ||
             (e.target as Element).closest('[role="button"]')
           )
@@ -205,6 +217,18 @@ export function PlanCanvas2D({
             height={drawing.height}
             data-testid="source-image"
             draggable={false}
+            tabIndex={roomPick ? 0 : undefined}
+            aria-keyshortcuts={roomPick ? "Enter Escape" : undefined}
+            onClick={roomPick ? event => choosePoint(event.clientX,event.clientY,event.currentTarget.getBoundingClientRect()) : undefined}
+            onKeyDown={roomPick ? event => {
+              if (event.key==="Escape") roomPick.onCancel();
+              if (event.key!=="Enter") return;
+              event.preventDefault();
+              const bounds = event.currentTarget.getBoundingClientRect();
+              const visible = viewport.current?.getBoundingClientRect() ?? bounds;
+              choosePoint((Math.max(bounds.left,visible.left)+Math.min(bounds.right,visible.right))/2,
+                          (Math.max(bounds.top,visible.top)+Math.min(bounds.bottom,visible.bottom))/2,bounds);
+            } : undefined}
           />
           <AlgorithmOverlay
             shapes={shapes}
@@ -441,10 +465,10 @@ export function PlanCanvas2D({
           Opening page…
         </div>
       )}
-      {!spatial && !activity && citations.length > 0 && (
+      {!roomPick && !spatial && !activity && citations.length > 0 && (
         <div className="evidence-count">
           <span />
-          {citations.length === 1
+          {result?.measurement?.approximate ? caption : citations.length === 1
             ? "1 linked source"
             : `${citations.length} linked sources`}
         </div>

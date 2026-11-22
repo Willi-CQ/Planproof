@@ -200,11 +200,12 @@ function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
           citations: data.calculation ? [] : citations.map(c => c.source_index!)}] : [])
       ]}};
 }
-export async function askReader(prepared: ReaderPage, question: string) {
+export async function askReader(prepared: ReaderPage, question: string, roomPoint?: [number,number]) {
   const body = new FormData();
   body.append("file", prepared.payload);
   body.append("page", String(prepared.payloadPage));
   body.append("question", question);
+  if (roomPoint) body.append("room_point", roomPoint.map(v=>v.toFixed(8)).join(","));
   const response = await fetch("/api/reader", {method: "POST", body});
   const result = await response.json().catch(() => null);
   if (!response.ok) {
