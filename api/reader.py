@@ -133,14 +133,19 @@ def check_file(data, page):
 
 def read_drawing(data, page, question):
     from tools.free_agent_room_qa import answer, build_scene
+    from tools.free_agent_room_qa.raster_tags import templates
     with READ_LOCK:
         capabilities()
         suffix, count = check_file(data, page)
         with TemporaryDirectory(prefix="planproof-") as folder:
             path = Path(folder) / ("drawing" + suffix)
             path.write_bytes(data)
-            scene = build_scene(path, page)
-            result = answer(scene, question)
+            try:
+                scene = build_scene(path, page)
+                result = answer(scene, question)
+            finally:
+                # These glyph templates are keyed by text from the uploaded page.
+                templates.cache_clear()
     return {**result, "page_count": count, "reader": scene["reader"]}
 
 
