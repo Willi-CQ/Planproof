@@ -2,6 +2,7 @@
 import type { SourceFrame } from "./runs";
 export interface Drawing {
   page_count?: number;
+  original_url?: string;
   source?: SourceFrame;
   document_id: string;
   page: number;

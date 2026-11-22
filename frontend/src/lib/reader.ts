@@ -127,6 +127,7 @@ export async function prepareReaderPage(file: File, page: number, knownHash?: st
   const payloadHash = payload === file ? originalHash : await drawingId(payload);
   const drawing = {document_id: "reader-" + originalHash + "-p" + page, page,
     page_count: preview.pageCount, image_url: URL.createObjectURL(previewBlob),
+    original_url: URL.createObjectURL(file),
     width: preview.width, height: preview.height,
     source: {page_index: page - 1, width: preview.width, height: preview.height, raster_sha256: originalHash}};
   return {drawing, payload, payloadPage, payloadHash, payloadWidth, payloadHeight, originalHash, representation};

@@ -6,7 +6,7 @@ from PIL import Image
 def image_array(image):
     paper = Image.new("RGBA", image.size, "white")
     paper.alpha_composite(image.convert("RGBA"))
-    return np.asarray(paper.convert("L"), dtype=np.uint8)
+    return np.array(paper.convert("L"), dtype=np.uint8)
 
 
 def iou(box, other):

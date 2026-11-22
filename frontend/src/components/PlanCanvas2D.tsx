@@ -383,7 +383,7 @@ export function PlanCanvas2D({
         </button>
         <a
           className="icon-button"
-          href={drawing.image_url}
+          href={drawing.original_url ? drawing.original_url + (isPdf ? "#page=" + drawing.page : "") : drawing.image_url}
           target="_blank"
           rel="noreferrer"
           aria-label="Open full-resolution source"

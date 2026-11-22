@@ -51,7 +51,10 @@ export default function App() {
   const [allowPageImage, setAllowPageImage] = useState(false);
   const [loadingExample, setLoadingExample] = useState("");
   useEffect(() => () => {
-    if (readerPage) URL.revokeObjectURL(readerPage.drawing.image_url);
+    if (readerPage) {
+      URL.revokeObjectURL(readerPage.drawing.image_url);
+      if (readerPage.drawing.original_url) URL.revokeObjectURL(readerPage.drawing.original_url);
+    }
   }, [readerPage]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedEvidence, setSelectedEvidence] = useState<{
@@ -790,7 +793,9 @@ export default function App() {
                     Small labels and vector detail can be lost. Highlights map back to page {drawing.page}.
                   </label>
                 ) : readerPage?.representation === "page"
-                  ? `Page ${drawing.page} will be sent as a single-page PDF with its text and vectors.` : undefined}
+                  ? `Page ${drawing.page} will be sent as a single-page PDF with its text and vectors.` :
+                    readerPage && (drawing.page_count ?? 1) > 1
+                      ? `Asking sends the original PDF to Planproof. Only page ${drawing.page} is read.` : undefined}
                 key={drawing.document_id}
                 draft={draft}
                 onDraftChange={setDraft}

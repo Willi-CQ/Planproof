@@ -39,6 +39,21 @@ function answer(bytes: Buffer, page: number, type: string, width: number, height
       {id: "mark1", kind: "door_mark", text: "D-01", bbox: [80,50,100,70]},
     ]};
 }
+test("public Stoa references download on selection and reject changed publisher files", async ({page}) => {
+  let downloads = 0;
+  await page.route("https://raw.githubusercontent.com/**", async route => {
+    downloads++;
+    await route.fulfill({headers:{"access-control-allow-origin":"*"}, contentType:"application/pdf", body:"changed"});
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading", {name:"Try a public Stoa reference sheet"})).toBeVisible();
+  await expect(page.getByRole("button", {name:/A-701/})).toBeVisible();
+  expect(downloads).toBe(0);
+  await page.getByRole("button", {name:/A-801/}).click();
+  await expect(page.getByRole("alert")).toContainText("does not match the verified Stoa sheet");
+  await expect(page.getByTestId("source-image")).toHaveCount(0);
+  expect(downloads).toBe(1);
+});
 test("an oversized PDF sends only the selected vector page, with page-bound history and evidence", async ({page}) => {
   const doc = await PDFDocument.create();
   doc.addPage([240,120]);

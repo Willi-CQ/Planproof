@@ -3,8 +3,6 @@ from hashlib import sha256
 from http.client import HTTPConnection
 from http.server import HTTPServer
 import json
-from pathlib import Path
-import sys
 import threading
 
 import numpy as np
@@ -105,8 +103,8 @@ def test_cpu_reference_prediction_parity(monkeypatch):
     for a, b in zip(detector_cpu.forward(compact, pixels), reference_heads):
         np.testing.assert_allclose(a, b[0].permute(1, 2, 0).numpy(), rtol=1e-4, atol=2e-4)
     # A low cutoff also exercises center decoding and border clipping on this synthetic patch.
-    expected = [r for r in detector.view_predictions(reference, image, .001) if r["category"] == "single_door"]
-    actual = detector_cpu.view_predictions(compact, image, .001)
+    expected = [r for r in detector.view_predictions(reference, image, 0) if r["category"] == "single_door"]
+    actual = detector_cpu.view_predictions(compact, image, 0)
     assert expected and len(actual) == len(expected)
     np.testing.assert_allclose([r["bbox"] for r in actual], [r["bbox"] for r in expected], atol=.002)
     np.testing.assert_allclose([r["confidence"] for r in actual], [r["confidence"] for r in expected], atol=1e-5)

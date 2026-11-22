@@ -25,5 +25,6 @@ def test_digit_repair_needs_visible_prefix_and_shape_advantage(monkeypatch):
 
 
 def test_no_ocr_binary(monkeypatch):
-    monkeypatch.setattr(raster_tags.shutil, 'which', lambda _: None)
+    monkeypatch.delenv('PLANPROOF_COMPACT_CPU', raising=False)
+    monkeypatch.setattr(raster_tags.ocr.shutil, 'which', lambda _: None)
     assert raster_tags.read_raster_tags(Image.new('L', (20, 20), 255), [], 20, 20, []) == []
