@@ -1,5 +1,6 @@
 import type { Message } from "../components/PlanChatbotPanel";
 import type { Drawing } from "./api";
+import { emptyTakeoff, type SheetTakeoff } from "./takeoff";
 
 // Keep the local backend's saved sessions alongside the product reader's per-page histories.
 export const readerWorkspace = !(["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) &&
@@ -102,7 +103,43 @@ export function leaveDrawing() {
 export function removeDrawing(id: string, active: boolean) {
   return write((tx) => {
     tx.objectStore("drawings").delete(id);
+    tx.objectStore("state").delete(takeoffKey(id));
     if (active) tx.objectStore("state").delete(activeKey);
+  });
+}
+const takeoffKey = (id:string) => "takeoff:"+id;
+
+export async function readTakeoff(id:string):Promise<SheetTakeoff> {
+  const db=await database();
+  return new Promise((resolve,reject)=>{
+    const get=db.transaction("state").objectStore("state").get(takeoffKey(id));
+    get.onsuccess=()=>resolve(get.result ?? emptyTakeoff(id));
+    get.onerror=()=>reject(get.error);
+  });
+}
+
+export async function updateTakeoff(id:string, change:(current:SheetTakeoff)=>SheetTakeoff):Promise<SheetTakeoff> {
+  const db=await database();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(["drawings","state"],"readwrite");
+    const state=tx.objectStore("state");
+    let saved:SheetTakeoff;
+    const drawing=tx.objectStore("drawings").getKey(id);
+    drawing.onsuccess=()=>{
+      if (drawing.result===undefined) {tx.abort();return;}
+      const get=state.get(takeoffKey(id));
+      get.onsuccess=()=>{
+        try {
+          saved=change(get.result ?? emptyTakeoff(id));
+          state.put(saved,takeoffKey(id));
+        } catch (error) {
+          reject(error);
+          tx.abort();
+        }
+      };
+    };
+    tx.oncomplete=()=>resolve(saved);
+    tx.onabort=()=>reject(tx.error ?? new Error("The drawing could not be saved"));
   });
 }
 export async function drawingId(file: File) {

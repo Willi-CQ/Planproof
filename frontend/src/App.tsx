@@ -9,6 +9,7 @@ import {
   X,
   MessageCircle,
   Scan,
+  Ruler,
 } from "lucide-react";
 import { DrawingLibrary } from "./components/DrawingLibrary";
 import {
@@ -29,6 +30,9 @@ import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
 import { askReader, prepareReaderPage, validateReaderFile, type ReaderPage } from "./lib/reader";
 import { loadPublicSheet, publicSheets, type PublicSheet } from "./lib/publicSheets";
 import spatialSampleUrl from "./assets/plan-sample.png";
+import { TakeoffPanel } from "./components/Takeoff";
+import { readerTakeoff } from "./lib/takeoff";
+import { useTakeoff } from "./lib/useTakeoff";
 
 import { liveActivity } from "./lib/activity";
 import { downloadTaskReport } from "./lib/report";
@@ -75,6 +79,8 @@ export default function App() {
   const pending = useRef(false);
   const [ready, setReady] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [takeoffOpen,setTakeoffOpen]=useState(false);
+  const takeoff=useTakeoff(readerWorkspace ? savedId : null,drawing);
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -124,6 +130,7 @@ export default function App() {
   async function restore(saved: SavedDrawing) {
     if (pending.current) return;
     pending.current = true;
+    setTakeoffOpen(false);
     setBusy("upload");
     setLibraryOpen(false);
     setError(null);
@@ -271,6 +278,7 @@ export default function App() {
     }
     pending.current = true;
     setRoomPick(null);
+    setTakeoffOpen(false);
     const changingPage = nextFile === file && drawing !== null;
     setBusy("upload");
     closeInspector();
@@ -515,6 +523,7 @@ export default function App() {
     setMobileTab("drawing");
   }
   const reset = () => {
+    setTakeoffOpen(false);
     setRoomPick(null);
     if (pending.current) return;
     closeInspector();
@@ -554,6 +563,20 @@ export default function App() {
     (selectedEvidence
       ? messages.find((m) => m.id === selectedEvidence.message)
       : [...messages].reverse().find((m) => m.role === "assistant"));
+  const planResult = busy === "ask" || (drawing && evidenceMessage?.run &&
+    !sameSource(evidenceMessage.run.source,drawing.source)) ? undefined : evidenceMessage?.result;
+  function openTakeoff() {
+    if (pending.current || !drawing || !savedId) return;
+    closeInspector();
+    setRoomPick(null);
+    setFollowLive(false);
+    setTakeoffOpen(true);
+    setMobileTab("drawing");
+  }
+  function closeTakeoff() {
+    takeoff.cancel();
+    setTakeoffOpen(false);
+  }
   function drop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
@@ -750,12 +773,11 @@ export default function App() {
               Drawing
             </button>
             <button
-              aria-label="Show conversation"
+              aria-label={takeoffOpen ? "Show takeoff" : "Show conversation"}
               aria-pressed={mobileTab === "ask"}
               onClick={() => setMobileTab("ask")}
             >
-              <MessageCircle size={16} />
-              Ask Planproof
+              {takeoffOpen ? <><Ruler size={16}/> Takeoff</> : <><MessageCircle size={16}/> Ask Planproof</>}
             </button>
           </nav>
           <main className="workspace" data-mobile-tab={mobileTab}>
@@ -786,13 +808,7 @@ export default function App() {
                   setFollowLive(false);
                   setFocusRegion(null);
                 }}
-                result={
-                  busy === "ask" ||
-                  (evidenceMessage?.run &&
-                    !sameSource(evidenceMessage.run.source, drawing.source))
-                    ? undefined
-                    : evidenceMessage?.result
-                }
+                result={planResult}
                 selectedIndex={selectedEvidence?.index ?? null}
                 onSelectEvidence={(index) => {
                   if (evidenceMessage) highlight(evidenceMessage.id, index);
@@ -806,6 +822,9 @@ export default function App() {
                   onPoint: point => void sendMessage(roomPick.question,point),
                   onCancel: () => setRoomPick(null),
                 } : undefined}
+                onOpenTakeoff={readerWorkspace && savedId && !busy ? openTakeoff : undefined}
+                takeoff={takeoffOpen ? takeoff : undefined}
+                onCloseTakeoff={closeTakeoff}
                 loadingPage={busy === "upload"}
                 onPageChange={(nextPage) => {
                   if (file && Number.isInteger(nextPage) && nextPage > 0)
@@ -813,7 +832,9 @@ export default function App() {
                 }}
               />
             </div>
-            {inspectionId ? (
+            {takeoffOpen ? <TakeoffPanel key={drawing.document_id+":"+drawing.page}
+              drawing={drawing} filename={file?.name??"drawing"} controls={takeoff}
+              suggested={readerTakeoff(planResult,drawing)} onShowPlan={()=>setMobileTab("drawing")} onClose={closeTakeoff}/> : inspectionId ? (
               <EvidenceInspector
                 key={inspectionId}
                 initialView={inspectionView}

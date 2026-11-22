@@ -13,12 +13,16 @@ import {
   DoorOpen,
   Box,
   Scan,
+  Ruler,
 } from "lucide-react";
 import { visibleCitations, visibleCountObjects, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
 import { SpatialPlan } from "./SpatialPlan";
 import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
 import { liveActivity } from "../lib/activity";
+import { TakeoffMarks, TakeoffTools } from "./Takeoff";
+import { takeoffBounds } from "../lib/takeoff";
+import type { TakeoffControls } from "../lib/useTakeoff";
 interface Props {
   spatialSample?: boolean;
   hasTask: boolean;
@@ -43,6 +47,9 @@ interface Props {
   loadingPage: boolean;
   onPageChange: (page: number) => void;
   roomPick?: {german:boolean; onPoint:(point:[number,number])=>void; onCancel:()=>void};
+  onOpenTakeoff?:()=>void;
+  onCloseTakeoff?:()=>void;
+  takeoff?:TakeoffControls;
 }
 export function PlanCanvas2D({
   spatialSample = false,
@@ -64,6 +71,7 @@ export function PlanCanvas2D({
   loadingPage,
   onPageChange,
   roomPick,
+  onOpenTakeoff,onCloseTakeoff,takeoff,
 }: Props) {
   const viewport = useRef<HTMLDivElement>(null),
     sheet = useRef<HTMLDivElement>(null);
@@ -79,16 +87,18 @@ export function PlanCanvas2D({
     () => setPageInput(String(drawing.page)),
     [drawing.document_id, drawing.page],
   );
-  const citations = result ? visibleCitations(result, drawing) : [];
-  const countObjects = result ? visibleCountObjects(result, drawing) : [];
+  const citations = result && !takeoff ? visibleCitations(result, drawing) : [];
+  const countObjects = result && !takeoff ? visibleCountObjects(result, drawing) : [];
+  const measuredFocus=takeoff?.sheet?.items.find(i=>i.id===takeoff.selected) ?? null;
+  const picking=!!(roomPick || takeoff?.draft);
   const [showCandidates, setShowCandidates] = useState(true);
   const [spatialRequested, setSpatialRequested] = useState(spatialSample);
   const [spatialVisited, setSpatialVisited] = useState(spatialSample);
-  const spatial = spatialRequested && !roomPick && !focusRegion && comparisonSplit == null;
+  const spatial = spatialRequested && !takeoff && !roomPick && !focusRegion && comparisonSplit == null;
   const activity = liveActivity(liveRun, drawing.source);
   useEffect(() => {
-    if (spatial || (!focusRegion && selectedIndex === null) || !viewport.current) return;
-    const box =
+    if (spatial || (!measuredFocus && !focusRegion && selectedIndex === null) || !viewport.current) return;
+    const box = measuredFocus ? takeoffBounds(measuredFocus.points,drawing) :
       focusRegion?.canonical_bbox ||
       (selectedIndex !== null
         ? citations[selectedIndex]?.canonical_bbox
@@ -107,16 +117,16 @@ export function PlanCanvas2D({
       (container.clientHeight * 0.55) / heightAtFit,
     );
     onZoomChange(Math.max(100, Math.min(400, Math.round(magnification * 100))));
-  }, [selectedIndex, result, drawing, focusRegion, onZoomChange, spatial]);
+  }, [selectedIndex, result, drawing, focusRegion, onZoomChange, spatial, measuredFocus]);
   useEffect(() => {
     if (
       spatial ||
-      (!focusRegion && selectedIndex === null) ||
+      (!measuredFocus && !focusRegion && selectedIndex === null) ||
       !viewport.current ||
       !sheet.current
     )
       return;
-    const box =
+    const box = measuredFocus ? takeoffBounds(measuredFocus.points,drawing) :
       focusRegion?.canonical_bbox ||
       (selectedIndex !== null
         ? citations[selectedIndex]?.canonical_bbox
@@ -137,15 +147,17 @@ export function PlanCanvas2D({
         ? "instant"
         : "smooth",
     });
-  }, [selectedIndex, result, drawing, zoom, focusRegion, spatial]);
+  }, [selectedIndex, result, drawing, zoom, focusRegion, spatial, measuredFocus]);
   const answer = result?.answer;
   const caption = answer?.answer != null
     ? (result?.measurement?.approximate ? "≈ " : "") + [answer.answer, answer.unit].filter(v => v != null && v !== "").join(" ")
     : undefined;
   function choosePoint(clientX:number, clientY:number, bounds:DOMRect) {
-    if (!roomPick || !bounds.width || !bounds.height) return;
+    if (!picking || !bounds.width || !bounds.height) return;
     const x=(clientX-bounds.left)/bounds.width, y=(clientY-bounds.top)/bounds.height;
-    if (x>0 && x<1 && y>0 && y<1) roomPick.onPoint([x,y]);
+    if (x<=0 || x>=1 || y<=0 || y>=1) return;
+    if (roomPick) roomPick.onPoint([x,y]);
+    else takeoff?.addPoint([x,y]);
   }
   return (
     <section className="drawing-viewer" aria-label="Drawing viewer">
@@ -154,26 +166,29 @@ export function PlanCanvas2D({
           "Click an open spot inside the hallway or room."}</span>
         <button type="button" onClick={roomPick.onCancel}>{roomPick.german ? "Abbrechen" : "Cancel"}</button>
       </div>}
-      {!roomPick && <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
+      {takeoff && onCloseTakeoff && <TakeoffTools controls={takeoff} onClose={onCloseTakeoff}/>}
+      {!roomPick && !takeoff && <div className="plan-view-modes">
+        {onOpenTakeoff && <button type="button" className="view-mode-button" onClick={onOpenTakeoff}><Ruler size={15}/> Measure</button>}
+        <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
         aria-pressed={spatial} disabled={comparisonSplit != null} onClick={() => {
           onManualView?.();
           setSpatialVisited(true);
           setSpatialRequested(!spatial);
         }}>
         {spatial ? <Scan size={15}/> : <Box size={15}/>} {spatial ? "2D plan" : "3D view"}
-      </button>}
+      </button></div>}
       {spatialVisited && <SpatialPlan drawing={drawing} citations={citations} selectedIndex={selectedIndex}
         onSelectEvidence={onSelectEvidence} caption={caption} sample={spatialSample} hidden={!spatial} />}
       <div
         ref={viewport}
         hidden={spatial}
-        className={`plan-viewport ${panning ? "is-panning" : ""} ${roomPick ? "is-room-picking" : ""}`}
+        className={`plan-viewport ${panning ? "is-panning" : ""} ${roomPick ? "is-room-picking" : ""} ${takeoff?.draft ? "is-measuring" : ""}`}
         data-testid="plan-viewport"
         onWheel={() => onManualView?.()}
         onPointerDown={(e) => {
           onManualView?.();
           if (
-            roomPick || e.pointerType !== "mouse" ||
+            picking || e.pointerType !== "mouse" ||
             e.button !== 0 ||
             (e.target as Element).closest('[role="button"]')
           )
@@ -217,11 +232,11 @@ export function PlanCanvas2D({
             height={drawing.height}
             data-testid="source-image"
             draggable={false}
-            tabIndex={roomPick ? 0 : undefined}
-            aria-keyshortcuts={roomPick ? "Enter Escape" : undefined}
-            onClick={roomPick ? event => choosePoint(event.clientX,event.clientY,event.currentTarget.getBoundingClientRect()) : undefined}
-            onKeyDown={roomPick ? event => {
-              if (event.key==="Escape") roomPick.onCancel();
+            tabIndex={picking ? 0 : undefined}
+            aria-keyshortcuts={picking ? "Enter Escape" : undefined}
+            onClick={picking ? event => choosePoint(event.clientX,event.clientY,event.currentTarget.getBoundingClientRect()) : undefined}
+            onKeyDown={picking ? event => {
+              if (event.key==="Escape") (roomPick ? roomPick.onCancel : takeoff?.cancel)?.();
               if (event.key!=="Enter") return;
               event.preventDefault();
               const bounds = event.currentTarget.getBoundingClientRect();
@@ -230,6 +245,7 @@ export function PlanCanvas2D({
                           (Math.max(bounds.top,visible.top)+Math.min(bounds.bottom,visible.bottom))/2,bounds);
             } : undefined}
           />
+          {takeoff && <TakeoffMarks drawing={drawing} controls={takeoff}/>}
           <AlgorithmOverlay
             shapes={shapes}
             split={comparisonSplit}
