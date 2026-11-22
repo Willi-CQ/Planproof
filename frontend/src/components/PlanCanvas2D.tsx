@@ -137,7 +137,9 @@ export function PlanCanvas2D({
     });
   }, [selectedIndex, result, drawing, zoom, focusRegion, spatial]);
   const answer = result?.answer;
-  const caption = answer?.answer != null ? [answer.answer, answer.unit].filter(v => v != null && v !== "").join(" ") : undefined;
+  const caption = answer?.answer != null
+    ? (result?.measurement?.approximate ? "≈ " : "") + [answer.answer, answer.unit].filter(v => v != null && v !== "").join(" ")
+    : undefined;
   return (
     <section className="drawing-viewer" aria-label="Drawing viewer">
       <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
@@ -245,11 +247,16 @@ export function PlanCanvas2D({
               const [x0, y0, x1, y1] = c.canonical_bbox,
                 selected = selectedIndex === index;
               const detail = result?.answer?.citation_details?.find(d => d.citation === c.source_index);
-              if (focusRegion || (!selected && (countObjects.length > 0 || detail?.kind !== "detection"))) return null;
+              const measured = detail?.kind === "measurement" && (c.polygon || c.line);
+              if (focusRegion || (!selected && !measured && (countObjects.length > 0 || detail?.kind !== "detection"))) return null;
               return (
                 <g key={index}>
-                  {selected && c.polygon && <polygon points={c.polygon.map(p => p.join(",")).join(" ")}
-                    fill="#42634a25" stroke="#42634a" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+                  {(selected || measured) && c.polygon && <polygon points={c.polygon.map(p => p.join(",")).join(" ")}
+                    fill="#81b89550" stroke="#35664c" strokeWidth={selected ? 2.5 : 1.5}
+                    vectorEffect="non-scaling-stroke" data-testid="room-outline" pointerEvents="none" />}
+                  {(selected || measured) && c.line && <polyline points={c.line.map(p => p.join(",")).join(" ")}
+                    fill="none" stroke="#a66a26" strokeWidth={selected ? 4 : 2.5}
+                    vectorEffect="non-scaling-stroke" data-testid="scale-anchor" pointerEvents="none" />}
                   {selected && c.point && <circle cx={c.point[0]} cy={c.point[1]} r={Math.max(1, drawing.width / 500)}
                     fill="#42634a" pointerEvents="none" />}
                   <rect
@@ -262,8 +269,8 @@ export function PlanCanvas2D({
                     y={y0}
                     width={x1 - x0}
                     height={y1 - y0}
-                    fill={selected ? "#001d0020" : "#001d000a"}
-                    stroke={selected ? "#001d00" : "#42634a"}
+                    fill={measured ? "transparent" : selected ? "#001d0020" : "#001d000a"}
+                    stroke={measured ? "none" : selected ? "#001d00" : "#42634a"}
                     strokeWidth={selected ? 3 : 1.5}
                     vectorEffect="non-scaling-stroke"
                     onClick={() => onSelectEvidence(index)}

@@ -142,6 +142,7 @@ interface NativeAnswer {
   unit: string | null;
   reason: string;
   reason_code?: string;
+  approximate?: boolean;
   program?: {op?: string};
   raster_coverage?: {tiles_total?: number; tiles_read?: number; tiles_blank?: number; tiles_timed_out?: number};
   calculation: string | null;
@@ -150,7 +151,7 @@ interface NativeAnswer {
   page: number;
   coordinates: string;
   source_sha256: string;
-  evidence: {id: string; bbox: number[]; polygon?: number[][]; point?: number[]; text: string; kind: string}[];
+  evidence: {id: string; bbox: number[]; polygon?: number[][]; point?: number[]; line?: number[][]; text: string; kind: string}[];
 }
 function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
   const {drawing, payload, payloadPage, payloadWidth, payloadHeight, payloadHash} = prepared;
@@ -174,8 +175,10 @@ function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
     citations.push({source_index: number, page_index: drawing.page - 1,
       canonical_bbox: [...point(item.bbox.slice(0,2)), ...point(item.bbox.slice(2))],
       polygon: Array.isArray(item.polygon) && item.polygon.every(validPoint) ? item.polygon.map(point) : undefined,
+      line: Array.isArray(item.line) && item.line.length === 2 && item.line.every(validPoint) ? item.line.map(point) : undefined,
       point: validPoint(item.point) ? point(item.point) : undefined});
-    details.push({citation: number, kind: "text", label: [item.kind?.replaceAll("_"," "), item.text].filter(Boolean).join(" · ")});
+    const kind = item.kind === "room_polygon" || item.kind === "graphic_scale" ? "measurement" : "text";
+    details.push({citation: number, kind, label: [item.kind?.replaceAll("_"," "), item.text].filter(Boolean).join(" · ")});
   }
   const value = Array.isArray(data.value) ? data.value.join(", ") : data.value;
   const reason = data.reason_code || (data.program?.op === "unsupported" ? "unsupported_question" : undefined);
@@ -183,6 +186,7 @@ function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
   const coverage = tiles && Number.isInteger(tiles.tiles_total) && (tiles.tiles_total ?? 0) > 0
     ? `Native image scan: ${tiles.tiles_read ?? 0} of ${tiles.tiles_total} tiles read, ${tiles.tiles_blank ?? 0} blank, ${tiles.tiles_timed_out ?? 0} timed out.` : "";
   return {status: "ok", source: drawing.source, canonical_citations: citations,
+    measurement: data.approximate === true ? {approximate: true} : undefined,
     reader_reason: reason,
     reader_input: {representation:prepared.representation, sha256:payloadHash, page:data.page,
       width:data.width, height:data.height, coordinates:data.coordinates},
@@ -192,7 +196,8 @@ function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
       explanation: data.calculation || data.reason, uncertainties: [], coverage,
       briefing: [
         ...(data.calculation ? [{section: "basis" as const, text: data.calculation, citations: citations.map(c => c.source_index!)}] : []),
-        ...(data.reason ? [{section: "limitation" as const, text: data.reason, citations: []}] : [])
+        ...(data.reason ? [{section: "limitation" as const, text: data.reason,
+          citations: data.calculation ? [] : citations.map(c => c.source_index!)}] : [])
       ]}};
 }
 export async function askReader(prepared: ReaderPage, question: string) {

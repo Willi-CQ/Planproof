@@ -13,6 +13,7 @@ export interface Drawing {
 export interface Citation {
   polygon?: number[][];
   point?: number[];
+  line?: number[][];
   source_index?: number;
   canonical_bbox: number[];
   page_index: number;
@@ -165,6 +166,8 @@ export function resultText(result: AgentResult): string {
       no_readable_text: "The reader could not extract legible text",
       scope_unverified: "The requested area could not be verified",
       ocr_budget_exhausted: "The scan stopped before it covered the sheet",
+      room_target_ambiguous: "Which room do you mean?",
+      room_target_not_found: "Room label not located",
     };
     if (reasons[result.reader_reason]) return reasons[result.reader_reason];
   }

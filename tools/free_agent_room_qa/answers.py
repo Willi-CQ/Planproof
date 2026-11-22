@@ -9,6 +9,7 @@ from .reader import AREA,DOOR,ROOM_CODE,clean,evidence
 from .schedule import printed_property, CERTIFIED, MARK
 from .phrasing import alternative
 from .page_text import TEXT_OPS, compile_text, text_answer
+from .room_intent import compile_room_question
 
 
 def compile_question(question):
@@ -56,6 +57,10 @@ def compile_question(question):
     if room and re.fullmatch(r'(?:what floor area is printed for room|what is the printed (?:floor )?area of room|welche (?:grund)?fläche ist für raum)\s+'+re.escape(room.group())+r'(?:,? in m(?:²|2)| angegeben)?',q,re.I):
         return program('printed_area',room=room.group().upper())
     op, args = alternative(q)
+    if op == 'unsupported' and not floor:
+        room_program = compile_room_question(q)
+        if room_program:
+            return room_program
     return program(op, **args)
 
 

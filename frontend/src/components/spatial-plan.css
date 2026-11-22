@@ -131,6 +131,7 @@
   stroke-linejoin: round;
 }
 .spatial-draft { fill: none; stroke: #3a7554; stroke-dasharray: 5 4; }
+.spatial-scale { fill: none; stroke: #a66a26; stroke-width: 2.5px; vector-effect: non-scaling-stroke; }
 .spatial-corner { fill: #245237; stroke: #fff; stroke-width: .8px; vector-effect: non-scaling-stroke; }
 .spatial-pin { cursor: pointer; }
 .spatial-pin line { stroke: #254738; stroke-width: 1.6; }

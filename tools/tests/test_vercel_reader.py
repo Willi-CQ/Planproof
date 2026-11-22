@@ -3,6 +3,7 @@ from hashlib import sha256
 from http.client import HTTPConnection
 from http.server import HTTPServer
 import json
+from pathlib import Path
 import threading
 
 import numpy as np
@@ -82,6 +83,24 @@ def test_native_binding_word_boxes():
     tsv = ocr.read_tsv(image, 7, 10)
     assert tsv.startswith("level\tpage_num")
     assert "\tNorth" in tsv
+
+
+def test_hallway_natural_request_returns_outline_and_scale(server):
+    sample = Path(__file__).resolve().parents[2] / "frontend/src/assets/plan-sample.png"
+    data = sample.read_bytes()
+    for question in (
+        "mark me the hallway, how big is it?",
+        "Markiere den Flur und sag mir, wie groß er ist.",
+    ):
+        status, result = post(server, data, question)
+        assert status == 200 and result["status"] == "answered", result
+        assert result["source_sha256"] == sha256(data).hexdigest()
+        assert result["unit"] == "m²" and result["approximate"] is True
+        assert result["value"] == pytest.approx(12.8, abs=.2)
+        outline, scale = result["evidence"]
+        assert outline["kind"] == "room_polygon" and len(outline["polygon"]) >= 4
+        assert outline["bbox"] == pytest.approx([160,420,960,580], abs=3)
+        assert scale["kind"] == "graphic_scale" and len(scale["line"]) == 2
 
 
 def test_cpu_reference_prediction_parity(monkeypatch):

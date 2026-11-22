@@ -419,6 +419,8 @@ export default function App() {
       if (readerWorkspace && readerPage) {
         const result = await askReader(readerPage, question);
         setMessages(previous => [...previous, {id, role: "assistant", content: "", result}]);
+        if (result.answer?.citation_details?.[0]?.kind === "measurement")
+          setSelectedEvidence({message:id, index:0});
         setDraft("");
         return true;
       }

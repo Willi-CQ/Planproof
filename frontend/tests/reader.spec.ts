@@ -128,6 +128,31 @@ test("public Stoa references download on selection and reject changed publisher 
   await expect(page.getByTestId("source-image")).toHaveCount(0);
   expect(downloads).toBe(1);
 });
+test("a natural room question selects the measured floor and shows the scale in 3D and 2D", async ({page}) => {
+  await page.route("**/api/reader", async route => {
+    const {bytes, question} = await submitted(route);
+    expect(question).toBe("Mark me the hallway, how big is it?");
+    await route.fulfill({json:{
+      source_sha256:hash(bytes), page:1, width:1120, height:740, coordinates:"image_pixels",
+      status:"answered", value:12.8, approximate:true, unit:"m²", reason:"",
+      calculation:"Estimated from the floor outline and the graphic scale.",
+      evidence:[
+        {id:"room",kind:"room_polygon",text:"HALLWAY",bbox:[160,420,960,580],polygon:[[160,420],[960,420],[960,580],[160,580]]},
+        {id:"scale",kind:"graphic_scale",text:"2 m",bbox:[140,652,391,712],line:[[160,669],[360,669]]},
+      ],
+    }});
+  });
+  await page.goto("/");
+  await page.getByRole("button",{name:"Explore the 3D sample"}).click();
+  await page.getByRole("button",{name:"Mark me the hallway, how big is it?",exact:true}).click();
+  await page.getByRole("button",{name:"Ask Planproof",exact:true}).click();
+  await expect(page.getByTestId("answer-value")).toHaveText("≈ 12.8 m²");
+  await expect(page.locator(".spatial-caption")).toContainText("≈ 12.8 m²");
+  await expect(page.locator(".spatial-scale")).toHaveAttribute("points","160,669 360,669");
+  await page.getByRole("button",{name:"Return to 2D"}).click();
+  await expect(page.getByTestId("room-outline")).toHaveAttribute("points","160,420 960,420 960,580 160,580");
+  await expect(page.getByTestId("scale-anchor")).toHaveAttribute("points","160,669 360,669");
+});
 test("an oversized PDF sends only the selected vector page, with page-bound history and evidence", async ({page}) => {
   const doc = await PDFDocument.create();
   doc.addPage([240,120]);

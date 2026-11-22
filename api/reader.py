@@ -171,15 +171,39 @@ def read_raster_text(data):
 
 
 def read_drawing(data, page, question):
-    from planproof_runtime.native_raster import empty_scene
+    from planproof_runtime.native_raster import empty_scene, read_native
     from tools.free_agent_room_qa import answer_program, build_scene, compile_question
     from tools.free_agent_room_qa.page_text import TEXT_OPS
     from tools.free_agent_room_qa.raster_tags import templates
+    from tools.free_agent_room_qa.room_geometry import inspect_room
+    from tools.free_agent_room_qa.reader import label_reads, native_reads, ocr_read
     with reader_slot():
         capabilities()
         suffix, count, size = check_file(data, page)
         program = compile_question(question)
         op = program["op"]
+        if op in {"locate_room", "measure_room"}:
+            digest = sha256(data).hexdigest()
+            if suffix == ".pdf":
+                with TemporaryDirectory(prefix="planproof-room-") as folder:
+                    path = Path(folder) / "source.pdf"
+                    path.write_bytes(data)
+                    image, lines, _, width, height, _, _ = native_reads(path, page)
+                scene = empty_scene(digest, page, size, pdf=True)
+                sx, sy = image.width/width, image.height/height
+                if not lines:
+                    lines, _ = ocr_read(image, width, height)
+                labels, _ = label_reads(lines)
+                scene.update(lines=lines, rooms={k:{"label":v} for k,v in labels.items()})
+                result = inspect_room(image, scene, program, frame_scale=(sx,sy))
+            else:
+                with open_raster(data) as image:
+                    image.load()
+                    scene = read_native(image, digest)
+                    result = inspect_room(image, scene, program)
+            return {**result, "program": program, "page": page, "page_count": count,
+                    "width": size[0], "height": size[1], "coordinates": scene["coordinates"],
+                    "source_sha256": digest, "reader": "Floor outline and graphic scale"}
         large = suffix != ".pdf" and size[0] * size[1] > FULL_SCENE_PIXELS
         large_geometry = large and op in {"adjacent_doors", "room_door_count"}
         if op == "unsupported" or large_geometry:

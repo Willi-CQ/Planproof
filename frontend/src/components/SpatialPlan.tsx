@@ -158,10 +158,15 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
       <g ref={model} transform={view.matrix} data-testid="spatial-projection">
         <rect width={width} height={height} fill="#fff" />
         <image width={width} height={height} href={drawing.image_url} preserveAspectRatio="none" />
-        {showEvidence && active && (active.polygon && active.polygon.length >= 3
-          ? <polygon className="spatial-highlight" points={outline(active.polygon.map(cornerPoint))} />
-          : <rect className="spatial-highlight" x={active.canonical_bbox[0]} y={active.canonical_bbox[1]}
-            width={active.canonical_bbox[2]-active.canonical_bbox[0]} height={active.canonical_bbox[3]-active.canonical_bbox[1]} />)}
+        {showEvidence && citations.map((c,index) => {
+          if (c.polygon && c.polygon.length >= 3)
+            return <polygon key={index} className="spatial-highlight" points={outline(c.polygon.map(cornerPoint))}/>;
+          if (c.line?.length === 2)
+            return <polyline key={index} className="spatial-scale" points={outline(c.line.map(cornerPoint))}/>;
+          if (index !== selectedIndex) return null;
+          return <rect key={index} className="spatial-highlight" x={c.canonical_bbox[0]} y={c.canonical_bbox[1]}
+            width={c.canonical_bbox[2]-c.canonical_bbox[0]} height={c.canonical_bbox[3]-c.canonical_bbox[1]} />;
+        })}
         {draft && <>
           <polyline points={outline(draft)} className="spatial-draft" />
           {draft.map(([x,y]) => <circle key={`${x},${y}`} cx={x} cy={y} r={3.2 / view.scale} className="spatial-corner" />)}

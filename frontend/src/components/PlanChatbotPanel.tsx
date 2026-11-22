@@ -157,14 +157,15 @@ export function PlanChatbotPanel({
               like to know?
             </h3>
             <p>
-              {reader ? "Search for a printed label in English or German. Replace the words in quotes with text from your drawing." : "Ask about a detail, a dimension, or the whole drawing."}
+              {reader ? "Ask in English or German. Name the room you want marked or measured." : "Ask about a detail, a dimension, or the whole drawing."}
             </p>
             <div className="suggestions">
               {(spatialSample ? [
+                "Mark me the hallway, how big is it?",
                 'Find the label "HALLWAY".',
                 'Wo steht „DEMO“?',
               ] : reader ? [
-                'Find the label "North Hall".',
+                "Markiere den Flur und sag mir, wie groß er ist.",
                 'Wo steht „North Hall“?',
                 "Where is door D-01?",
               ] : [
