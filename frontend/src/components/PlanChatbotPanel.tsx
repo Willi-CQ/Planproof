@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   ArrowUp,
   Plus,
@@ -35,6 +35,9 @@ interface Props {
   drawing: Drawing;
   busy: boolean;
   disabled?: boolean;
+  reader?: boolean;
+  canSend?: boolean;
+  readerNotice?: ReactNode;
   onSendMessage: (question: string) => Promise<boolean>;
   onClearChat: () => void;
   selectedEvidence: { message: string; index: number } | null;
@@ -52,6 +55,9 @@ export function PlanChatbotPanel({
   drawing,
   busy,
   disabled = false,
+  reader = false,
+  canSend = true,
+  readerNotice,
   onSendMessage,
   onClearChat,
   selectedEvidence,
@@ -88,7 +94,7 @@ export function PlanChatbotPanel({
     }
   }, [draft]);
   async function submit() {
-    if (busy || disabled || !draft.trim()) return;
+    if (busy || disabled || !canSend || !draft.trim()) return;
     const sent = draft.trim();
     const completed = await onSendMessage(sent);
     if (completed) setDraft("");
@@ -140,23 +146,25 @@ export function PlanChatbotPanel({
       >
         {!messages.length && (
           <div className="chat-welcome">
-            <span className="eyebrow">A little clarity goes a long way.</span>
+            {!reader && <span className="eyebrow">A little clarity goes a long way.</span>}
             <h3>
               What would you
               <br />
               like to know?
             </h3>
             <p>
-              Ask about a detail, a dimension,
-              <br />
-              or the whole drawing.
+              {reader ? "Ask about the project title, a printed room area, labelled doors, or which rooms they connect." : "Ask about a detail, a dimension, or the whole drawing."}
             </p>
             <div className="suggestions">
-              {[
+              {(reader ? [
+                "What is the project title printed on this sheet?",
+                "How many distinct door marks are printed on this sheet?",
+                "Where is door D-01?",
+              ] : [
                 "What is the drawing title?",
                 "How many rooms are shown?",
                 "Where are the stairs?",
-              ].map((text) => (
+              ]).map((text) => (
                 <button key={text} onClick={() => suggestion(text)}>
                   {text}
                   <ArrowUpRight size={14} />
@@ -221,6 +229,7 @@ export function PlanChatbotPanel({
         )}
       </div>
       <div className="composer-area">
+        {readerNotice && <div className="reader-upload-note">{readerNotice}</div>}
         <form
           className="composer"
           onSubmit={(e) => {
@@ -263,7 +272,7 @@ export function PlanChatbotPanel({
             </span>
             <button
               className="send-button"
-              disabled={busy || disabled || !draft.trim()}
+              disabled={busy || disabled || !canSend || !draft.trim()}
               aria-label="Ask Planproof"
               title="Send question"
             >

@@ -1,0 +1,20 @@
+{
+  "training_sha256": "ae964c8b1ea07e16e09819286923d0afd596d5812b988153290fb654cce22132",
+  "model_sha256": "f636b994bbd81d03d110687ff1f132f7db3cf544bb3944b6f8faaaf9874241f0",
+  "code_sha256": "2df54fa006475a5651c9fac07b4c2c461842fd2ff33981188758ddd557806dc6",
+  "training_phrasings": 100,
+  "classes": [
+    "adjacent_doors",
+    "as_built_width",
+    "count_marks",
+    "fire_rating",
+    "locate_mark",
+    "printed_area",
+    "project_title",
+    "room_door_count",
+    "unsupported"
+  ],
+  "cpu_seconds": 0.020938491999999975,
+  "bytes": 77026,
+  "paid_eur": 0
+}

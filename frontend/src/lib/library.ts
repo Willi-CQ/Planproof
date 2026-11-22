@@ -1,6 +1,11 @@
 import type { Message } from "../components/PlanChatbotPanel";
 import type { Drawing } from "./api";
 
+// Keep the local backend's saved sessions alongside the product reader's per-page histories.
+export const readerWorkspace = !(["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) &&
+  new URLSearchParams(location.search).get("workspace") === "agent");
+const activeKey = readerWorkspace ? "reader-active" : "active";
+
 export interface SavedDrawing {
   id: string;
   file: File;
@@ -55,9 +60,9 @@ export async function readLibrary(): Promise<{
   return new Promise((resolve, reject) => {
     const tx = db.transaction(["drawings", "state"]);
     const records = tx.objectStore("drawings").getAll();
-    const active = tx.objectStore("state").get("active");
+    const active = tx.objectStore("state").get(activeKey);
     tx.oncomplete = () => {
-      const all = records.result as SavedDrawing[];
+      const all = (records.result as SavedDrawing[]).filter(r => r.id.startsWith("reader-") === readerWorkspace);
       resolve({
         entries: all
           .map((r) => ({
@@ -86,18 +91,18 @@ export async function getSavedDrawing(
 export function saveDrawing(record: SavedDrawing) {
   return write((tx) => {
     tx.objectStore("drawings").put(record);
-    tx.objectStore("state").put(record.id, "active");
+    tx.objectStore("state").put(record.id, activeKey);
   });
 }
 export function leaveDrawing() {
   return write((tx) => {
-    tx.objectStore("state").delete("active");
+    tx.objectStore("state").delete(activeKey);
   });
 }
 export function removeDrawing(id: string, active: boolean) {
   return write((tx) => {
     tx.objectStore("drawings").delete(id);
-    if (active) tx.objectStore("state").delete("active");
+    if (active) tx.objectStore("state").delete(activeKey);
   });
 }
 export async function drawingId(file: File) {

@@ -1,0 +1,100 @@
+count_marks	How many different door tags are shown altogether?
+count_marks	Count the printed door identifiers in the drawing.
+count_marks	What's the number of unique door marks on the sheet?
+count_marks	Add up the distinct door labels that are visible on the page.
+count_marks	Give me the total number of tagged door IDs.
+count_marks	Wie viele verschiedene Türkennzeichen sind eingezeichnet?
+count_marks	Bitte zähle die Türkennungen im Plan.
+count_marks	Welche Anzahl unterschiedlicher Türnummern ist eingetragen?
+count_marks	Wie viele Türmarken finde ich auf dem Blatt?
+count_marks	Nenne mir die Gesamtzahl der gedruckten Türkennungen.
+adjacent_doors	Which door connects {a} to {b}?
+adjacent_doors	Give the door mark for the passage from {a} into {b}.
+adjacent_doors	Is there a connecting door between {a} and {b}, and what is its tag?
+adjacent_doors	Identify the doorway leading from room {a} directly to room {b}.
+adjacent_doors	What is the label of the door separating {a} from {b}?
+adjacent_doors	Welche Tür verbindet {a} mit {b}?
+adjacent_doors	Nenne die Kennung der Verbindungstür zwischen {a} und {b}.
+adjacent_doors	Welche Tür führt von {a} direkt nach {b}?
+adjacent_doors	Welche Türnummer gehört zum Durchgang zwischen Raum {a} und Raum {b}?
+adjacent_doors	Von {a} zu {b}, welche beschriftete Tür nimmt man?
+room_door_count	How many doors open directly into room {a}?
+room_door_count	Give the count of tagged doors connected to {a}.
+room_door_count	How many labeled entrances lead into {a}?
+room_door_count	Count the marked doors along the boundary of {a}.
+room_door_count	What is the total number of doorways entering {a}?
+room_door_count	Wie viele markierte Türen führen unmittelbar in den Raum {a}?
+room_door_count	Zähle die beschrifteten Türen, die in {a} münden.
+room_door_count	An wie viele Türöffnungen grenzt {a}?
+room_door_count	Wie viele Türen hat {a} auf diesem Plan?
+room_door_count	Gib die Anzahl der direkt an {a} angeschlossenen Türen an.
+project_title	Read the name of the project from the nameplate.
+project_title	What's the building project called on this drawing?
+project_title	Report the printed project title in the title block.
+project_title	What name has been entered for the project?
+project_title	Give the title of this project as printed.
+project_title	Wie heißt das Bauprojekt in der Zeichnung?
+project_title	Was steht als Projektname im Schriftfeld?
+project_title	Nenne den gedruckten Projekttitel.
+project_title	Unter welchem Namen läuft dieses Projekt laut Plan?
+project_title	Gib die Projektbezeichnung im Plankopf an.
+printed_area	Read the floor area for {a} from the label.
+printed_area	What square meter figure is written inside {a}?
+printed_area	How large is room {a} according to its area label?
+printed_area	Give the printed room area of {a} in square metres.
+printed_area	For room {a}, what area is already stated on the plan?
+printed_area	Welche Fläche ist für {a} eingetragen?
+printed_area	Wie viele Quadratmeter sind bei Raum {a} angeschrieben?
+printed_area	Lies den Flächenwert für {a} ab.
+printed_area	Gib die angegebene Grundfläche von {a} an.
+printed_area	Wie groß ist die beschriftete Fläche des Raums {a}?
+fire_rating	Read the fire resistance of door {d} in minutes.
+fire_rating	How long is {d} rated to resist fire according to the door schedule?
+fire_rating	What fire rating is recorded for {d}?
+fire_rating	Can you read the stated fire-resistance duration for {d}?
+fire_rating	Give the documented fire rating of door {d}.
+fire_rating	Welcher Feuerwiderstand ist bei Tür {d} angegeben?
+fire_rating	Wie viele Minuten Feuerwiderstand stehen für {d} in der Liste?
+fire_rating	Gib die Brandschutzdauer der Tür {d} an.
+fire_rating	Welche Feuerwiderstandsdauer ist für {d} dokumentiert?
+fire_rating	Wie lange ist die Feuerwiderstandsdauer von {d} laut Türliste?
+as_built_width	What is the as-built clear width of {d}?
+as_built_width	Give the field-measured clear opening width for door {d}.
+as_built_width	How wide was the clear opening at {d} measured on site?
+as_built_width	Read the surveyed clear width for {d} in millimetres.
+as_built_width	What finished clear width for {d} is documented in the as-built record?
+as_built_width	Wie breit ist die lichte Öffnung von {d} laut Aufmaß?
+as_built_width	Welche lichte Durchgangsbreite wurde an {d} vor Ort gemessen?
+as_built_width	Gib die aufgemessene lichte Breite der Tür {d} an.
+as_built_width	Welche Istbreite ist für den freien Durchgang an {d} protokolliert?
+as_built_width	Was steht im Bestandsaufmaß als Durchgangsbreite für {d}?
+locate_mark	Show me where the door labelled {d} is.
+locate_mark	Find the symbol carrying the door mark {d}.
+locate_mark	Point out {d} on the sheet.
+locate_mark	Can you locate the door identifier {d} in the drawing?
+locate_mark	Mark the position of the tag {d}.
+locate_mark	Zeige mir die Tür mit der Nummer {d}.
+locate_mark	Wo auf dem Plan steht die Türkennung {d}?
+locate_mark	Finde das Türzeichen {d} auf dem Blatt.
+locate_mark	Markiere die Stelle der Beschriftung {d}.
+locate_mark	Wo befindet sich Tür {d}?
+unsupported	How many windows does the building have?
+unsupported	What distance separates {a} from {b}?
+unsupported	Which doors are missing from the drawing?
+unsupported	Is door {d} wide enough to meet building regulations?
+unsupported	Measure the area of {a} using the drawing scale.
+unsupported	Which project architect signed this sheet?
+unsupported	What date is printed in the title block?
+unsupported	What colour should the door be painted?
+unsupported	Give me the doors on every floor of the building.
+unsupported	What is the number of physical door leaves in the building?
+unsupported	Wie viele Fenster gibt es im Haus?
+unsupported	Welche Fluchtweglänge liegt zwischen {a} und {b}?
+unsupported	Vergleiche die beiden Türbreiten.
+unsupported	Berechne die Fläche aus dem Maßstab für Raum {a}.
+unsupported	Wer ist der Architekt im Plankopf?
+unsupported	Ist die Tür {d} nach Bauordnung zulässig?
+unsupported	Welche Türen haben keinen Bezeichner?
+unsupported	Wieviele Brandschutztüren müssen eingebaut werden?
+unsupported	Welche Änderungen enthält der Revisionsindex?
+unsupported	Wie viele physische Türblätter enthält das Gebäude?

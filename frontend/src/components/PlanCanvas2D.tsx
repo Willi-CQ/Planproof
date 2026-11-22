@@ -226,6 +226,10 @@ export function PlanCanvas2D({
               if (focusRegion || (!selected && (countObjects.length > 0 || detail?.kind !== "detection"))) return null;
               return (
                 <g key={index}>
+                  {selected && c.polygon && <polygon points={c.polygon.map(p => p.join(",")).join(" ")}
+                    fill="#42634a25" stroke="#42634a" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+                  {selected && c.point && <circle cx={c.point[0]} cy={c.point[1]} r={Math.max(1, drawing.width / 500)}
+                    fill="#42634a" pointerEvents="none" />}
                   <rect
                     data-testid="evidence-box"
                     tabIndex={0}
@@ -301,6 +305,7 @@ export function PlanCanvas2D({
                 if (
                   Number.isInteger(nextPage) &&
                   nextPage > 0 &&
+                  (!drawing.page_count || nextPage <= drawing.page_count) &&
                   nextPage !== drawing.page
                 )
                   onPageChange(nextPage);
@@ -311,6 +316,7 @@ export function PlanCanvas2D({
                 title="Go to page (Enter)"
                 type="number"
                 min="1"
+                max={drawing.page_count}
                 step="1"
                 required
                 value={pageInput}
@@ -324,11 +330,12 @@ export function PlanCanvas2D({
               1
             </span>
           )}
+          {isPdf && drawing.page_count && <span className="page-total">/ {drawing.page_count}</span>}
           <button
             className="icon-button"
             aria-label="Next page"
             title="Next page"
-            disabled={disabled || !isPdf}
+            disabled={disabled || !isPdf || (drawing.page_count !== undefined && drawing.page >= drawing.page_count)}
             onClick={() => onPageChange(drawing.page + 1)}
           >
             <ChevronRight size={16} />

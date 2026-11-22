@@ -135,7 +135,7 @@ async function setup(page: Page) {
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600"><rect width="1000" height="600" fill="white"/></svg>',
     }),
   );
-  await page.goto("/");
+  await page.goto("/?workspace=agent");
   await page.getByLabel("Upload drawing", { exact: true }).setInputFiles({
     name: "test.png",
     mimeType: "image/png",

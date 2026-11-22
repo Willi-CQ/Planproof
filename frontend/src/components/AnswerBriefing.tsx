@@ -33,7 +33,7 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
   const moreInformation = paragraphs.length > 2 || notes.length > 0 || !!result.answer?.coverage || !!countEvidence;
   const display = resultText(result).replace(/\b(m2|ft2|in2|cm2|mm2)\b/g, unit => unit.slice(0, -1) + "²");
   return <div className={`answer answer-briefing ${resolved ? "" : "answer-unresolved"}`} data-testid="agent-answer">
-    <span className="briefing-eyebrow">{resolved ? approximate ? "Estimated from the drawing" : "Your answer" : "Evidence incomplete"}</span>
+    <span className="briefing-eyebrow">{result.answer?.status === "partial" ? "Partial result" : resolved ? approximate ? "Estimated from the drawing" : "Your answer" : "Evidence incomplete"}</span>
     <p className="answer-value" data-testid="answer-value">{approximate ? "≈ " : ""}{display}</p>
     <div className="briefing-prose">
       {paragraphs.length ? paragraphs.slice(0, 2).map((paragraph, i) => <p key={i} className={paragraph.section === "limitation" ? "briefing-limitation" : ""}>

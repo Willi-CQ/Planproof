@@ -4,27 +4,15 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "outputDirectory": "dist",
+  "functions": {
+    "api/reader.py": {
+      "maxDuration": 300,
+      "includeFiles": "{backend,tools/free_agent_room_qa,models/sheet-doors-v1,planproof_runtime}/**"
+    }
+  },
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "API_ORIGIN/api/$1",
-      "headers": {
-        "Cache-Control": "private, no-store",
-        "CDN-Cache-Control": "no-store",
-        "Vercel-CDN-Cache-Control": "no-store",
-        "x-vercel-enable-rewrite-caching": "0"
-      },
-      "transforms": [
-        {
-          "type": "request.headers",
-          "op": "set",
-          "target": { "key": "x-planproof-origin" },
-          "args": "$PLANPROOF_ORIGIN_SECRET",
-          "env": ["PLANPROOF_ORIGIN_SECRET"]
-        }
-      ]
-    },
     { "handle": "filesystem" },
+    { "src": "/api(/.*)?", "status": 404 },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

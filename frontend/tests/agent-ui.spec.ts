@@ -136,7 +136,7 @@ async function setup(page: Page) {
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/?workspace=agent");
 }
 async function upload(page: Page, name = "plan.png", mimeType = "image/png") {
   await page

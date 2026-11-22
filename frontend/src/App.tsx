@@ -17,6 +17,7 @@ import {
   removeDrawing,
   leaveDrawing,
   drawingId,
+  readerWorkspace,
   type LibraryEntry,
   type SavedDrawing,
 } from "./lib/library";
@@ -24,6 +25,8 @@ import { BrandMark } from "./components/BrandMark";
 import { PlanCanvas2D } from "./components/PlanCanvas2D";
 import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
 import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
+import { askReader, prepareReaderPage, validateReaderFile, type ReaderPage } from "./lib/reader";
+import { loadPublicSheet, publicSheets, type PublicSheet } from "./lib/publicSheets";
 
 import { liveActivity } from "./lib/activity";
 import { downloadTaskReport } from "./lib/report";
@@ -44,6 +47,12 @@ export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [page, setPage] = useState(1);
   const [drawing, setDrawing] = useState<Drawing | null>(null);
+  const [readerPage, setReaderPage] = useState<ReaderPage | null>(null);
+  const [allowPageImage, setAllowPageImage] = useState(false);
+  const [loadingExample, setLoadingExample] = useState("");
+  useEffect(() => () => {
+    if (readerPage) URL.revokeObjectURL(readerPage.drawing.image_url);
+  }, [readerPage]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedEvidence, setSelectedEvidence] = useState<{
     message: string;
@@ -111,7 +120,10 @@ export default function App() {
     setError(null);
     try {
       // Renew the ephemeral backend document using the unchanged original. No inference.
-      const fresh = await uploadDrawing(saved.file, saved.drawing.page);
+      const prepared = readerWorkspace ? await prepareReaderPage(saved.file, saved.drawing.page) : null;
+      const fresh = prepared?.drawing ?? await uploadDrawing(saved.file, saved.drawing.page);
+      setReaderPage(prepared);
+      setAllowPageImage(false);
       const sameFrame =
         fresh.width === saved.drawing.width &&
         fresh.height === saved.drawing.height &&
@@ -126,7 +138,7 @@ export default function App() {
       setZoom(saved.zoom);
       setSelectedEvidence(sameFrame ? saved.selectedEvidence : null);
       const activeRun = saved.messages.find((m) => m.run && !terminal(m.run));
-      if (activeRun?.run)
+      if (!readerWorkspace && activeRun?.run)
         setTimeout(() => {
           void resumeRun(activeRun.id, activeRun.run!);
         }, 0);
@@ -211,9 +223,27 @@ export default function App() {
     }
   }
 
+  async function openExample(sheet: PublicSheet) {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy("upload");
+    setLoadingExample(sheet.name);
+    setError(null);
+    try {
+      const source = await loadPublicSheet(sheet);
+      pending.current = false;
+      await loadFile(source, 1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The reference sheet could not be downloaded.");
+    } finally {
+      pending.current = false;
+      setLoadingExample("");
+      setBusy(null);
+    }
+  }
   async function loadFile(nextFile: File, nextPage: number) {
     if (pending.current) return;
-    const validation = validateFile(nextFile);
+    const validation = readerWorkspace ? validateReaderFile(nextFile) : validateFile(nextFile);
     if (validation) {
       setError(validation);
       return;
@@ -231,14 +261,19 @@ export default function App() {
     setPage(nextPage);
     if (!changingPage) setMobileTab("ask");
     try {
-      const fresh = await uploadDrawing(nextFile, nextPage);
-      const id = changingPage && savedId ? savedId : await drawingId(nextFile);
+      const prepared = readerWorkspace ? await prepareReaderPage(nextFile, nextPage,
+        changingPage ? readerPage?.originalHash : undefined) : null;
+      const fresh = prepared?.drawing ?? await uploadDrawing(nextFile, nextPage);
+      const id = prepared?.drawing.document_id ?? (changingPage && savedId ? savedId : await drawingId(nextFile));
+      const saved = prepared ? await getSavedDrawing(id).catch(() => undefined) : undefined;
+      setReaderPage(prepared);
+      setAllowPageImage(false);
       setDrawing(fresh);
       setSavedId(id);
-      setDraft("");
-      setMessages([]);
-      setSelectedEvidence(null);
-      setZoom(100);
+      setDraft(saved?.draft ?? "");
+      setMessages(saved?.messages ?? []);
+      setSelectedEvidence(saved?.selectedEvidence ?? null);
+      setZoom(saved?.zoom ?? 100);
     } catch (e) {
       if (changingPage) setPage(drawing.page);
       setError(
@@ -323,6 +358,7 @@ export default function App() {
   }
   async function sendMessage(question: string): Promise<boolean> {
     if (pending.current || !drawing || !file) return false;
+    if (readerWorkspace && (!readerPage || (readerPage.representation === "image" && !allowPageImage))) return false;
     pending.current = true;
     setBusy("ask");
     setError(null);
@@ -344,7 +380,7 @@ export default function App() {
     const nextMessages: Message[] = [
       ...messages,
       { id: id + "-question", role: "user", content: question },
-      { id, role: "assistant", content: "", run },
+      ...(!readerWorkspace ? [{ id, role: "assistant" as const, content: "", run }] : []),
     ];
     setMessages(nextMessages);
     try {
@@ -361,6 +397,12 @@ export default function App() {
           interrupted: true,
           updated: Date.now(),
         }).catch(cacheFailure);
+      if (readerWorkspace && readerPage) {
+        const result = await askReader(readerPage, question);
+        setMessages(previous => [...previous, {id, role: "assistant", content: "", result}]);
+        setDraft("");
+        return true;
+      }
       let accepted: AgentRun;
       try {
         accepted = await startRun(drawing.document_id, id, question);
@@ -452,6 +494,8 @@ export default function App() {
     setDraft("");
     void leaveDrawing().catch(cacheFailure);
     setFile(null);
+    setReaderPage(null);
+    setAllowPageImage(false);
     setDrawing(null);
     setMessages([]);
     setError(null);
@@ -614,7 +658,7 @@ export default function App() {
                 </strong>
                 <span>
                   {busy === "upload"
-                    ? file?.name
+                    ? loadingExample || file?.name
                     : dragging
                       ? "Drop it here"
                       : file
@@ -634,6 +678,19 @@ export default function App() {
                 Choose a different drawing
               </button>
             )}
+            {readerWorkspace && <section className="public-sheets" aria-labelledby="public-sheets-title">
+              <h2 id="public-sheets-title">Try a public Stoa reference sheet</h2>
+              {publicSheets.map(sheet => <div className="public-sheet-row" key={sheet.id}>
+                <button disabled={!!busy || !ready} onClick={() => void openExample(sheet)}>
+                  <FileText size={15} />{sheet.name}
+                </button>
+                <a href={sheet.sourceUrl} target="_blank" rel="noreferrer" aria-label={"Source for " + sheet.name}>
+                  Source <ArrowUpRight size={12} />
+                </a>
+              </div>)}
+              {publicSheets[0] && <p>{publicSheets[0].attribution} · <a href={publicSheets[0].licenseUrl}
+                target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>}
+            </section>}
           </div>
         </main>
       ) : (
@@ -724,6 +781,16 @@ export default function App() {
               />
             ) : (
               <PlanChatbotPanel
+                reader={readerWorkspace}
+                canSend={!(readerPage?.representation === "image" && !allowPageImage)}
+                readerNotice={readerPage?.representation === "image" ? (
+                  <label><input type="checkbox" checked={allowPageImage} disabled={!!busy}
+                    onChange={e => setAllowPageImage(e.target.checked)} />
+                    Use the displayed {readerPage.payloadWidth} × {readerPage.payloadHeight} page image for questions.
+                    Small labels and vector detail can be lost. Highlights map back to page {drawing.page}.
+                  </label>
+                ) : readerPage?.representation === "page"
+                  ? `Page ${drawing.page} will be sent as a single-page PDF with its text and vectors.` : undefined}
                 key={drawing.document_id}
                 draft={draft}
                 onDraftChange={setDraft}

@@ -1,0 +1,4 @@
+*.py text eol=lf
+*.tsv text eol=lf
+*.json text eol=lf
+*.npz binary

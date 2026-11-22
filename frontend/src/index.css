@@ -390,6 +390,22 @@ h1 span {
   border-color: #a8bea0;
   box-shadow: 0 4px 20px #001d0009;
 }
+.public-sheets {
+  max-width: 460px;
+  margin: 28px auto 0;
+  text-align: left;
+}
+.public-sheets h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+.public-sheet-row { display: flex; align-items: center; gap: 10px; justify-content: space-between; border-top: 1px solid var(--line); }
+.public-sheet-row button { display: flex; align-items: center; gap: 8px; text-align: left; border: 0; background: none; color: var(--ink); padding: 11px 0; font-size: 13px; }
+.public-sheet-row button:hover, .public-sheets a:hover { text-decoration: underline; }
+.public-sheet-row svg { flex-shrink: 0; }
+.public-sheet-row a { display: inline-flex; align-items: center; }
+.public-sheets p, .public-sheets a { color: var(--secondary); font-size: 12px; }
+.public-sheets p { margin: 8px 0 0; }
+.reader-upload-note { font-size: 12px; line-height: 1.5; color: var(--ink); padding-bottom: 10px; }
+.reader-upload-note input { margin-right: 6px; accent-color: var(--accent); }
+.page-total { color: var(--secondary); font-size: 12px; white-space: nowrap; }
 .upload-card:disabled {
   opacity: 0.8;
 }

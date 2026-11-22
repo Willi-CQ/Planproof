@@ -1,6 +1,7 @@
 // Only the existing Python agent; no credentials, alternate agent or automatic retries.
 import type { SourceFrame } from "./runs";
 export interface Drawing {
+  page_count?: number;
   source?: SourceFrame;
   document_id: string;
   page: number;
@@ -9,6 +10,8 @@ export interface Drawing {
   height: number;
 }
 export interface Citation {
+  polygon?: number[][];
+  point?: number[];
   source_index?: number;
   canonical_bbox: number[];
   page_index: number;
@@ -139,6 +142,8 @@ export function isAnswered(result: AgentResult): boolean {
   );
 }
 export function resultText(result: AgentResult): string {
+  if (result.answer?.status === "partial" && result.answer.answer !== null)
+    return `${result.answer.answer}${result.answer.unit ? " " + result.answer.unit : ""}`;
   if (isAnswered(result))
     return `${result.answer!.answer}${result.answer!.unit ? " " + result.answer!.unit : ""}`;
   if (result.status === "not_configured")

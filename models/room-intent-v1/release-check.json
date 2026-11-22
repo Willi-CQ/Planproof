@@ -1,0 +1,13 @@
+{
+  "cli_matches": 12,
+  "refit_identical": true,
+  "refit_sha256": "f636b994bbd81d03d110687ff1f132f7db3cf544bb3944b6f8faaaf9874241f0",
+  "sources": {
+    "suggest.py": "e0a0bc428fe74a72486c4fc22085a410ea84dc9486f42395e4745b1060bd0ef4",
+    "train.py": "b698ae4dc0f4c8d528b9d6be165a3b30541041c377639192230de4a9b9deb995",
+    "intent.py": "2df54fa006475a5651c9fac07b4c2c461842fd2ff33981188758ddd557806dc6",
+    "train.tsv": "ae964c8b1ea07e16e09819286923d0afd596d5812b988153290fb654cce22132",
+    "fit-receipt.json": "7a054aed7bd7066b73d28464ecafa40833c0cab3f3abfa46fa9a50d381b9d741"
+  },
+  "paid_eur": 0
+}

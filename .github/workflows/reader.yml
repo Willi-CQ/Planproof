@@ -1,0 +1,35 @@
+name: Floor-plan reader
+on:
+  push:
+    paths: &inputs
+      - 'api/reader.py'
+      - 'planproof_runtime/**'
+      - 'tools/free_agent_room_qa/**'
+      - 'tools/tests/test_room_qa_*.py'
+      - 'tools/tests/test_vercel_reader.py'
+      - 'models/sheet-doors-v1/**'
+      - 'backend/scene_*.py'
+      - 'tools/stage_vercel.py'
+      - 'deploy/vercel.template.json'
+      - '.github/workflows/reader.yml'
+  pull_request:
+    paths: *inputs
+permissions:
+  contents: read
+jobs:
+  cpu-reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reader and reference CPU implementation
+        run: |
+          python -m pip install -r planproof_runtime/requirements.txt pytest
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Exercise evidence, schedules, raster text and HTTP contract
+        run: python -m pytest -q tools/tests/test_room_qa_*.py tools/tests/test_vercel_reader.py
+      - name: Verify deployment package
+        run: python tools/stage_vercel.py --output "$RUNNER_TEMP/vercel-source"
