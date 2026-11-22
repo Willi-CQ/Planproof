@@ -28,6 +28,14 @@ test("the bundled sample opens in 3D and supports orbit, top view, and adjustabl
   await expect(page.getByTestId("spatial-projection")).not.toHaveAttribute("transform", matrix!);
   const roof = page.getByTestId("sketch-volume").first().locator(".spatial-roof");
   const points = await roof.getAttribute("points");
+  const projected = await page.getByTestId("spatial-projection").getAttribute("transform");
+  const explode = page.getByRole("button",{name:"Exploded view"});
+  await explode.click();
+  await expect(explode).toHaveAttribute("aria-pressed","true");
+  await expect(roof).not.toHaveAttribute("points",points!);
+  await expect(page.getByTestId("spatial-projection")).toHaveAttribute("transform",projected!);
+  await explode.click();
+  await expect(roof).toHaveAttribute("points",points!);
   await page.getByRole("slider").fill("85");
   await expect(roof).not.toHaveAttribute("points", points!);
   await page.getByRole("button", {name:"Show sketch volumes",exact:true}).click();
@@ -104,4 +112,23 @@ test("the sample can be rotated and switched back to 2D on a touch viewport", as
   await page.getByRole("button",{name:"Return to 2D"}).tap();
   await expect(page.getByTestId("source-image")).toBeVisible();
   await page.close();
+});
+
+test("the illustrated study reassembles by keyboard and stays usable at phone width", async ({page})=>{
+  await page.setViewportSize({width:320,height:740});
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto("/");
+  const canvas=page.locator(".hall-study canvas");
+  const pixels=()=>canvas.evaluate(el=>(el as HTMLCanvasElement).toDataURL());
+  const toggle=page.getByRole("button",{name:"Exploded view"});
+  await expect(toggle).toHaveAttribute("aria-pressed","true");
+  await expect.poll(async()=>(await pixels()).length).toBeGreaterThan(4000);
+  const separated=await pixels();
+  await toggle.focus();
+  await page.keyboard.press("Space");
+  await expect(toggle).toHaveAttribute("aria-pressed","false");
+  await expect.poll(pixels).not.toBe(separated);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByRole("button",{name:"Explore the 3D sample"}).click();
+  await expect(page.getByTestId("spatial-stage")).toBeVisible();
 });

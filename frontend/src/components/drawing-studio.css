@@ -1,0 +1,130 @@
+.product:not(.product-loaded) {
+  background: radial-gradient(ellipse at 80% 2%, #eaf1e8 0, transparent 52%), #f5f6f1;
+  color: #183329;
+}
+.product:not(.product-loaded) .app-header {
+  height: 69px;
+  padding-inline: max(24px, calc((100% - 1312px)/2));
+  background: #fafbf7b8;
+  border-color: #d6dfd2;
+}
+.studio-welcome {
+  display: block;
+  width: min(100%, 1392px);
+  min-height: 0;
+  margin: auto;
+  padding: clamp(28px,6vh,72px) 40px 36px;
+}
+.studio-hero {
+  display: grid;
+  grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr);
+  align-items: center;
+  gap: clamp(24px,4vw,72px);
+}
+.studio-welcome .welcome-content {
+  margin: 0; text-align: left;
+}
+.studio-welcome h1 {
+  font-size: clamp(48px,5.15vw,78px);
+  line-height: 1.015; letter-spacing: -.061em; font-weight: 590;
+}
+.studio-welcome h1 span {
+  display: inline-block; margin-top: .08em;
+  font-family: "Hedvig Letters Serif", Georgia, serif;
+  font-weight: 400; font-style: italic;
+  font-size: .94em; letter-spacing: -.06em; color: #496d51;
+}
+.studio-welcome .welcome-description {
+  max-width: 340px; color: #47594e;
+  font-size: clamp(15px,1.22vw,18px);
+  margin: 21px 0 30px;
+}
+.studio-welcome .upload-card {
+  margin: 0; max-width: 390px; padding: 17px;
+  color: #fff; border-color: #294a36; border-radius: 15px; background: #204632;
+  box-shadow: 0 6px 15px #20463216;
+}
+.studio-welcome .upload-card:hover,.studio-welcome .upload-card-active { background: #2d5840; }
+.studio-welcome .upload-card-icon { color: #e0efc6; background: #ffffff14; border: 1px solid #cbdfbd45; }
+.studio-welcome .upload-card-copy > span { color: #d0decb; }
+.studio-welcome .upload-card-arrow { color: #dcf0ca; }
+.hall-study {
+  position: relative; isolation: isolate; overflow: hidden;
+  margin: 0; padding: clamp(16px,2.1vw,31px);
+  border: 1px solid #344f40; border-radius: 24px; color: #f2f4e6;
+  background: radial-gradient(ellipse at 43% 45%,#385c48 0,#224233 52%,#132e24 100%);
+  box-shadow: 0 22px 42px -24px #16352075;
+}
+.hall-study::before {
+  content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  background-image: linear-gradient(#d8edd309 1px,transparent 1px),linear-gradient(90deg,#d8edd309 1px,transparent 1px),
+    radial-gradient(#cadfbc4a .8px,transparent 1px);
+  background-size: 40px 40px,40px 40px,10px 10px;
+  mask-image: linear-gradient(125deg,#000, #0009 66%,#0003);
+}
+.hall-study header,.hall-study footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hall-study figcaption { font: 500 clamp(18px,1.65vw,26px)/1.2 Georgia,serif; letter-spacing: -.04em; }
+.hall-study button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 38px; padding: 7px 12px; border-radius: 8px;
+  background: #f0f4df; color: #203c2b; border: 1px solid #dce7cf;
+  font-size: 12px; font-weight: 640;
+}
+.hall-study button:hover { background: #daecc2; }
+.hall-study button:focus-visible { outline-color: #e7f8ae; }
+.hall-study .study-toggle { color: #f0f6e7; background: #173729; border-color: #829783; }
+.hall-study .study-toggle[aria-pressed="true"] { background: #47604b; border-color: #9eb592; }
+.hall-study canvas { display: block; width: 100%; aspect-ratio: 680/395; height: auto; }
+.hall-study footer { padding-top: 13px; border-top: 1px solid #d6eac52f; }
+.study-key { display: inline-flex; align-items: center; gap: 7px; color: #e3ecd7; font-size: 12px; }
+.study-key i { width: 9px; height: 9px; background: #c5df92; border-radius: 2px; }
+.study-key .key-mobile { display: none; }
+.study-key .key-desktop { margin-left: -4px; }
+.studio-sheets { max-width: none; margin: clamp(24px,5vh,65px) 0 0; border-top: 1px solid #c9d4c6; padding-top: 20px; }
+.studio-sheets h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 15px; }
+.studio-shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.studio-shelf .public-sheet-row {
+  min-width: 0; padding: 0 16px; gap: 6px;
+  border: 1px solid #d3ddd0; border-radius: 12px; background: #fbfcf8;
+}
+.studio-shelf .public-sheet-row:hover { border-color: #94ae92; }
+.studio-shelf button { min-width: 0; flex: 1; align-self: stretch; gap: 14px; min-height: 66px; font-weight: 550; }
+.studio-shelf .sheet-code {
+  color: #44674d; font: 600 11px ui-monospace,monospace; white-space: nowrap; letter-spacing: .02em;
+  align-self: center; padding: 5px 8px; border: 1px solid #b8c9b6; border-radius: 3px; background: #eef3e8;
+}
+.studio-sheets p,.studio-sheets a { color: #536658; }
+.studio-sheets p { margin-top: 12px; }
+.product-loaded { background: #f3f5f0; }
+.drawing-viewer {
+  background-color: #e6ece4;
+  background-image: radial-gradient(#68816a44 .7px,transparent .9px);
+  background-size: 10px 10px;
+}
+.spatial-projection-guides { fill: #adc99b3d; stroke: #6d8a64; stroke-width: 1; stroke-dasharray: 3 3; }
+.spatial-subpanel button[aria-label="Exploded view"] { border-left: 1px solid #94b29b60; border-radius: 0 5px 5px 0; }
+@media(max-width: 900px) {
+  .studio-welcome { padding-inline: 24px; }
+  .studio-hero { gap: 22px; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); }
+  .studio-welcome h1 { font-size: clamp(40px,5.3vw,50px); }
+}
+@media(max-width: 700px) {
+  .product:not(.product-loaded) .app-header { height: 59px; padding-inline: 18px; }
+  .studio-welcome { padding: 30px 18px 26px; max-width: 550px; }
+  .studio-hero,.studio-shelf { grid-template-columns: minmax(0,1fr); }
+  .studio-hero { gap: 24px; }
+  .studio-welcome h1 { font-size: clamp(44px,9.8vw,57px); }
+  .studio-welcome .welcome-description { margin: 14px 0 18px; max-width: 360px; }
+  .studio-welcome .upload-card { max-width: none; padding: 12px 14px; }
+  .hall-study { padding: 14px; border-radius: 17px; }
+  .hall-study button { min-height: 38px; font-size: 11px; padding-inline: 7px; }
+  .study-key { font-size: 11px; }
+  .study-key .key-desktop { display: none; }
+  .study-key .key-mobile { display: inline; margin-left: -4px; }
+  .hall-study footer { padding-top: 9px; }
+  .studio-sheets { padding-top: 16px; margin-top: 24px; }
+  .studio-shelf { gap: 8px; }
+  .studio-shelf .public-sheet-row { padding-inline: 11px; }
+  .studio-shelf button { min-height: 53px; gap: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { .studio-welcome .welcome-content { animation: none; } }

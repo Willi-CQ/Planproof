@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   ArrowUpRight,
-  Box,
   FileText,
   FolderOpen,
   LoaderCircle,
@@ -12,6 +11,7 @@ import {
   Ruler,
 } from "lucide-react";
 import { DrawingLibrary } from "./components/DrawingLibrary";
+import { HallwayStudy } from "./components/HallwayStudy";
 import {
   readLibrary,
   getSavedDrawing,
@@ -623,7 +623,7 @@ export default function App() {
               </span>
             </>
           ) : (
-            <span>Clarity, built in.</span>
+            <span>Drawing workspace</span>
           )}
         </div>
         <div className="header-actions">
@@ -680,21 +680,16 @@ export default function App() {
       )}
 
       {!drawing ? (
-        <main className="welcome">
+        <main className="welcome studio-welcome">
+          <div className="studio-hero">
           <div className="welcome-content">
-            <div className="welcome-emblem" aria-hidden="true">
-              <FileText strokeWidth={1.1} />
-              <span>
-                <Scan size={15} />
-              </span>
-            </div>
             <h1>
               Your plans.
               <br />
               <span>Clearly understood.</span>
             </h1>
             <p className="welcome-description">
-              Ask a question. Find the answer in your drawing.
+              Ask questions, trace rooms and measure directly on your drawing.
             </p>
             <button
               className={`upload-card ${dragging ? "upload-card-active" : ""}`}
@@ -727,7 +722,7 @@ export default function App() {
                       ? "Drop it here"
                       : file
                         ? file.name
-                        : "Drop a file here, or browse"}
+                        : "Drop a PDF, PNG or JPG, or browse"}
                 </span>
               </span>
               {!busy && (
@@ -742,24 +737,23 @@ export default function App() {
                 Choose a different drawing
               </button>
             )}
-            {readerWorkspace && <section className="public-sheets" aria-labelledby="public-sheets-title">
+          </div>
+          <HallwayStudy disabled={!!busy || !ready} onOpen={readerWorkspace ? openSpatialSample : undefined}/>
+          </div>
+            {readerWorkspace && <section className="public-sheets studio-sheets" aria-labelledby="public-sheets-title">
               <h2 id="public-sheets-title">Try a public Stoa reference sheet</h2>
-              {publicSheets.map(sheet => <div className="public-sheet-row" key={sheet.id}>
-                <button disabled={!!busy || !ready} onClick={() => void openExample(sheet)}>
-                  <FileText size={15} />{sheet.name}
+              <div className="studio-shelf">{publicSheets.map(sheet => <div className="public-sheet-row" key={sheet.id}>
+                <button aria-label={sheet.name} disabled={!!busy || !ready} onClick={() => void openExample(sheet)}>
+                  <span className="sheet-code">{sheet.id}</span>
+                  <span>{sheet.name.split(" · ")[1]}</span>
                 </button>
                 <a href={sheet.sourceUrl} target="_blank" rel="noreferrer" aria-label={"Source for " + sheet.name}>
                   Source <ArrowUpRight size={12} />
                 </a>
-              </div>)}
+              </div>)}</div>
               {publicSheets[0] && <p>{publicSheets[0].attribution} · <a href={publicSheets[0].licenseUrl}
                 target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>}
             </section>}
-            {readerWorkspace && <button className="open-spatial-sample" type="button"
-              disabled={!!busy || !ready} onClick={() => void openSpatialSample()}>
-              <Box size={18} /> Explore the 3D sample <ArrowUpRight size={13} />
-            </button>}
-          </div>
         </main>
       ) : (
         <>

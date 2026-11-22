@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Box, ChevronLeft, ChevronRight, Focus, Layers3, MapPin, Minus, PencilRuler,
-  Plus, RotateCcw, Scan, Undo2, X,
+  Plus, RotateCcw, Scan, Undo2, X, UnfoldVertical,
 } from "lucide-react";
 import type { Citation, Drawing } from "../lib/api";
 import { overviewCamera, projectPlan, simpleFootprint, type PlanPoint } from "../lib/planProjection";
@@ -42,6 +42,7 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
   const [showEvidence, setShowEvidence] = useState(true);
   const [showVolumes, setShowVolumes] = useState(true);
   const [depth, setDepth] = useState(45);
+  const [exploded, setExploded] = useState(false);
   const [rooms, setRooms] = useState<Guide[]>([]);
   const [draft, setDraft] = useState<PlanPoint[] | null>(null);
   const [error, setError] = useState("");
@@ -50,6 +51,7 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
   const view = projectPlan(width, height, frame, camera, focal);
   const thickness = Math.min(width, height) * .032;
   const relief = Math.min(width, height) * (.035 + depth * .0014);
+  const layerGap = exploded ? Math.min(width,height)*.15 : 0;
   const corners: PlanPoint[] = [[0,0],[width,0],[width,height],[0,height]];
   const zones = [...(sample ? sampleRooms : []), ...rooms];
   const active = selectedIndex === null ? undefined : citations[selectedIndex];
@@ -178,10 +180,14 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
           points.reduce((sum,p) => sum+p[1],0)/points.length];
         return {zone, center, index:i};
       }).sort((a,b) => view.depth(a.center)-view.depth(b.center)).map(({zone,center,index}) => {
-        const [x,y] = view.point(center,relief);
+        const [x,y] = view.point(center,relief + layerGap);
         return <g key={zone.name} className="spatial-room" data-testid="sketch-volume" data-hallway={index === 2 && sample}>
-          {drawSides(zone.points,0,relief,"spatial-wall")}
-          <polygon points={outline(zone.points.map(point => view.point(point,relief)))} className="spatial-roof" />
+          {exploded && <g className="spatial-projection-guides" aria-hidden="true">
+            <polygon points={outline(zone.points.map(p=>view.point(p)))} />
+            {zone.points.map((p,i)=><polyline key={i} points={outline([view.point(p),view.point(p,layerGap)])}/>)}
+          </g>}
+          {drawSides(zone.points,layerGap,relief+layerGap,"spatial-wall")}
+          <polygon points={outline(zone.points.map(point => view.point(point,relief+layerGap)))} className="spatial-roof" />
           {sample && index < 3 && frame[0] > 490 && <text x={x} y={y} className="spatial-room-label">{zone.name}</text>}
         </g>;
       })}
@@ -230,6 +236,11 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
         <Box size={15}/><label title="Illustrative depth for all sketched volumes">Illustrative depth
           <input type="range" min="0" max="100" value={depth} onChange={e => setDepth(Number(e.target.value))} />
         </label>
+        <button type="button" aria-label="Exploded view" aria-pressed={exploded} title="Separate sketches from the source sheet"
+          onClick={()=>{
+            if (!exploded && camera.tilt===0) setCamera(value=>({...value,tilt:overviewCamera.tilt}));
+            setExploded(!exploded);
+          }}><UnfoldVertical size={15}/><span>Explode</span></button>
         {rooms.length > 0 && <button type="button" aria-label="Remove last sketch" title="Remove last sketch" onClick={() => setRooms(current => current.slice(0,-1))}><Undo2 size={15}/></button>}
       </div>}
     </div>
