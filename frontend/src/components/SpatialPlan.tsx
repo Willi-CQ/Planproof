@@ -113,9 +113,9 @@ export function SpatialPlan({drawing, citations, selectedIndex, onSelectEvidence
       <div className="spatial-controls" aria-label="3D camera presets">
         <button type="button" onClick={overview} aria-label="Reset 3D view" title="Reset 3D view"><RotateCcw size={16} /></button>
         <button type="button" onClick={() => {setFocal(undefined);setCamera({yaw:0,tilt:0,zoom:1});}}
-          aria-pressed={camera.tilt === 0} title="Top view"><Scan size={16} /><span>Top view</span></button>
+          aria-pressed={camera.tilt === 0} aria-label="Top view" title="Top view"><Scan size={16} /><span>Top view</span></button>
         <button type="button" onClick={() => setShowEvidence(value => !value)} disabled={!citations.length}
-          aria-pressed={showEvidence && citations.length > 0} title="Evidence pins"><MapPin size={16} /><span>Evidence</span></button>
+          aria-pressed={showEvidence && citations.length > 0} aria-label="Evidence" title="Evidence pins"><MapPin size={16} /><span>Evidence</span></button>
       </div>
     </div>
     <svg ref={svg} className={`spatial-stage ${draft ? "is-sketching" : dragging ? "is-rotating" : ""}`}

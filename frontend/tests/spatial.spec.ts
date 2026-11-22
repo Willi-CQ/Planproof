@@ -95,6 +95,10 @@ test("an uploaded PDF keeps its evidence anchored and sketches stay on their pag
 test("the sample can be rotated and switched back to 2D on a touch viewport", async ({browser}) => {
   const page = await browser.newPage({viewport:{width:390,height:844}, isMobile:true, hasTouch:true});
   await openSample(page);
+  await expect(page.getByRole("button",{name:"Measure",exact:true})).toBeVisible();
+  const presets = await page.locator(".spatial-top").boundingBox();
+  const modes = await page.locator(".plan-view-modes").boundingBox();
+  expect(presets!.x+presets!.width).toBeLessThan(modes!.x);
   await page.getByRole("button",{name:"Rotate left",exact:true}).tap();
   await expect(page.getByTestId("spatial-stage")).toHaveAttribute("data-yaw","-58");
   await page.getByRole("button",{name:"Return to 2D"}).tap();

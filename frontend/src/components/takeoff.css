@@ -120,6 +120,8 @@
 .takeoff-error { color: #894031; font-size: 12px; margin: 4px 0; }
 @media (max-width: 540px) {
   .plan-view-modes { top: 8px; right: 8px; }
+  .plan-view-modes:has(button + button) + .spatial-view .spatial-top button span { display: none; }
+  .plan-view-modes:has(button + button) + .spatial-view .spatial-top button { min-width: 35px; }
   .takeoff-tools { top: 8px; max-width: calc(100% - 12px); }
   .takeoff-tools button { padding-inline: 6px; }
   .takeoff-tools-row { justify-content: center; }
