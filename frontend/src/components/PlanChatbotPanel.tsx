@@ -36,6 +36,7 @@ interface Props {
   busy: boolean;
   disabled?: boolean;
   reader?: boolean;
+  spatialSample?: boolean;
   canSend?: boolean;
   readerNotice?: ReactNode;
   rasterSource?: Blob;
@@ -57,6 +58,7 @@ export function PlanChatbotPanel({
   busy,
   disabled = false,
   reader = false,
+  spatialSample = false,
   canSend = true,
   readerNotice,
   rasterSource,
@@ -158,7 +160,10 @@ export function PlanChatbotPanel({
               {reader ? "Search for a printed label in English or German. Replace the words in quotes with text from your drawing." : "Ask about a detail, a dimension, or the whole drawing."}
             </p>
             <div className="suggestions">
-              {(reader ? [
+              {(spatialSample ? [
+                'Find the label "HALLWAY".',
+                'Wo steht „DEMO“?',
+              ] : reader ? [
                 'Find the label "North Hall".',
                 'Wo steht „North Hall“?',
                 "Where is door D-01?",

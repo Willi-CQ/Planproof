@@ -11,12 +11,16 @@ import {
   LocateFixed,
   LocateOff,
   DoorOpen,
+  Box,
+  Scan,
 } from "lucide-react";
 import { visibleCitations, visibleCountObjects, type Drawing, type AgentResult } from "../lib/api";
 import { AlgorithmOverlay } from "./AlgorithmOverlay";
+import { SpatialPlan } from "./SpatialPlan";
 import type { AgentRun, EvidenceShape, Region } from "../lib/runs";
 import { liveActivity } from "../lib/activity";
 interface Props {
+  spatialSample?: boolean;
   hasTask: boolean;
   taskOpen: boolean;
   onTaskDetails: () => void;
@@ -40,6 +44,7 @@ interface Props {
   onPageChange: (page: number) => void;
 }
 export function PlanCanvas2D({
+  spatialSample = false,
   hasTask, taskOpen, onTaskDetails,
   drawing,
   liveRun, followLive = false, onFollowLive,
@@ -75,9 +80,12 @@ export function PlanCanvas2D({
   const citations = result ? visibleCitations(result, drawing) : [];
   const countObjects = result ? visibleCountObjects(result, drawing) : [];
   const [showCandidates, setShowCandidates] = useState(true);
+  const [spatialRequested, setSpatialRequested] = useState(spatialSample);
+  const [spatialVisited, setSpatialVisited] = useState(spatialSample);
+  const spatial = spatialRequested && !focusRegion && comparisonSplit == null;
   const activity = liveActivity(liveRun, drawing.source);
   useEffect(() => {
-    if ((!focusRegion && selectedIndex === null) || !viewport.current) return;
+    if (spatial || (!focusRegion && selectedIndex === null) || !viewport.current) return;
     const box =
       focusRegion?.canonical_bbox ||
       (selectedIndex !== null
@@ -97,9 +105,10 @@ export function PlanCanvas2D({
       (container.clientHeight * 0.55) / heightAtFit,
     );
     onZoomChange(Math.max(100, Math.min(400, Math.round(magnification * 100))));
-  }, [selectedIndex, result, drawing, focusRegion, onZoomChange]);
+  }, [selectedIndex, result, drawing, focusRegion, onZoomChange, spatial]);
   useEffect(() => {
     if (
+      spatial ||
       (!focusRegion && selectedIndex === null) ||
       !viewport.current ||
       !sheet.current
@@ -126,11 +135,24 @@ export function PlanCanvas2D({
         ? "instant"
         : "smooth",
     });
-  }, [selectedIndex, result, drawing, zoom, focusRegion]);
+  }, [selectedIndex, result, drawing, zoom, focusRegion, spatial]);
+  const answer = result?.answer;
+  const caption = answer?.answer != null ? [answer.answer, answer.unit].filter(v => v != null && v !== "").join(" ") : undefined;
   return (
     <section className="drawing-viewer" aria-label="Drawing viewer">
+      <button type="button" className="view-mode-button" aria-label={spatial ? "Return to 2D" : "Explore in 3D"}
+        aria-pressed={spatial} disabled={comparisonSplit != null} onClick={() => {
+          onManualView?.();
+          setSpatialVisited(true);
+          setSpatialRequested(!spatial);
+        }}>
+        {spatial ? <Scan size={15}/> : <Box size={15}/>} {spatial ? "2D plan" : "3D view"}
+      </button>
+      {spatialVisited && <SpatialPlan drawing={drawing} citations={citations} selectedIndex={selectedIndex}
+        onSelectEvidence={onSelectEvidence} caption={caption} sample={spatialSample} hidden={!spatial} />}
       <div
         ref={viewport}
+        hidden={spatial}
         className={`plan-viewport ${panning ? "is-panning" : ""}`}
         data-testid="plan-viewport"
         onWheel={() => onManualView?.()}
@@ -280,13 +302,13 @@ export function PlanCanvas2D({
           <span>Pixel + geometry rules</span>
         </div>
       )}
-      <div className="viewer-toolbar" aria-label="Drawing controls">
-        {countObjects.length > 0 && <button className="icon-button" aria-pressed={showCandidates}
+      <div className={`viewer-toolbar ${spatial ? "spatial-sheet-toolbar" : ""}`} aria-label="Drawing controls">
+        {!spatial && countObjects.length > 0 && <button className="icon-button" aria-pressed={showCandidates}
           aria-label="Show door candidates" onClick={() => setShowCandidates(v => !v)}
           title={`${countObjects.length} door candidates. Green: supported; dashed amber: uncertain. Not human-verified.`}>
           <DoorOpen size={16} />
         </button>}
-        <div className="page-flipper" aria-label="Page navigation">
+        {(!spatial || (isPdf && (drawing.page_count ?? 1) > 1)) && <div className="page-flipper" aria-label="Page navigation">
           <button
             className="icon-button"
             aria-label="Previous page"
@@ -340,8 +362,8 @@ export function PlanCanvas2D({
           >
             <ChevronRight size={16} />
           </button>
-        </div>
-        <span className="toolbar-divider" />
+        </div>}
+        {!spatial && <><span className="toolbar-divider" />
         <button
           className="icon-button"
           aria-label="Zoom out"
@@ -380,7 +402,7 @@ export function PlanCanvas2D({
           }}
         >
           <Maximize size={15} />
-        </button>
+        </button></>}
         <a
           className="icon-button"
           href={drawing.original_url ? drawing.original_url + (isPdf ? "#page=" + drawing.page : "") : drawing.image_url}
@@ -391,8 +413,8 @@ export function PlanCanvas2D({
         >
           <ExternalLink size={15} />
         </a>
-        <span className="toolbar-divider" />
-        {onFollowLive && <button
+        {(!spatial || hasTask) && <span className="toolbar-divider" />}
+        {!spatial && onFollowLive && <button
           className="icon-button follow-view-button"
           aria-label="Follow view"
           title={followLive ? "Following agent view — click to pause" : "Follow agent view"}
@@ -401,10 +423,10 @@ export function PlanCanvas2D({
         >
           {followLive ? <LocateFixed size={17} /> : <LocateOff size={17} />}
         </button>}
-        <button className="icon-button task-details-button" aria-label="Task details"
+        {(!spatial || hasTask) && <button className="icon-button task-details-button" aria-label="Task details"
           title="Latest task details" aria-pressed={taskOpen} disabled={!hasTask} onClick={onTaskDetails}>
           <ListChecks size={17} />
-        </button>
+        </button>}
       </div>
       {loadingPage && (
         <div className="page-loading" role="status">
@@ -412,7 +434,7 @@ export function PlanCanvas2D({
           Opening page…
         </div>
       )}
-      {!activity && citations.length > 0 && (
+      {!spatial && !activity && citations.length > 0 && (
         <div className="evidence-count">
           <span />
           {citations.length === 1

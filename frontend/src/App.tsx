@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   ArrowUpRight,
+  Box,
   FileText,
   FolderOpen,
   LoaderCircle,
@@ -27,6 +28,7 @@ import { PlanChatbotPanel, type Message } from "./components/PlanChatbotPanel";
 import { ApiError, uploadDrawing, validateFile, type Drawing } from "./lib/api";
 import { askReader, prepareReaderPage, validateReaderFile, type ReaderPage } from "./lib/reader";
 import { loadPublicSheet, publicSheets, type PublicSheet } from "./lib/publicSheets";
+import spatialSampleUrl from "./assets/plan-sample.png";
 
 import { liveActivity } from "./lib/activity";
 import { downloadTaskReport } from "./lib/report";
@@ -42,6 +44,9 @@ import {
   type EvidenceShape,
   type Region,
 } from "./lib/runs";
+
+const spatialSampleName = "Planproof 3D sample.png";
+const spatialSampleHash = "687dce98c60de863d2b9eafe75d0e02d9eb0df44940ca292d43d3a1a2b7a572c";
 
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -226,16 +231,27 @@ export default function App() {
     }
   }
 
-  async function openExample(sheet: PublicSheet) {
+  function openExample(sheet: PublicSheet) {
+    return openExampleFile(sheet.name, () => loadPublicSheet(sheet));
+  }
+  function openSpatialSample() {
+    return openExampleFile(spatialSampleName, async () => {
+      const response = await fetch(spatialSampleUrl);
+      if (!response.ok) throw new Error("The 3D sample could not be opened.");
+      return new File([await response.blob()], spatialSampleName, {type:"image/png"});
+    }, true);
+  }
+  async function openExampleFile(name: string, getFile: () => Promise<File>, showDrawing = false) {
     if (pending.current) return;
     pending.current = true;
     setBusy("upload");
-    setLoadingExample(sheet.name);
+    setLoadingExample(name);
     setError(null);
     try {
-      const source = await loadPublicSheet(sheet);
+      const source = await getFile();
       pending.current = false;
       await loadFile(source, 1);
+      if (showDrawing) setMobileTab("drawing");
     } catch (e) {
       setError(e instanceof Error ? e.message : "The reference sheet could not be downloaded.");
     } finally {
@@ -694,6 +710,10 @@ export default function App() {
               {publicSheets[0] && <p>{publicSheets[0].attribution} · <a href={publicSheets[0].licenseUrl}
                 target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>}
             </section>}
+            {readerWorkspace && <button className="open-spatial-sample" type="button"
+              disabled={!!busy || !ready} onClick={() => void openSpatialSample()}>
+              <Box size={18} /> Explore the 3D sample <ArrowUpRight size={13} />
+            </button>}
           </div>
         </main>
       ) : (
@@ -719,6 +739,8 @@ export default function App() {
           <main className="workspace" data-mobile-tab={mobileTab}>
             <div className="drawing-column">
               <PlanCanvas2D
+                key={drawing.document_id + ":" + drawing.page}
+                spatialSample={readerPage?.originalHash === spatialSampleHash}
                 hasTask={!!latestTask?.run}
                 taskOpen={!!inspectionId}
                 onTaskDetails={() => {
@@ -785,6 +807,7 @@ export default function App() {
             ) : (
               <PlanChatbotPanel
                 reader={readerWorkspace}
+                spatialSample={readerPage?.originalHash === spatialSampleHash}
                 rasterSource={readerPage?.rasterPreviewSource}
                 canSend={!(readerPage?.representation === "image" && !allowPageImage)}
                 readerNotice={readerPage?.representation === "image" ? (
