@@ -785,6 +785,7 @@ export default function App() {
             ) : (
               <PlanChatbotPanel
                 reader={readerWorkspace}
+                rasterSource={readerPage?.rasterPreviewSource}
                 canSend={!(readerPage?.representation === "image" && !allowPageImage)}
                 readerNotice={readerPage?.representation === "image" ? (
                   <label><input type="checkbox" checked={allowPageImage} disabled={!!busy}
@@ -794,6 +795,8 @@ export default function App() {
                   </label>
                 ) : readerPage?.representation === "page"
                   ? `Page ${drawing.page} will be sent as a single-page PDF with its text and vectors.` :
+                    readerPage?.rasterPreviewSource && drawing.width * drawing.height > 16_000_000
+                      ? `Questions use the original ${drawing.width} × ${drawing.height} image. Select a source reference to see its original pixels.` :
                     readerPage && (drawing.page_count ?? 1) > 1
                       ? `Asking sends the original PDF to Planproof. Only page ${drawing.page} is read.` : undefined}
                 key={drawing.document_id}

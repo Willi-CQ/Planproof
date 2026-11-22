@@ -1,6 +1,7 @@
 // Browser transport and evidence checks with synthetic files and a fixture API.
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { createHash, randomBytes } from "node:crypto";
+import { crc32, deflateSync } from "node:zlib";
 import { PDFDocument } from "pdf-lib";
 
 const hash = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
@@ -39,6 +40,79 @@ function answer(bytes: Buffer, page: number, type: string, width: number, height
       {id: "mark1", kind: "door_mark", text: "D-01", bbox: [80,50,100,70]},
     ]};
 }
+function largeBilevelPng(width: number, height: number) {
+  const chunk = (name: string, data: Buffer) => {
+    const type = Buffer.from(name, "ascii"), size = Buffer.alloc(4), checksum = Buffer.alloc(4);
+    size.writeUInt32BE(data.length);
+    checksum.writeUInt32BE(crc32(data, crc32(type)));
+    return Buffer.concat([size, type, data, checksum]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width);
+  header.writeUInt32BE(height, 4);
+  header[8] = 1;
+  const stride = 1 + Math.ceil(width / 8);
+  const rows = Buffer.alloc(stride * height, 255);
+  for (let y = 0; y < height; y++) {
+    rows[y * stride] = 0;
+    if (y >= 50 && y < 70) rows.fill(0, y * stride + 11, y * stride + 14);
+  }
+  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk("IHDR", header),
+    chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
+}
+test("a 67 MP original keeps native bytes and citation coordinates independently of its preview", async ({page}) => {
+  const source = largeBilevelPng(10200, 6600);
+  await page.route("**/api/reader", async route => {
+    const sent = await submitted(route);
+    expect(sent.bytes.equals(source)).toBeTruthy();
+    await route.fulfill({json: answer(sent.bytes, 1, sent.file.type, 10200, 6600)});
+  });
+  await page.goto("/");
+  await page.getByLabel("Upload drawing", {exact:true}).setInputFiles({name:"bilevel.png", mimeType:"image/png", buffer:source});
+  await expect(page.getByText(/original 10200 × 6600 image/)).toBeVisible();
+  await expect(page.getByRole("checkbox", {name:/Use the displayed/})).toHaveCount(0);
+  const preview = page.getByTestId("source-image");
+  await expect(preview).toHaveAttribute("width", "10200");
+  expect(await preview.evaluate(async node => {
+    const image = node as HTMLImageElement;
+    await image.decode();
+    return image.naturalWidth;
+  })).toBe(3600);
+  await ask(page);
+  await page.getByRole("button", {name:"View evidence 1, page 1"}).click();
+  await expect(page.getByTestId("evidence-box")).toHaveAttribute("x", "80");
+  const detail = page.getByRole("img", {name:"Selected evidence from original pixels"});
+  await expect.poll(() => detail.evaluate(node => {
+    const el = node as HTMLCanvasElement;
+    const ctx = el.getContext("2d")!;
+    const center = ctx.getImageData(Math.floor(el.width / 2), Math.floor(el.height / 2), 1, 1).data;
+    return Array.from(center);
+  })).toEqual([0,0,0,255]);
+});
+
+test("unsupported questions, text not located and incomplete counts are different results", async ({page}) => {
+  await page.goto("/");
+  const bytes = await imageFile(page, "image/png");
+  let attempt = 0;
+  await page.route("**/api/reader", async route => {
+    const data = answer(bytes, 1, "image/png", 320, 180);
+    const results = [
+      {status:"unresolved", value:null, evidence:[], reason_code:"unsupported_question", reason:"The operation is unsupported."},
+      {status:"unresolved", value:null, evidence:[], reason_code:"text_not_found", reason:"No matching text was found."},
+      {status:"partial", value:2, unit:"count", reason_code:"incomplete_coverage", reason:"Only some labels could be read."},
+    ];
+    await route.fulfill({json:{...data, ...results[attempt++]}});
+  });
+  await page.getByLabel("Upload drawing", {exact:true}).setInputFiles({name:"labels.png", mimeType:"image/png", buffer:bytes});
+  await page.getByRole("button", {name:'Wo steht „North Hall“?'}).click();
+  await expect(page.getByLabel("Question about this drawing")).toHaveValue('Wo steht „North Hall“?');
+  await ask(page);
+  await expect(page.getByTestId("answer-value").last()).toHaveText("This question needs a different reading method");
+  await ask(page);
+  await expect(page.getByTestId("answer-value").last()).toHaveText("No matching label found in the text read");
+  await ask(page);
+  await expect(page.getByTestId("answer-value").last()).toHaveText("At least 2");
+});
 test("public Stoa references download on selection and reject changed publisher files", async ({page}) => {
   let downloads = 0;
   await page.route("https://raw.githubusercontent.com/**", async route => {

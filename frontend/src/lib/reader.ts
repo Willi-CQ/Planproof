@@ -1,5 +1,6 @@
 import type { AgentResult, Citation, Drawing } from "./api";
 import { drawingId } from "./library";
+import { rasterSource } from "./rasterSource";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 // Leave space for multipart headers below Vercel's function body limit.
@@ -14,6 +15,7 @@ export interface ReaderPage {
   payloadWidth: number;
   payloadHeight: number;
   originalHash: string;
+  rasterPreviewSource?: Blob;
   representation: "original" | "page" | "image";
 }
 
@@ -72,16 +74,16 @@ async function pdfPreview(file: File, pageNumber: number) {
   }
 }
 async function imagePreview(file: File) {
-  // The reader uses stored pixels. Match that frame even for JPEGs carrying EXIF rotation.
-  const image = await createImageBitmap(file, {imageOrientation: "none"});
+  const {width, height, blob} = await rasterSource(file);
+  const canvas = canvasFor(width, height, previewEdge);
+  const image = await createImageBitmap(blob, {imageOrientation: "none", resizeWidth: canvas.width,
+    resizeHeight: canvas.height, resizeQuality: "high"});
   try {
-    const {width, height} = image;
-    const canvas = canvasFor(width, height, previewEdge);
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return {width, height, pageCount: 1, canvas};
+    return {width, height, pageCount: 1, canvas, rasterPreviewSource: blob};
   } finally {
     image.close();
   }
@@ -113,7 +115,7 @@ export async function prepareReaderPage(file: File, page: number, knownHash?: st
     }
   }
   let previewBlob: Blob;
-  if (payload.size > requestBytes || (!pdf && preview.width * preview.height > 16_000_000)) {
+  if (payload.size > requestBytes) {
     const {blob, canvas} = await compactImage(preview.canvas);
     payload = new File([blob], blob.type === "image/png" ? "page.png" : "page.jpg", {type: blob.type});
     payloadPage = 1;
@@ -130,7 +132,8 @@ export async function prepareReaderPage(file: File, page: number, knownHash?: st
     original_url: URL.createObjectURL(file),
     width: preview.width, height: preview.height,
     source: {page_index: page - 1, width: preview.width, height: preview.height, raster_sha256: originalHash}};
-  return {drawing, payload, payloadPage, payloadHash, payloadWidth, payloadHeight, originalHash, representation};
+  return {drawing, payload, payloadPage, payloadHash, payloadWidth, payloadHeight, originalHash, representation,
+    rasterPreviewSource: "rasterPreviewSource" in preview ? preview.rasterPreviewSource as Blob : undefined};
 }
 
 interface NativeAnswer {
@@ -138,6 +141,9 @@ interface NativeAnswer {
   value: string | number | string[] | null;
   unit: string | null;
   reason: string;
+  reason_code?: string;
+  program?: {op?: string};
+  raster_coverage?: {tiles_total?: number; tiles_read?: number; tiles_blank?: number; tiles_timed_out?: number};
   calculation: string | null;
   width: number;
   height: number;
@@ -172,11 +178,18 @@ function mappedAnswer(data: NativeAnswer, prepared: ReaderPage): AgentResult {
     details.push({citation: number, kind: "text", label: [item.kind?.replaceAll("_"," "), item.text].filter(Boolean).join(" · ")});
   }
   const value = Array.isArray(data.value) ? data.value.join(", ") : data.value;
+  const reason = data.reason_code || (data.program?.op === "unsupported" ? "unsupported_question" : undefined);
+  const tiles = data.raster_coverage;
+  const coverage = tiles && Number.isInteger(tiles.tiles_total) && (tiles.tiles_total ?? 0) > 0
+    ? `Native image scan: ${tiles.tiles_read ?? 0} of ${tiles.tiles_total} tiles read, ${tiles.tiles_blank ?? 0} blank, ${tiles.tiles_timed_out ?? 0} timed out.` : "";
   return {status: "ok", source: drawing.source, canonical_citations: citations,
+    reader_reason: reason,
+    reader_input: {representation:prepared.representation, sha256:payloadHash, page:data.page,
+      width:data.width, height:data.height, coordinates:data.coordinates},
     completion_reason: data.status === "answered" ? "answered" : "source_insufficient",
     answer: {status: data.status === "unresolved" ? "abstain" : data.status,
       answer: value, unit: data.unit === "count" ? null : data.unit, citation_details: details,
-      explanation: data.calculation || data.reason, uncertainties: [], coverage: "",
+      explanation: data.calculation || data.reason, uncertainties: [], coverage,
       briefing: [
         ...(data.calculation ? [{section: "basis" as const, text: data.calculation, citations: citations.map(c => c.source_index!)}] : []),
         ...(data.reason ? [{section: "limitation" as const, text: data.reason, citations: []}] : [])

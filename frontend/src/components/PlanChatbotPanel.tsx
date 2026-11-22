@@ -38,6 +38,7 @@ interface Props {
   reader?: boolean;
   canSend?: boolean;
   readerNotice?: ReactNode;
+  rasterSource?: Blob;
   onSendMessage: (question: string) => Promise<boolean>;
   onClearChat: () => void;
   selectedEvidence: { message: string; index: number } | null;
@@ -58,6 +59,7 @@ export function PlanChatbotPanel({
   reader = false,
   canSend = true,
   readerNotice,
+  rasterSource,
   onSendMessage,
   onClearChat,
   selectedEvidence,
@@ -153,12 +155,12 @@ export function PlanChatbotPanel({
               like to know?
             </h3>
             <p>
-              {reader ? "Ask about the project title, a printed room area, labelled doors, or which rooms they connect." : "Ask about a detail, a dimension, or the whole drawing."}
+              {reader ? "Search for a printed label in English or German. Replace the words in quotes with text from your drawing." : "Ask about a detail, a dimension, or the whole drawing."}
             </p>
             <div className="suggestions">
               {(reader ? [
-                "What is the project title printed on this sheet?",
-                "How many distinct door marks are printed on this sheet?",
+                'Find the label "North Hall".',
+                'Wo steht „North Hall“?',
                 "Where is door D-01?",
               ] : [
                 "What is the drawing title?",
@@ -190,6 +192,7 @@ export function PlanChatbotPanel({
                 {message.result && (
                   <AnswerBriefing
                     result={message.result}
+                    rasterSource={rasterSource}
                     drawing={drawing}
                     messageId={message.id}
                     selectedEvidence={selectedEvidence}

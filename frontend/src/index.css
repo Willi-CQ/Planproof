@@ -405,6 +405,10 @@ h1 span {
 .public-sheets p { margin: 8px 0 0; }
 .reader-upload-note { font-size: 12px; line-height: 1.5; color: var(--ink); padding-bottom: 10px; }
 .reader-upload-note input { margin-right: 6px; accent-color: var(--accent); }
+.raster-evidence-detail { margin: 12px 0; }
+.raster-evidence-detail figcaption { margin-bottom: 4px; font-size: 12px; }
+.raster-evidence-detail canvas { display: block; max-width: 100%; height: auto; border: 1px solid #d5dbd3; }
+.reader-source-receipt { overflow-wrap: anywhere; }
 .page-total { color: var(--secondary); font-size: 12px; white-space: nowrap; }
 .upload-card:disabled {
   opacity: 0.8;

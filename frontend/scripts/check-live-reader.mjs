@@ -59,6 +59,43 @@ try {
     assert.ok(Math.abs(Number(await box.getAttribute(attribute)) - expected) < .01, "Source-coordinate " + attribute);
   }
   console.log("Synthetic native PDF returned 60 min with a matching evidence overlay.");
+  await page.getByRole("button", {name:"Planproof home"}).click();
+  const raster = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 5000;
+    canvas.height = 3500;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.font = "42px sans-serif";
+    ctx.fillText("North Hall", 240, 290);
+    const data = canvas.toDataURL("image/png").split(",")[1];
+    canvas.width = canvas.height = 1;
+    return data;
+  });
+  const nativeBytes = Buffer.from(raster, "base64");
+  assert.ok(nativeBytes.length < 4_000_000);
+  await page.getByLabel("Upload drawing", {exact:true}).setInputFiles({
+    name:"synthetic-label.png", mimeType:"image/png", buffer:nativeBytes,
+  });
+  await expect(page.getByText(/original 5000 × 3500 image/)).toBeVisible();
+  await page.getByRole("button", {name:'Wo steht „North Hall“?'}).click();
+  const [native] = await Promise.all([
+    page.waitForResponse(r => r.url() === origin + "/api/reader" && r.request().method() === "POST", {timeout:240_000}),
+    page.getByRole("button", {name:"Ask Planproof", exact:true}).click(),
+  ]);
+  assert.equal(native.status(), 200, "Native raster HTTP status");
+  const label = await native.json();
+  assert.equal(label.source_sha256, createHash("sha256").update(nativeBytes).digest("hex"));
+  assert.deepEqual([label.status, label.value, label.width, label.height, label.coordinates],
+    ["answered", "North Hall", 5000, 3500, "image_pixels"]);
+  const located = label.evidence.findIndex(e => e.bbox[0] < 350 && e.bbox[2] > 330 && e.bbox[1] < 285 && e.bbox[3] > 264);
+  assert.ok(located >= 0, "Reference overlaps the printed phrase in original pixel coordinates");
+  await page.getByRole("button", {name:`View evidence ${located+1}, page 1`, exact:true}).click();
+  await expect(page.getByTestId("evidence-box").first()).toHaveAttribute("x", String(label.evidence[located].bbox[0]));
+  await expect(page.getByRole("img", {name:"Selected evidence from original pixels"})).toBeVisible();
+  console.log("A German label question on a 17.5 MP original returned the printed phrase in its native frame.");
 } finally {
   await browser.close();
 }

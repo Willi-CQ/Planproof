@@ -36,9 +36,22 @@ release for rollbacks.
    reports `answered`, `partial` or `unresolved`. The HTTP status describes
    the request. The reader status describes the evidence for its answer.
 
-Files sent directly to the function are limited to 4,000,000 bytes, image
-inputs to 16 megapixels and questions to 2,000 characters. A browser may send
-a single page extracted from a larger PDF. Hashes identify the submitted file.
+Files sent directly to the function are limited to 4,000,000 bytes and
+questions to 2,000 characters. Read `max_image_pixels` from `GET /api/reader`
+for the deployed pixel limit. For a large PNG or JPEG inside the file and
+pixel limits, the browser sends the original bytes. Its on-screen preview
+can be smaller. A browser may send a single page extracted from a larger PDF.
+Hashes identify the submitted file.
+
+The current release accepts up to 150,000,000 pixels and 32,768 pixels per
+edge. On large raster sheets the CPU reader can look for printed labels in
+tiles at their original resolution. Coordinates refer to the uploaded image.
+A question such as `Wo steht „North Hall“?` looks for a literal printed
+label. Its citation points back to the image. The result includes OCR tile
+coverage for the search.
+A partial count represents verified sightings and may omit labels. Counting
+drawn physical objects can additionally require symbol recognition, detail
+selection and distinguishing repeated views of the same object.
 For coordinate conventions, supported questions and interpretation see the
 [reader guide](../tools/free_agent_room_qa/README.md).
 

@@ -8,10 +8,14 @@ from .openings import touches_scope
 from .reader import AREA,DOOR,ROOM_CODE,clean,evidence
 from .schedule import printed_property, CERTIFIED, MARK
 from .phrasing import alternative
+from .page_text import TEXT_OPS, compile_text, text_answer
 
 
 def compile_question(question):
     q=clean(question).strip(' ?.!')
+    literal = compile_text(q)
+    if literal is not None:
+        return literal
     floor=None
     if re.search(r'\s+(?:im erdgeschoss|on the ground floor)$',q,re.I):
         q=re.sub(r'\s+(?:im erdgeschoss|on the ground floor)$','',q,flags=re.I)
@@ -138,13 +142,17 @@ def answer_program(scene,program,arm='relations'):
     args=program.get('args',{}) if isinstance(program,dict) else {}
     result={key:scene[key] for key in ('page','width','height','coordinates','source_sha256')}
     result.update(program=program,status='unresolved',value=None,unit=None,evidence=[],calculation=None,reason='')
-    def emit(status='unresolved',value=None,items=(),calculation=None,reason='',unit=None):
+    def emit(status='unresolved',value=None,items=(),calculation=None,reason='',unit=None,reason_code=None):
         deduplicated={e['id']:e for e in items}
         if floor_anchor and status in ('answered','partial'):
             deduplicated[floor_anchor['id']]=floor_anchor
         result.update(status=status,value=value,unit=unit,evidence=list(deduplicated.values()),calculation=calculation,reason=reason)
+        if reason_code or status == 'unresolved':
+            result['reason_code'] = reason_code or 'missing_evidence'
         return result
     floor_anchor=None
+    if isinstance(op,str) and op in TEXT_OPS:
+        return emit(**text_answer(scene,program))
     if isinstance(program,dict) and 'floor' in program:
         titles=[(i,line) for i,line in enumerate(scene['lines']) if re.fullmatch(
             r'(?:(?:floor plan|grundriss)\s*[-:]?\s*)?(?:ground floor|erdgeschoss|rez-de-chaussée)(?:\s*[-:]?\s*(?:floor plan|grundriss))?',
@@ -156,7 +164,7 @@ def answer_program(scene,program,arm='relations'):
     expected={'count_marks':set(),'project_title':set(),'printed_area':{'room'},'room_door_count':{'room'},
               'locate_mark':{'mark'},'fire_rating':{'mark'},'as_built_width':{'mark'},'adjacent_doors':{'rooms'}}
     if not isinstance(op,str) or op not in expected or not isinstance(args,dict) or set(args)!=expected[op]:
-        return emit(reason='Unsupported or incomplete question program.')
+        return emit(reason_code='unsupported_question', reason='The reader has no operation for this question. To inspect printed text, try Find the label "..." with a phrase from the sheet.')
     if 'rooms' in args and (not isinstance(args['rooms'],list) or len(args['rooms'])!=2 or
                             any(not isinstance(s,str) or not s.strip() for s in args['rooms'])):
         return emit(reason='Two distinct named rooms are required.')

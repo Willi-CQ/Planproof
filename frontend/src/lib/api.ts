@@ -20,6 +20,9 @@ export interface Citation {
 }
 export interface AgentResult {
   status: string;
+  reader_reason?: string;
+  reader_input?: {representation: "original" | "page" | "image"; sha256: string; page: number;
+    width: number; height: number; coordinates: string};
   answer?: {
     status: string;
     answer: number | string | null;
@@ -143,6 +146,8 @@ export function isAnswered(result: AgentResult): boolean {
   );
 }
 export function resultText(result: AgentResult): string {
+  if (result.answer?.status === "partial" && result.reader_reason === "incomplete_coverage"
+      && typeof result.answer.answer === "number") return `At least ${result.answer.answer}`;
   if (result.answer?.status === "partial" && result.answer.answer !== null)
     return `${result.answer.answer}${result.answer.unit ? " " + result.answer.unit : ""}`;
   if (isAnswered(result))
@@ -151,6 +156,18 @@ export function resultText(result: AgentResult): string {
     return "Planproof isn’t available right now.";
   if (result.status === "not_authorized")
     return "Planproof couldn’t start this question.";
+  if (result.answer?.status === "abstain" && result.reader_reason) {
+    const reasons: Record<string, string> = {
+      unsupported_question: "This question needs a different reading method",
+      visual_count_required: "This count needs visual verification",
+      geometry_on_large_raster: "This question needs a geometric reading",
+      text_not_found: "No matching label found in the text read",
+      no_readable_text: "The reader could not extract legible text",
+      scope_unverified: "The requested area could not be verified",
+      ocr_budget_exhausted: "The scan stopped before it covered the sheet",
+    };
+    if (reasons[result.reader_reason]) return reasons[result.reader_reason];
+  }
   if (result.answer?.status === "abstain")
     return result.completion_reason === "clarification_needed" ? "Which area do you mean?"
       : result.completion_reason === "inspection_incomplete" || result.reliability?.recovery_used

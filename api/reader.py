@@ -5,6 +5,7 @@ from functools import lru_cache
 from hashlib import sha256
 from http.server import BaseHTTPRequestHandler
 from io import BytesIO
+from contextlib import contextmanager
 import json
 import logging
 import math
@@ -12,6 +13,7 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Lock
+import warnings
 
 # Limit per-request native threads. Reader extraction uses PyMuPDF, which requires
 # serialized access inside a single process (Fluid Compute can serve concurrently).
@@ -22,7 +24,9 @@ ASSETS = ROOT / "planproof_runtime"
 MODEL = ROOT / "models" / "sheet-doors-v1"
 MAX_FILE = 4_000_000
 MAX_BODY = 4_350_000
-MAX_PIXELS = 16_000_000
+MAX_PIXELS = 150_000_000
+MAX_EDGE = 32_768
+FULL_SCENE_PIXELS = 16_000_000
 MAX_QUESTION = 2_000
 WEIGHTS_SHA256 = "96a60af10bcde11b02f8422b7b8ef4b6a6022524ef478c0dc5ee6f3b3600a4f8"
 TESSDATA_SHA256 = "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
@@ -56,7 +60,9 @@ def capabilities():
                 if revision.is_file() else "development", reader="PlanProof",
                 formats=["pdf", "png", "jpeg"], native_pdf=True, ocr="tesseract-eng",
                 detector="eteks-door-numpy-fp32", weights_sha256=WEIGHTS_SHA256,
-                max_file_bytes=MAX_FILE, max_image_pixels=MAX_PIXELS, max_question_chars=MAX_QUESTION)
+                max_file_bytes=MAX_FILE, max_image_pixels=MAX_PIXELS, max_image_edge=MAX_EDGE,
+                max_geometry_pixels=FULL_SCENE_PIXELS, native_raster_text=True,
+                max_question_chars=MAX_QUESTION)
 
 
 def parse_upload(content_type, body):
@@ -98,6 +104,15 @@ def parse_upload(content_type, body):
     return data, page, question
 
 
+def open_raster(data):
+    from PIL import Image
+    # Pillow's default warning threshold is lower than our 150 MP budget.
+    # Keep its hard decompression limit and enforce our own dimensions below.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+        return Image.open(BytesIO(data), formats=["JPEG", "PNG"])
+
+
 def check_file(data, page):
     import pymupdf
     from PIL import Image, UnidentifiedImageError
@@ -111,41 +126,93 @@ def check_file(data, page):
                 rect = doc[page - 1].rect
                 if rect.is_empty or rect.is_infinite or not all(math.isfinite(v) for v in rect):
                     raise InputError(422, "The selected PDF page has invalid dimensions.")
-                return ".pdf", len(doc)
+                return ".pdf", len(doc), (rect.width, rect.height)
         except (RuntimeError, ValueError) as exc:
             raise InputError(422, "The PDF could not be opened.") from exc
     if not data.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff")):
         raise InputError(415, "Choose a PDF, PNG or JPEG drawing.")
     try:
-        with Image.open(BytesIO(data), formats=["JPEG", "PNG"]) as image:
-            if image.width * image.height > MAX_PIXELS:
-                raise InputError(413, "This image exceeds 16 megapixels.")
+        with open_raster(data) as image:
+            if image.width * image.height > MAX_PIXELS or max(image.size) > MAX_EDGE:
+                raise InputError(413, "This image exceeds 150 megapixels or the 32,768-pixel edge limit.")
             if page != 1:
                 raise InputError(422, "An image contains one page.")
             suffix = ".png" if image.format == "PNG" else ".jpg"
-            image.load()
+            size = image.size
+            if image.width * image.height > FULL_SCENE_PIXELS:
+                image.verify()
+            else:
+                image.load()
     except Image.DecompressionBombError as exc:
-        raise InputError(413, "This image exceeds 16 megapixels.") from exc
+        raise InputError(413, "This image exceeds 150 megapixels.") from exc
     except (OSError, ValueError, UnidentifiedImageError) as exc:
         raise InputError(422, "The drawing image could not be opened.") from exc
-    return suffix, 1
+    return suffix, 1, size
+
+
+@contextmanager
+def reader_slot():
+    if not READ_LOCK.acquire(timeout=5):
+        raise InputError(503, "The reader is processing another drawing. Retry in a moment.")
+    try:
+        yield
+    finally:
+        READ_LOCK.release()
+
+
+def read_raster_text(data):
+    from planproof_runtime.native_raster import read_native
+    with open_raster(data) as image:
+        try:
+            image.load()
+        except (OSError, ValueError) as exc:
+            raise InputError(422, "The drawing image could not be decoded.") from exc
+        return read_native(image, sha256(data).hexdigest())
 
 
 def read_drawing(data, page, question):
-    from tools.free_agent_room_qa import answer, build_scene
+    from planproof_runtime.native_raster import empty_scene
+    from tools.free_agent_room_qa import answer_program, build_scene, compile_question
+    from tools.free_agent_room_qa.page_text import TEXT_OPS
     from tools.free_agent_room_qa.raster_tags import templates
-    with READ_LOCK:
+    with reader_slot():
         capabilities()
-        suffix, count = check_file(data, page)
-        with TemporaryDirectory(prefix="planproof-") as folder:
-            path = Path(folder) / ("drawing" + suffix)
-            path.write_bytes(data)
-            try:
-                scene = build_scene(path, page)
-                result = answer(scene, question)
-            finally:
-                # These glyph templates are keyed by text from the uploaded page.
-                templates.cache_clear()
+        suffix, count, size = check_file(data, page)
+        program = compile_question(question)
+        op = program["op"]
+        large = suffix != ".pdf" and size[0] * size[1] > FULL_SCENE_PIXELS
+        large_geometry = large and op in {"adjacent_doors", "room_door_count"}
+        if op == "unsupported" or large_geometry:
+            scene = empty_scene(sha256(data).hexdigest(), page, size, pdf=suffix == ".pdf")
+        elif suffix != ".pdf" and (large or op in TEXT_OPS):
+            scene = read_raster_text(data)
+        else:
+            with TemporaryDirectory(prefix="planproof-") as folder:
+                path = Path(folder) / ("drawing" + suffix)
+                path.write_bytes(data)
+                try:
+                    scene = build_scene(path, page)
+                finally:
+                    # These glyph templates are keyed by text from the uploaded page.
+                    templates.cache_clear()
+        result = answer_program(scene, program)
+        if op == "unsupported":
+            result.setdefault("reason_code", "unsupported_question")
+        if large_geometry:
+            result.update(reason_code="geometry_on_large_raster",
+                          reason="This large image supports native-resolution text reading. "
+                                 "Confirming room connections requires physical opening geometry.")
+        coverage = scene.get("raster_coverage")
+        if coverage:
+            result["raster_coverage"] = coverage
+            evidence_missing = result["status"] == "unresolved" and result.get("reason_code") not in {
+                "visual_count_required", "scope_unverified", "unsupported_question"}
+            if evidence_missing and (coverage["deadline_reached"] or coverage["tiles_timed_out"]
+                                     or coverage["line_limit_reached"]):
+                result.update(reason_code="ocr_budget_exhausted",
+                              reason="The reader could not verify the requested answer within the native OCR coverage budget.")
+            elif evidence_missing and not scene["lines"]:
+                result.update(reason_code="no_readable_text", reason="Native OCR found no legible text on this page.")
     return {**result, "page_count": count, "reader": scene["reader"]}
 
 
