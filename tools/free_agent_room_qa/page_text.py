@@ -88,6 +88,9 @@ def compile_text(question):
     # retaining that missing step, including qualifiers such as legend exclusions or plan views.
     if not re.match(COUNT + r'\b', form, re.I):
         return None
+    if re.search(r'\b(?:should|must|required|can we|can i|need to|remove[ds]?|demolish(?:ed)?|'
+                 r'muss|müssen|soll(?:en|te|ten)?|darf|dürfen|entfernen|abreißen)\b', form, re.I):
+        return None
     if re.match(COUNT + r' (?:(?:separate|distinct|individual|steel|different|separaten?|'
                 r'verschiedene[nr]?|einzelnen?) )*(?:stairs?|staircases?|stairways?|stairwells?|'
                 r'(?:stahl)?treppen(?:häuser|kerne|läufe|standorte)?)\b', form, re.I):
@@ -198,7 +201,7 @@ def _hits(runs, args, op):
 def text_answer(scene, program):
     op, args = program['op'], program.get('args')
     error = {'reason_code':'unsupported_question', 'reason':'A literal sheet label or identifier prefix is required.'}
-    if not isinstance(args, dict):
+    if not isinstance(args, dict) or set(program) - {'op', 'args', 'scope_title'}:
         return error
     if op in ('locate_text', 'count_text', 'count_room_labels'):
         if set(args) != {'text'} or not valid_literal(args['text']):

@@ -86,6 +86,7 @@ def test_unseen_term_and_unresolved_object_scope_never_imply_zero():
 
 def test_semantic_constraints_and_invalid_programs_fail_closed():
     assert compile_question('How many doors directly connect to STAIRS?')['op'] == 'room_door_count'
+    assert compile_question('How many stairs should we remove?')['op'] == 'unsupported'
     assert compile_question('Is "North Hall" safe for a 50-tonne machine?')['op'] == 'unsupported'
     assert compile_question('How many rooms are labeled "North Hall" except on the second floor?')['op'] == 'unsupported'
     data = scene()
