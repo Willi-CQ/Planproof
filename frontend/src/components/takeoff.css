@@ -7,14 +7,16 @@
   gap: 6px;
 }
 .plan-view-modes .view-mode-button { position: static; }
+.drawing-viewer.is-in-takeoff { display: flex; flex-direction: column; }
+.drawing-viewer.is-in-takeoff .plan-viewport { flex: 1; min-height: 0; height: auto; padding-top: 7px; }
 .takeoff-tools {
-  position: absolute;
+  position: relative;
   z-index: 4;
-  top: 12px;
-  left: 50%;
+  flex: 0 0 auto;
+  align-self: center;
   width: max-content;
   max-width: calc(100% - 20px);
-  transform: translateX(-50%);
+  margin: 8px 0 1px;
   border: 1px solid #ccdbcf;
   border-radius: 12px;
   padding: 5px;
@@ -122,7 +124,7 @@
   .plan-view-modes { top: 8px; right: 8px; }
   .plan-view-modes:has(button + button) + .spatial-view .spatial-top button span { display: none; }
   .plan-view-modes:has(button + button) + .spatial-view .spatial-top button { min-width: 35px; }
-  .takeoff-tools { top: 8px; max-width: calc(100% - 12px); }
+  .takeoff-tools { max-width: calc(100% - 12px); }
   .takeoff-tools button { padding-inline: 6px; }
   .takeoff-tools-row { justify-content: center; }
   .takeoff-tools-done span { display: none; }

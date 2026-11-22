@@ -99,7 +99,10 @@ test("takeoff stays bound to the PDF page on a phone",async({browser})=>{
   await page.getByRole("button",{name:"Show drawing",exact:true}).click();
   await page.getByRole("button",{name:"Measure",exact:true}).click();
   await page.getByRole("button",{name:"Count",exact:true}).click();
-  await tapSource(page,.4,.52);
+  const tools=await page.locator(".takeoff-tools").boundingBox();
+  const source=await page.getByTestId("source-image").boundingBox();
+  expect(tools!.y+tools!.height).toBeLessThan(source!.y);
+  await page.touchscreen.tap(source!.x+source!.width*.4,source!.y+source!.height*.52);
   await page.getByRole("button",{name:"Save measurement"}).click();
   await page.getByRole("button",{name:"Show takeoff",exact:true}).click();
   await expect(page.getByRole("button",{name:"Show Count 1 on plan"})).toContainText("1 pcs");

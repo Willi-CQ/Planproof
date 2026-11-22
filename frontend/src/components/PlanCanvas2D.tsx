@@ -160,7 +160,7 @@ export function PlanCanvas2D({
     else takeoff?.addPoint([x,y]);
   }
   return (
-    <section className="drawing-viewer" aria-label="Drawing viewer">
+    <section className={`drawing-viewer ${takeoff ? "is-in-takeoff" : ""}`} aria-label="Drawing viewer">
       {roomPick && <div className="room-pick-banner" data-testid="room-picker">
         <span role="status">{roomPick.german ? "Klick in die freie Bodenfläche des Flurs oder Raums." :
           "Click an open spot inside the hallway or room."}</span>
