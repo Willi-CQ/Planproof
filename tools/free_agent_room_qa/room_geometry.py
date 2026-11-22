@@ -221,7 +221,9 @@ def read_scale(image, bars, *, labels_above=False):
         zoom = min(4, max(1, math.ceil(85 / chip.height)))
         chip = chip.resize((chip.width*zoom,chip.height*zoom), Image.Resampling.LANCZOS)
         try:
-            tsv = ocr.read_tsv(chip, 7, 2, {"tessedit_char_whitelist":"0123456789.,mft'′ ",
+            # Labels above a segmented scale can be hundreds of pixels apart.
+            # Sparse-text recognition reads them individually across the bar.
+            tsv = ocr.read_tsv(chip, 11 if labels_above else 7, 2, {"tessedit_char_whitelist":"0123456789.,mft'′ ",
                                             "preserve_interword_spaces":"1"})
         except (OSError, subprocess.TimeoutExpired):
             continue
