@@ -71,8 +71,8 @@ export function AnswerBriefing({ result, drawing, messageId, selectedEvidence, o
       </aside>}
       </div>
     </details>}
-    {!needsRoom && !resolved && result.answer?.status !== "partial" && !result.answer?.clarification_question && <p className="answer-help">{result.reader_reason === "unsupported_question" || result.reader_reason === "visual_count_required" || result.reader_reason === "geometry_on_large_raster"
-      ? 'For a floor area, try “Show me the hallway and tell me how big it is.” Use the room name or ID shown on your plan.'
+    {!needsRoom && !resolved && result.answer?.status !== "partial" && !result.answer?.clarification_question && <p className="answer-help">{result.reader_reason === "unsupported_question"
+      ? 'Which feature should I locate, and what would you like to know about it?'
       : result.reliability?.retry_after_seconds ? `Please wait ${result.reliability.retry_after_seconds} seconds before trying again.` : result.completion_reason === "inspection_incomplete" ? "The inspection did not establish a complete answer. This does not mean the drawing lacks the information." : "A clearer detail or a more specific question may help resolve this."}</p>}
     {!!detections.length && <section className="detection-evidence" aria-label="Detected features in the source">
       <h3>On the drawing <span>{detections.length}</span></h3>

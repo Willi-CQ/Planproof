@@ -56,7 +56,11 @@ def compile_room_question(question):
     q = re.sub(r"[?!., ]+$", "", q)
     ft = re.search(r"\b(?:square feet|sq\.? ft|ft2)\b", q)
     q = re.sub(r"[, ]+in (?:square (?:metres|meters|feet)|quadratmetern|m2|sq\.? ft|ft2)$", "", q)
-    q = re.sub(r" (?:on (?:the|this) (?:sheet|plan|drawing)|im (?:plan|grundriss))$", "", q)
+    # A reference to the displayed sheet can qualify either clause of a request.
+    q = re.sub(r"\b(?:(?:in|on) (?:this|the) (?:drawing|sheet|floor plan|plan)|"
+               r"(?:in|auf) (?:diesem|dem|dieser|der) (?:plan|blatt|grundriss|zeichnung)|"
+               r"im (?:plan|grundriss))\b", " ", q)
+    q = " ".join(q.split()).strip(" ,")
     q = re.sub(r"\s*(?:,?\s+(?:and|und)\s+|,\s*)(?:tell me|sag(?:e)? mir)\s*,?\s*", ", ", q)
     parts = re.split(r"\s*(?:[,;?]|\band\b|\bund\b)\s*", q)
     locate = LOCATE.fullmatch(parts[0])

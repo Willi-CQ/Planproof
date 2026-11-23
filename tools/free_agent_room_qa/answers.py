@@ -169,7 +169,7 @@ def answer_program(scene,program,arm='relations'):
     expected={'count_marks':set(),'project_title':set(),'printed_area':{'room'},'room_door_count':{'room'},
               'locate_mark':{'mark'},'fire_rating':{'mark'},'as_built_width':{'mark'},'adjacent_doors':{'rooms'}}
     if not isinstance(op,str) or op not in expected or not isinstance(args,dict) or set(args)!=expected[op]:
-        return emit(reason_code='unsupported_question', reason='The reader has no operation for this question. To inspect printed text, try Find the label "..." with a phrase from the sheet.')
+        return emit(reason_code='unsupported_question', reason='I could not identify which drawing operation to use for this request.')
     if 'rooms' in args and (not isinstance(args['rooms'],list) or len(args['rooms'])!=2 or
                             any(not isinstance(s,str) or not s.strip() for s in args['rooms'])):
         return emit(reason='Two distinct named rooms are required.')

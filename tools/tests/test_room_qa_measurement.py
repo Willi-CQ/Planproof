@@ -12,6 +12,9 @@ ANCHOR = {"id":"hall", "bbox":[510,494,613,513]}
 
 @pytest.mark.parametrize("q", [
     "mark me the hallway, how big is it?",
+    "mark me the hallway in the drawing, tell me how large it is",
+    "Show me the kitchen on this sheet and tell me how big it is.",
+    "Markiere das Büro auf dieser Zeichnung und sag mir, wie groß es ist.",
     "Show me the hallway and tell me how big it is.",
     "What's the area of the corridor?",
     "Markiere den Flur und sag mir, wie groß er ist.",
@@ -27,6 +30,7 @@ def test_location_and_boundaries():
     assert compile_question('Find the label "hallway".')["op"] == "locate_text"
     assert compile_question("How much does the hallway cost?")["op"] == "unsupported"
     assert compile_question("Mark the hallway and measure the bedroom.")["op"] == "unsupported"
+    assert compile_question("Mark the hallway in the basement, tell me how large it is.")["op"] == "unsupported"
 
 
 def test_pixels_drive_outline_and_scale_candidates():

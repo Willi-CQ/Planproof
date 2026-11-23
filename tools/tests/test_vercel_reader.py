@@ -93,7 +93,7 @@ def test_hallway_natural_request_returns_outline_and_scale(server):
     sample = Path(__file__).resolve().parents[2] / "frontend/src/assets/plan-sample.png"
     data = sample.read_bytes()
     for question in (
-        "mark me the hallway, how big is it?",
+        "mark me the hallway in the drawing, tell me how large it is",
         "Markiere den Flur und sag mir, wie groß er ist.",
     ):
         status, result = post(server, data, question)
